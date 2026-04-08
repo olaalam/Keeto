@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useAuthStore from "@/store/useAuthStore";
-import { usePostData } from "@/hooks/usePostData";
+import { usePost } from "@/hooks/usePost";
 import login from "../assets/login.png";
 
 const LoginPage = () => {
@@ -14,7 +14,7 @@ const LoginPage = () => {
     const navigate = useNavigate();
 
     // استخدام الهوك الـ Global اللي عملناه
-    const { mutate, isPending } = usePostData("/login");
+    const { mutate, isPending } = usePost("/login");
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -55,7 +55,7 @@ const LoginPage = () => {
                 <div className="w-full max-w-[400px] space-y-10">
                     {/* الـ Logo والعنوان */}
                     <div className="text-center">
-                        <h2 className="text-5xl font-black text-[#F4A100] tracking-tight">Keeto</h2>
+                        <h2 className="text-5xl font-black text-primary tracking-tight">Keeto</h2>
                         <p className="mt-6 text-2xl font-bold text-gray-800">
                             Signin To Your Restaurant Panel
                         </p>
@@ -71,7 +71,7 @@ const LoginPage = () => {
                                 type="email"
                                 placeholder="Enter your email"
                                 required
-                                className="h-14 border-gray-200 focus-visible:ring-[#F4A100]"
+                                className="h-14 border-gray-200 focus-visible:ring-primary"
                             />
                         </div>
 
@@ -100,7 +100,7 @@ const LoginPage = () => {
                         <Button
                             type="submit"
                             disabled={isPending}
-                            className="h-14 w-full bg-[#F4A100] text-lg font-bold text-white hover:bg-[#d98f00] shadow-lg shadow-orange-200 transition-all active:scale-[0.98]"
+                            className="h-14 w-full bg-primary text-lg font-bold text-white hover:bg-primary/80 shadow-lg shadow-orange-200 transition-all active:scale-[0.98]"
                         >
                             {isPending ? "Signing in..." : "Sign in"}
                         </Button>
