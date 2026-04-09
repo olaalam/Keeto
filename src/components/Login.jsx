@@ -4,17 +4,15 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import useAuthStore from "@/store/useAuthStore";
-import { usePost } from "@/hooks/usePost";
 import login from "../assets/login.png";
+import { useLogin } from "@/hooks/useLogin";
 
 const LoginPage = () => {
     const [showPassword, setShowPassword] = useState(false);
-    const loginAction = useAuthStore((state) => state.login);
     const navigate = useNavigate();
 
     // استخدام الهوك الـ Global اللي عملناه
-    const { mutate, isPending } = usePost("/login");
+    const { mutate, isPending } = useLogin();
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -22,8 +20,8 @@ const LoginPage = () => {
         const data = Object.fromEntries(formData);
 
         mutate(data, {
-            onSuccess: (res) => {
-                loginAction(res.user, res.token);
+            onSuccess: () => {
+                // The store update and toast are already handled inside useLogin!
                 navigate("/dashboard");
             },
         });
