@@ -1,10 +1,11 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { TooltipProvider } from "@/components/ui/tooltip" // استيراد التول تيب بروفايدر
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppSidebar } from "./AppSidebar"
+import { Outlet } from "react-router-dom"; // استيراد الـ Outlet
 
-export default function DashboardLayout({ children }) {
+export default function Layout() { // أزلنا children لأن الـ Outlet سيحل محلها
     return (
-        <TooltipProvider delayDuration={0}> {/* غلف الكل هنا */}
+        <TooltipProvider delayDuration={0}>
             <SidebarProvider>
                 <AppSidebar />
                 <main className="w-full">
@@ -12,7 +13,8 @@ export default function DashboardLayout({ children }) {
                         <SidebarTrigger />
                     </div>
                     <div className="p-6">
-                        {children}
+                        {/* هنا سيتم عرض الصفحات مثل Admin و AdminAdd */}
+                        <Outlet />
                     </div>
                 </main>
             </SidebarProvider>

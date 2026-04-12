@@ -22,7 +22,7 @@ const LoginPage = () => {
         mutate(data, {
             onSuccess: () => {
                 // The store update and toast are already handled inside useLogin!
-                navigate("/dashboard");
+                navigate("/");
             },
         });
     };

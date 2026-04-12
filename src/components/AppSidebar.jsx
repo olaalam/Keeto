@@ -23,6 +23,9 @@ import useAuthStore from "@/store/useAuthStore"
 const items = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Admins", url: "/admins", icon: Users },
+    { title: "Countries", url: "/countries", icon: Users },
+    { title: "Cities", url: "/cities", icon: Users },
+    { title: "Zones", url: "/zones", icon: Users },
     { title: "Restaurants", url: "/restaurants", icon: UtensilsCrossed },
     { title: "Settings", url: "/settings", icon: Settings },
 ]
@@ -63,19 +66,25 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
-
-            <SidebarFooter className="flex items-center justify-center p-4">
-                <button
-                    onClick={setLogout}
-                    className="flex items-center gap-3 md:px-3 md:py-2 sm:px-1 sm:py-1 text-sm font-medium text-red-500 hover:bg-red-50 rounded-md transition-colors w-full"
-                >
-                    <LogOut size={20} />
-                    {open ? (
-                        <span>Logout</span>
-                    ) : (
-                        <span className="text-2xl font-black text-primary transition-all">L</span>
-                    )}
-                </button>
+            <SidebarFooter className="p-2">
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            tooltip="Logout"
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <button
+                                onClick={setLogout}
+                                className="flex items-center w-full"
+                            >
+                                <LogOut size={20} className="shrink-0" />
+                                {/* لن يظهر النص إلا إذا كان الـ Sidebar مفتوحاً، مما يمنع خروج الحرف عن الإطار */}
+                                {open && <span className="ml-3 font-medium">Logout</span>}
+                            </button>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
             </SidebarFooter>
         </Sidebar>
     )
