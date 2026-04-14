@@ -26,7 +26,13 @@ const items = [
     { title: "Countries", url: "/countries", icon: Users },
     { title: "Cities", url: "/cities", icon: Users },
     { title: "Zones", url: "/zones", icon: Users },
+    { title: "Categories", url: "/categories", icon: Users },
+    { title: "SubCategories", url: "/sub-categories", icon: Users },
     { title: "Restaurants", url: "/restaurants", icon: UtensilsCrossed },
+    { title: "Addon Categories", url: "/addons-categories", icon: UtensilsCrossed },
+    { title: "Addons", url: "/addons", icon: UtensilsCrossed },
+    { title: "Delivery Zones", url: "/delivery-zones", icon: UtensilsCrossed },
+    { title: "Foods", url: "/foods", icon: UtensilsCrossed },
     { title: "Settings", url: "/settings", icon: Settings },
 ]
 

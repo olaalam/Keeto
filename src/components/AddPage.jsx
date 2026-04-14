@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 const AddPage = ({
     title,
@@ -18,20 +19,21 @@ const AddPage = ({
     // شيلنا الـ control من الـ props لأنه بيتم تعريفه بالأسفل
     fields = [],
     initialData,
-    onSuccessAction
+    onSuccessAction,
+    children
 }) => {
     const isEdit = !!initialData?.id;
-
+    const formMethods = useForm(); // استخدام useForm بالكامل
+    const { control, handleSubmit, register, reset, formState: { errors, dirtyFields } } = formMethods;
     const postMutation = usePost(apiUrl, 'post', queryKey);
     const updateMutation = useUpdate(apiUrl, queryKey);
+    const toBase64 = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
 
-    const {
-        register,
-        handleSubmit,
-        reset,
-        control, // 1. استخراج الـ control من useForm المحلية هنا
-        formState: { errors, dirtyFields }
-    } = useForm();
 
     useEffect(() => {
         if (initialData) {
@@ -108,6 +110,54 @@ const AddPage = ({
                                             </Select>
                                         )}
                                     />
+                                ) : field.type === 'file' ? (
+                                    <Controller
+                                        name={field.name}
+                                        control={control}
+                                        rules={{ required: isEdit ? false : field.required }} // في التعديل غالباً الصورة ليست إجبارية
+                                        render={({ field: { onChange, value } }) => (
+                                            <div className="space-y-3">
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                            const base64 = await toBase64(file);
+                                                            onChange(base64); // تحديث القيمة بـ Base64 الجديد
+                                                        }
+                                                    }}
+                                                    className={errors[field.name] ? "border-destructive" : ""}
+                                                />
+
+                                                {/* الجزء الخاص بعرض الصورة */}
+                                                {value && (
+                                                    <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
+                                                        <img
+                                                            src={value} // هنا سيقرأ الـ Base64 المباشر سواء قديم أو جديد
+                                                            alt="Preview"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <div className="absolute top-0 right-0 bg-primary text-white text-[10px] px-2 py-1">
+                                                            Current
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    />
+                                ) : field.type === 'switch' ? (
+                                    <Controller
+                                        name={field.name}
+                                        control={control}
+                                        defaultValue={false}
+                                        render={({ field: { onChange, value } }) => (
+                                            <Switch
+                                                checked={value}
+                                                onCheckedChange={onChange}
+                                            />
+                                        )}
+                                    />
                                 ) : (
                                     <Input
                                         id={field.name}
@@ -116,9 +166,17 @@ const AddPage = ({
                                         className={errors[field.name] ? "border-destructive" : ""}
                                     />
                                 )}
+
                                 {errors[field.name] && <p className="text-destructive text-xs">Required</p>}
                             </div>
                         ))}
+                        {children && (
+                            <div className="col-span-full">
+                                {typeof children === 'function'
+                                    ? children(formMethods)
+                                    : children}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-end gap-4 pt-4 border-t">

@@ -52,7 +52,7 @@ const MapComponent = ({
         return null;
     };
     return (
-        <div className="rounded-2xl overflow-hidden shadow-lg h-[600px]">
+        <div className="rounded-2xl overflow-hidden shadow-lg h-[400px]">
             {selectedLocation.lat && selectedLocation.lng ? (
                 <MapContainer
                     center={selectedLocation}
