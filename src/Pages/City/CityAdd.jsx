@@ -41,6 +41,7 @@ const CityAdd = () => {
             countryId: rawData.countryId || rawData.country?.id
         };
     }, [rawData]);
+    console.log("Initial Data sent to AddPage:", initialData);
 
     const cityFields = [
         { name: 'name', label: 'name', required: true },
@@ -50,10 +51,13 @@ const CityAdd = () => {
             required: true,
             type: 'select',
             // التأكد من أن الـ options بتستخدم الـ id والـ name الصح
-            options: countries.map(c => ({ value: c.id, label: c.name }))
+            options: countries.map(c => ({
+                value: String(c.id), // تحويل لـ String للضمان
+                label: c.name
+            }))
         },];
 
-    if (id && isFetching) return <LoadingSpinner />;
+    if ((id && isFetching) || isLoading) return <LoadingSpinner />;
 
     return (
         <AddPage

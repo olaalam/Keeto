@@ -1,11 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/api/axios';
 import GenericDataTable from '@/components/GenericDataTable';
 import { useNavigate } from 'react-router-dom';
+import { Eye } from 'lucide-react';
+import FoodListDialog from './FoodListDialog';
 
 export default function Restaurant() {
     const navigate = useNavigate();
+    const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const openFoodDialog = (restaurantId) => {
+        setSelectedRestaurant(restaurantId);
+        setIsDialogOpen(true);
+    };
 
     const { data: restaurants = [], isLoading } = useQuery({
         queryKey: ['restaurants'],
@@ -18,6 +27,18 @@ export default function Restaurant() {
 
     const columns = [
         {
+            accessorKey: "name",
+            header: "Restaurant Name",
+            cell: ({ row }) => (
+                <button
+                    onClick={() => navigate(`/restaurants/setting/${row.original.id}`)}
+                    className="text-blue-600 hover:underline font-medium text-left"
+                >
+                    {row.getValue("name")}
+                </button>
+            )
+        },
+        {
             accessorKey: "logo",
             header: "Logo",
             cell: ({ row }) => (
@@ -26,9 +47,22 @@ export default function Restaurant() {
                 </div>
             )
         },
-        { accessorKey: "name", header: "Restaurant Name" },
+
         { accessorKey: "ownerPhone", header: "Phone" },
-        { accessorKey: "zone.name", header: "Zone" }, // لو الـ API بيرجع الـ Zone كـ Object
+        { accessorKey: "zone.name", header: "Zone" },
+        {
+            accessorKey: "view_food",
+            header: "Food Menu",
+            cell: ({ row }) => (
+                <button
+                    onClick={() => openFoodDialog(row.original.id)}
+                    className="flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-600 rounded-md hover:bg-orange-200 transition-colors"
+                >
+                    <Eye size={16} />
+                    View Food
+                </button>
+            )
+        },
         {
             accessorKey: "status",
             header: "Status",
@@ -52,6 +86,13 @@ export default function Restaurant() {
                 onAdd={() => navigate("/restaurants/add")}
                 onEdit={(restaurant) => navigate(`/restaurants/edit/${restaurant.id}`)}
             />
+            {isDialogOpen && (
+                <FoodListDialog
+                    restaurantId={selectedRestaurant}
+                    isOpen={isDialogOpen}
+                    onClose={() => setIsDialogOpen(false)}
+                />
+            )}
         </div>
     );
 }

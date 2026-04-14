@@ -13,7 +13,10 @@ const DeliveryZoneAdd = () => {
         queryKey: ['DeliveryZone'],
         queryFn: async () => {
             const res = await api.get('/api/superadmin/zone-delivery-fees/all');
-            return res.data.data; // بناءً على هيكل الـ Response الخاص بكِ
+            // تأكد هنا: هل هي res.data.data أم res.data.data.data؟
+            // حسب الصورة، res.data هي الكائن اللي فيه success و data
+            // إذن res.data.data هي المصفوفة
+            return Array.isArray(res.data.data.data) ? res.data.data.data : [];
         }
     });
 
@@ -23,8 +26,8 @@ const DeliveryZoneAdd = () => {
         queryKey: ['DeliveryZone', id],
         queryFn: async () => {
             const { data } = await api.get(`/api/superadmin/zone-delivery-fees/${id}`);
-            console.log(data.data);
-            return data.data;
+            console.log(data.data.data);
+            return data.data.data;
         },
         enabled: !!id && !state?.zoneDeliveryData, // لا يتم التفعيل إلا لو فيه id ومافيش بيانات جاهزة
     });
@@ -47,24 +50,29 @@ const DeliveryZoneAdd = () => {
     const zoneDeliveryFields = [
         {
             name: 'fromZoneId',
-            label: 'fromZoneId',
+            label: 'From Zone',
             required: true,
             type: 'select',
-            // التأكد من أن الـ options بتستخدم الـ id والـ name الصح
-            options: DeliveryZone.map(c => ({ value: c.id, label: c.name }))
+            // أضفنا علامة الاستفهام أو المصفوفة الفارغة كحماية
+            options: DeliveryZone.map(c => ({
+                value: String(c.id),
+                label: c.name // تأكد أن السيرفر يرسل 'name' وليس 'displayName' كما في الصورة
+            }))
         },
         {
             name: 'toZoneId',
-            label: 'toZoneId',
+            label: 'To Zone',
             required: true,
             type: 'select',
-            // التأكد من أن الـ options بتستخدم الـ id والـ name الصح
-            options: DeliveryZone.map(c => ({ value: c.id, label: c.name }))
+            options: (Array.isArray(DeliveryZone) ? DeliveryZone : []).map(c => ({
+                value: String(c.id),
+                label: c.name
+            }))
         },
-        { name: 'fee', label: 'fee', required: true },
+        { name: 'fee', label: 'Fee', required: true, type: 'number' },
     ];
 
-    if (id && isFetching) return <LoadingSpinner />;
+    if (isLoading || (id && isFetching)) return <LoadingSpinner />;
 
     return (
         <AddPage

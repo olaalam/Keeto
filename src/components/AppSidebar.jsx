@@ -2,7 +2,6 @@ import {
     LayoutDashboard,
     Users,
     UtensilsCrossed,
-    Settings,
     LogOut,
 } from "lucide-react"
 
@@ -19,6 +18,7 @@ import {
     useSidebar, // 1. لازم تستورد الـ Hook ده
 } from "@/components/ui/sidebar"
 import useAuthStore from "@/store/useAuthStore"
+import { Link } from "react-router-dom"
 
 const items = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -33,7 +33,9 @@ const items = [
     { title: "Addons", url: "/addons", icon: UtensilsCrossed },
     { title: "Delivery Zones", url: "/delivery-zones", icon: UtensilsCrossed },
     { title: "Foods", url: "/foods", icon: UtensilsCrossed },
-    { title: "Settings", url: "/settings", icon: Settings },
+    { title: "Cuisines", url: "/cuisines", icon: UtensilsCrossed },
+    { title: "Business Plans", url: "/business-plans", icon: UtensilsCrossed },
+    { title: "Permissions", url: "/permissions", icon: UtensilsCrossed },
 ]
 
 export function AppSidebar() {
@@ -60,11 +62,11 @@ export function AppSidebar() {
                             {items.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton asChild tooltip={item.title}>
-                                        <a href={item.url} className="flex items-center gap-3">
+                                        <Link to={item.url} className="flex items-center gap-3">
                                             <item.icon size={20} />
                                             {/* لو حابب تخفي الكتابة في حالة القفل وتظهر الـ Tooltip بس */}
                                             {open && <span>{item.title}</span>}
-                                        </a>
+                                        </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}

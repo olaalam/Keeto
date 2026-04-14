@@ -5,7 +5,7 @@ import api from '@/api/axios';
 import AddPage from '@/components/AddPage'; // تأكد من المسار الصحيح
 import LoadingSpinner from '@/components/LoadingSpinner';
 import MapComponent from '@/components/MapComponent';
-import { MapPin } from "lucide-react";
+
 
 const RestaurantAdd = () => {
     const { id } = useParams();
@@ -34,8 +34,8 @@ const RestaurantAdd = () => {
                 cuisineId: String(raw.cuisineId),
                 zoneId: String(raw.zoneId),
                 tags: Array.isArray(raw.tags) ? raw.tags.join(', ') : raw.tags,
-                lat: String(raw.lat || ""),
-                lng: String(raw.lng || ""),
+                // lat: String(raw.lat || ""),
+                // lng: String(raw.lng || ""),
             };
         },
         enabled: !!id && !state?.restaurantData,
@@ -44,16 +44,16 @@ const RestaurantAdd = () => {
     const initialData = state?.restaurantData || fetchedData;
 
     // إعدادات الخريطة (منطق منفصل)
-    const [location, setLocation] = useState({ lat: 31.2001, lng: 29.9187 });
+    // const [location, setLocation] = useState({ lat: 31.2001, lng: 29.9187 });
 
-    useEffect(() => {
-        if (initialData?.lat && initialData?.lng) {
-            setLocation({
-                lat: parseFloat(initialData.lat),
-                lng: parseFloat(initialData.lng)
-            });
-        }
-    }, [initialData]);
+    // useEffect(() => {
+    //     if (initialData?.lat && initialData?.lng) {
+    //         setLocation({
+    //             lat: parseFloat(initialData.lat),
+    //             lng: parseFloat(initialData.lng)
+    //         });
+    //     }
+    // }, [initialData]);
 
     if (id && (isFetching || isLoadingSelect)) return <LoadingSpinner />;
 
@@ -87,7 +87,7 @@ const RestaurantAdd = () => {
             required: true,
             options: selectData?.allZones?.map(z => ({ label: z.name, value: z.id }))
         },
-        { name: 'address', label: 'Detailed Address', required: true },
+        // { name: 'address', label: 'Detailed Address', required: true },
     ];
 
     return (
@@ -100,7 +100,7 @@ const RestaurantAdd = () => {
             initialData={initialData}
             onSuccessAction={() => navigate(-1)}
         >
-            {(methods) => (
+            {/* {(methods) => (
                 <div className="space-y-4 pt-4 border-t">
                     <div className="border rounded-xl p-1 relative">
                         <MapComponent
@@ -122,7 +122,7 @@ const RestaurantAdd = () => {
                         />
                     </div>
                 </div>
-            )}
+            )} */}
         </AddPage>
     );
 };

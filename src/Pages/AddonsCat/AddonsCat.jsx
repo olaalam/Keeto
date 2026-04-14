@@ -10,7 +10,7 @@ export default function AddonsCat() {
     const { data: categories = [], isLoading } = useQuery({
         queryKey: ['addonsCategories'],
         queryFn: async () => {
-            const res = await api.get('/api/superadmin/adonescategories');
+            const res = await api.get('/api/superadmin/adonescategory');
             return res.data.data.data;
         }
     });
@@ -27,7 +27,7 @@ export default function AddonsCat() {
                 data={categories}
                 isLoading={isLoading}
                 queryKey="addonsCategories"
-                deleteApiUrl="/api/superadmin/adonescategories"
+                deleteApiUrl="/api/superadmin/adonescategory"
                 onAdd={() => navigate("/addons-categories/add")}
                 onEdit={(cat) => navigate(`/addons-categories/edit/${cat.id}`)}
             />

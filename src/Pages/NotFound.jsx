@@ -25,7 +25,7 @@ const NotFound = () => {
 
                 <div className="flex flex-col gap-3 min-[400px]:flex-row">
                     <Button asChild size="lg" className="px-8">
-                        <Link to="/dashboard">
+                        <Link to="/">
                             back to home
                         </Link>
                     </Button>

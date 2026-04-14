@@ -18,8 +18,8 @@ export default function DeliveryZone() {
 
 
     const columns = [
-        { accessorKey: 'fromZoneId', header: 'fromZoneId' },
-        { accessorKey: 'toZoneId', header: 'toZoneId' },
+        { accessorKey: 'fromZoneName', header: 'fromZoneId' },
+        { accessorKey: 'toZoneName', header: 'toZoneId' },
         { accessorKey: 'fee', header: 'fee' },
         // {
         //     accessorKey: 'status',

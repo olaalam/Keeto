@@ -27,6 +27,14 @@ import DeliveryZone from "./Pages/DeliveryZone/DeliveryZone";
 import DeliveryZoneAdd from "./Pages/DeliveryZone/DeliveryZoneAdd";
 import Food from "./Pages/Food/Food";
 import FoodAdd from "./Pages/Food/FoodAdd";
+import Setting from "./Pages/Restaurant/Setting";
+import SettingAdd from "./Pages/Restaurant/SettingAdd";
+import Cuisine from "./Pages/Cuisine/Cuisine";
+import CuisineAdd from "./Pages/Cuisine/CuisineAdd";
+import BusinessPlan from "./Pages/BusinessPlan/BusinessPlan";
+import BusinessPlanAdd from "./Pages/BusinessPlan/BusinessPlanAdd";
+import Permission from "./Pages/Permission/Permission";
+import PermissionAdd from "./Pages/Permission/PermissionAdd";
 
 const router = createBrowserRouter([
     {
@@ -130,6 +138,14 @@ const router = createBrowserRouter([
                 element: <RestaurantAdd />,
             },
             {
+                path: "restaurants/setting/:id",
+                element: <Setting />,
+            },
+            {
+                path: "restaurants/setting/edit/:id",
+                element: <SettingAdd />,
+            },
+            {
                 path: "addons",
                 element: <Addons />,
             },
@@ -177,6 +193,43 @@ const router = createBrowserRouter([
                 path: "foods/edit/:id",
                 element: <FoodAdd />,
             },
+            {
+                path: "cuisines",
+                element: <Cuisine />,
+            },
+            {
+                path: "cuisines/add",
+                element: <CuisineAdd />,
+            },
+            {
+                path: "cuisines/edit/:id",
+                element: <CuisineAdd />,
+            },
+            {
+                path: "business-plans",
+                element: <BusinessPlan />,
+            },
+            {
+                path: "business-plans/add",
+                element: <BusinessPlanAdd />,
+            },
+            {
+                path: "business-plans/edit/:id",
+                element: <BusinessPlanAdd />,
+            },
+            {
+                path: "permissions",
+                element: <Permission />,
+            },
+            {
+                path: "permissions/add",
+                element: <PermissionAdd />,
+            },
+            {
+                path: "permissions/edit/:id",
+                element: <PermissionAdd />,
+            },
+
         ],
     },
     {

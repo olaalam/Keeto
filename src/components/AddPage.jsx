@@ -37,10 +37,21 @@ const AddPage = ({
 
     useEffect(() => {
         if (initialData) {
-            reset(initialData);
-        }
-    }, [initialData, reset]);
+            // تنسيق البيانات قبل وضعها في الفورم
+            const formattedData = { ...initialData };
 
+            fields.forEach(field => {
+                if (field.type === 'date' && initialData[field.name]) {
+                    // تحويل التاريخ من ISO String إلى YYYY-MM-DD
+                    formattedData[field.name] = new Date(initialData[field.name])
+                        .toISOString()
+                        .split('T')[0];
+                }
+            });
+
+            reset(formattedData);
+        }
+    }, [initialData, reset, fields]);
     const onSubmit = (data) => {
         if (isEdit) {
             const changedData = Object.keys(dirtyFields).reduce((acc, key) => {
@@ -89,7 +100,7 @@ const AddPage = ({
                                     <Controller
                                         name={field.name}
                                         control={control} // 2. سيستخدم الـ control المُعرف في السطر 31
-                                        defaultValue=""
+                                        defaultValue={initialData?.[field.name] || ""}
                                         rules={{ required: field.required }}
                                         render={({ field: { onChange, value } }) => (
                                             <Select
