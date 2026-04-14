@@ -30,7 +30,8 @@ const FoodAdd = () => {
         queryKey: ['food-select-options'],
         queryFn: async () => {
             const response = await api.get('/api/superadmin/food/select');
-            return response.data.data; // الوصول للهيكل: data -> data
+            console.log(response.data.data.data.data);
+            return response.data.data.data.data;
         }
     });
 
@@ -133,8 +134,9 @@ const FoodAdd = () => {
                                         render={({ field }) => (
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <SelectTrigger className={errors.restaurantid ? "border-destructive" : ""}>
-                                                    <SelectValue placeholder={isSelectLoading ? "Loading..." : (field.value ? selectData?.allRestaurants?.find(r => String(r.id) === String(field.value))?.name : "Select Restaurant")} />
-                                                </SelectTrigger>
+                                                    <SelectValue placeholder={isSelectLoading ? "Loading..." : (
+                                                        selectData?.allRestaurants?.find(r => String(r.id) === String(field.value))?.name || "Select Restaurant"
+                                                    )} />                                                </SelectTrigger>
                                                 <SelectContent>
                                                     {selectData?.allRestaurants?.map(res => (
                                                         <SelectItem key={res.id} value={res.id}>{res.name}</SelectItem>
@@ -181,10 +183,13 @@ const FoodAdd = () => {
                                                 <SelectTrigger className={errors.subcategoryid ? "border-destructive" : ""}>
                                                     <SelectValue placeholder={isSelectLoading ? "Loading..." : (field.value ? selectData?.allSubcategories?.find(s => String(s.id) === String(field.value))?.name : "Select Sub Category")} />
                                                 </SelectTrigger>
+                                                {/* Sub Category ID */}
                                                 <SelectContent>
-                                                    {selectData?.allSubcategories?.map(sub => (
-                                                        <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
-                                                    ))}
+                                                    {selectData?.allSubcategories
+                                                        ?.filter(sub => String(sub.categoryId) === String(watch("categoryid"))) // تصفية الأقسام الفرعية
+                                                        ?.map(sub => (
+                                                            <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                                                        ))}
                                                 </SelectContent>
                                             </Select>
                                         )}
