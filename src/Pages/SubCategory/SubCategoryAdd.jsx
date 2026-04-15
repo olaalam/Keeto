@@ -38,7 +38,7 @@ const SubCategoryAdd = () => {
             ...rawData,
             // هنا بنخرج الـ id من جوه كائن الـ country ونحطه في countryId 
             // عشان الـ AddPage والـ Select يحسوا بيه
-            subcategoryId: rawData.subcategoryId || rawData.subcategory?.id
+            subcategoryId: rawData.subcategoryId || rawData.category?.id
         };
     }, [rawData]);
 
