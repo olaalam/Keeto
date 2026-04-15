@@ -23,7 +23,9 @@ const AddPage = ({
     children
 }) => {
     const isEdit = !!initialData?.id;
-    const formMethods = useForm(); // استخدام useForm بالكامل
+    const formMethods = useForm({
+        defaultValues: initialData || {}
+    });
     const { control, handleSubmit, register, reset, formState: { errors, dirtyFields } } = formMethods;
     const postMutation = usePost(apiUrl, 'post', queryKey);
     const updateMutation = useUpdate(apiUrl, queryKey);
@@ -54,15 +56,9 @@ const AddPage = ({
     }, [initialData, reset, fields]);
     const onSubmit = (data) => {
         if (isEdit) {
-            const changedData = Object.keys(dirtyFields).reduce((acc, key) => {
-                acc[key] = data[key];
-                return acc;
-            }, {});
-
-            if (Object.keys(changedData).length === 0) return;
-
+            // بدلاً من الـ reduce والـ dirtyFields، أرسل الـ data كاملة
             updateMutation.mutate(
-                { id: initialData.id, payload: changedData },
+                { id: initialData.id, payload: data },
                 { onSuccess: () => onSuccessAction?.() }
             );
         } else {

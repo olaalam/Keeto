@@ -226,7 +226,7 @@ const FoodAdd = () => {
                                         name="is_Halal"
                                         control={control}
                                         render={({ field }) => (
-                                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            <Switch checked={!!field.value} onCheckedChange={field.onChange} />
                                         )}
                                     />
                                     <Label>Is Halal?</Label>
@@ -343,7 +343,7 @@ const VariationsSection = ({ control, register }) => {
                                 name={`variations.${index}.isRequired`}
                                 control={control}
                                 render={({ field }) => (
-                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    <Switch checked={!!field.value} onCheckedChange={field.onChange} />
                                 )}
                             />
                             <Label>Required?</Label>
