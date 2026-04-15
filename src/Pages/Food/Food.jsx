@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GenericDataTable from '@/components/GenericDataTable'; // تأكد من المسار
-import { useQuery } from '@tanstack/react-query'; // أو استخدم الـ Hook الخاص بجلب البيانات عندك
+import { useQuery } from '@tanstack/react-query';
 import api from '@/api/axios';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,22 +12,20 @@ const Foods = () => {
     const navigate = useNavigate();
     const [selectedVariations, setSelectedVariations] = useState(null);
 
-
-
     const { data: foods = [], isLoading } = useQuery({
         queryKey: ['foods'],
         queryFn: async () => {
             const res = await api.get('/api/superadmin/food');
+            // التوجيه الصحيح للبيانات بناءً على الـ JSON المرفق
             return res.data.data.data;
         }
     });
 
-    // تعريف الأعمدة بناءً على شكل بيانات الـ Food
+    // تعريف الأعمدة بناءً على شكل بيانات الـ Food الجديد
     const columns = [
         {
             accessorKey: 'image',
             header: 'Image',
-            // Custom Cell لعرض الصورة بشكل مصغر
             cell: ({ row }) => {
                 const imageUrl = row.original.image;
                 return (
@@ -44,6 +42,9 @@ const Foods = () => {
         {
             accessorKey: 'name',
             header: 'Food Name',
+            cell: ({ row }) => (
+                <span className="capitalize font-medium">{row.original.name}</span>
+            )
         },
         {
             accessorKey: 'price',
@@ -55,25 +56,35 @@ const Foods = () => {
             )
         },
         {
-            accessorKey: 'foodtype',
-            header: 'Type',
+            accessorKey: 'restaurant',
+            header: 'Restaurant',
             cell: ({ row }) => (
-                <span className="capitalize">{row.original.foodtype}</span>
+                <span>{row.original.restaurant?.name || '-'}</span>
             )
         },
         {
-            accessorKey: 'is_Halal',
-            header: 'Halal',
+            accessorKey: 'category',
+            header: 'Category',
             cell: ({ row }) => (
-                row.original.is_Halal ?
-                    <span className="text-green-600 font-bold">Yes</span> :
-                    <span className="text-gray-400">No</span>
+                <Badge variant="secondary" className="capitalize">
+                    {row.original.category?.name || '-'}
+                </Badge>
+            )
+        },
+        {
+            accessorKey: 'subcategory',
+            header: 'Subcategory',
+            cell: ({ row }) => (
+                <span className="text-sm text-gray-600 capitalize">
+                    {row.original.subcategory?.name || '-'}
+                </span>
             )
         },
         {
             accessorKey: 'variations',
             header: 'Variations',
             cell: ({ row }) => {
+                // الاعتماد على مصفوفة فارغة لو مش موجودة في الـ response الحالي
                 const variations = row.original.variations || [];
                 return (
                     <Button
@@ -81,22 +92,12 @@ const Foods = () => {
                         size="sm"
                         onClick={() => setSelectedVariations(variations)}
                         className="flex items-center gap-2"
+                    // ممكن نضيف disabled لو مفيش variations عشان نحسن تجربة المستخدم
+                    // disabled={variations.length === 0} 
                     >
                         <ListTree className="h-4 w-4" />
                         View ({variations.length})
                     </Button>
-                );
-            }
-        },
-        {
-            accessorKey: 'status',
-            header: 'Status',
-            cell: ({ row }) => {
-                const status = row.original.status;
-                return (
-                    <Badge variant={status === 'active' ? 'default' : 'secondary'}>
-                        {status}
-                    </Badge>
                 );
             }
         }
@@ -107,17 +108,15 @@ const Foods = () => {
             <GenericDataTable
                 title="Foods Menu"
                 columns={columns}
-                data={foods || []} // مرر المصفوفة هنا
+                data={foods || []}
                 isLoading={isLoading}
                 queryKey={['foods']}
-                deleteApiUrl="/api/superadmin/food" // رابط الـ API للحذف
+                deleteApiUrl="/api/superadmin/food"
 
-                // التوجيه لصفحة الإضافة
                 onAdd={() => navigate('/foods/add')}
-
-                // التوجيه لصفحة التعديل وتمرير الـ ID
                 onEdit={(row) => navigate(`/foods/edit/${row.id}`)}
             />
+
             {/* Dialog لعرض الـ Variations */}
             <Dialog open={!!selectedVariations} onOpenChange={() => setSelectedVariations(null)}>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -149,7 +148,9 @@ const Foods = () => {
                             </div>
                         ))}
                         {(!selectedVariations || selectedVariations.length === 0) && (
-                            <p className="text-center text-muted-foreground">No variations found for this item.</p>
+                            <p className="text-center text-muted-foreground py-8">
+                                No variations found for this item.
+                            </p>
                         )}
                     </div>
                 </DialogContent>

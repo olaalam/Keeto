@@ -1,5 +1,5 @@
 import React from 'react';
-import AddPage from '@/components/AddPage'; // تأكد من المسار
+import AddPage from '@/components/AddPage';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query'; // لاستخدام الـ API الخاص بالبيانات
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import api from '@/api/axios';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 // دالة مساعدة لتحويل الصورة لـ Base64
 const toBase64 = (file) => new Promise((resolve, reject) => {
@@ -25,45 +26,61 @@ const FoodAdd = () => {
     const { state } = useLocation();
     const navigate = useNavigate();
 
-    // 1. جلب بيانات القوائم (المطاعم، الأقسام، إلخ) من الـ API الجديد
-    const { data: selectData, isLoading: isSelectLoading } = useQuery({
+    // 1. جلب خيارات القوائم (المطاعم، الأقسام، إلخ)
+    // تم تعديل المسار ليتوافق مع الصورة التي أرفقتها (response.data.data.data)
+    const { data: selectOptions, isLoading: isSelectLoading } = useQuery({
         queryKey: ['food-select-options'],
         queryFn: async () => {
             const response = await api.get('/api/superadmin/food/select');
-            console.log(response.data.data.data.data);
-            return response.data.data.data.data;
+            return response.data?.data?.data || {};
         }
     });
 
-    // 2. جلب بيانات المنتج في حالة التعديل
+    // 2. جلب بيانات المنتج في حالة التعديل وتنسيقها لتناسب الحقول
     const { data: foodData, isLoading: isFetching } = useQuery({
         queryKey: ['food', id],
         queryFn: async () => {
             const { data } = await api.get(`/api/superadmin/food/${id}`);
             const raw = data.data.data;
+
+            // تحويل البيانات لتكون متوافقة مع الـ Selects والـ FieldArray
             return {
                 ...raw,
-                restaurantid: String(raw.restaurantid || ""),
-                categoryid: String(raw.categoryid || ""),
-                subcategoryid: String(raw.subcategoryid || ""),
+                restaurantid: String(raw.restaurantid || raw.restaurant?.id || ""),
+                categoryid: String(raw.categoryid || raw.category?.id || ""),
+                subcategoryid: String(raw.subcategoryid || raw.subcategory?.id || ""),
+                price: raw.price ? String(raw.price) : "",
+                // التأكد من تنسيق الإضافات (Variations)
+                variations: raw.variations?.map(v => ({
+                    ...v,
+                    isRequired: Boolean(v.isRequired),
+                    options: v.options?.map(o => ({
+                        ...o,
+                        additionalPrice: String(o.additionalPrice)
+                    }))
+                })) || []
             };
         },
         enabled: !!id && !state?.foodData,
     });
 
     const initialData = state?.foodData || foodData;
+    if (isSelectLoading || (id && isFetching)) {
+        return <LoadingSpinner />
+    }
 
     return (
         <AddPage
             title="Food Item"
             apiUrl="/api/superadmin/food"
             queryKey={['foods']}
-            fields={[]} // نستخدم الـ children لبناء التصميم المخصص بالـ Tabs
+            fields={[]}
             initialData={initialData}
             onSuccessAction={() => navigate("/foods")}
         >
             {({ register, control, formState: { errors }, setValue, watch }) => {
                 const imagePreview = watch("image");
+                const selectedCategoryId = watch("categoryid");
 
                 return (
                     <Tabs defaultValue="basic" className="w-full mt-4">
@@ -74,34 +91,29 @@ const FoodAdd = () => {
                             <TabsTrigger value="variations">Variations</TabsTrigger>
                         </TabsList>
 
-                        {/* التبويب الأول: المعلومات الأساسية - تحتوي على أغلب الحقول المطلوبة */}
+                        {/* التبويب الأول: المعلومات الأساسية */}
                         <TabsContent value="basic" className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Name */}
                                 <div className="space-y-2">
                                     <Label>Food Name *</Label>
                                     <Input
-                                        {...register("name", { required: true })}
-                                        placeholder="Burger Deluxe"
+                                        {...register("name", { required: "Name is required" })}
+                                        placeholder="e.g. Cheese Burger"
                                         className={errors.name ? "border-destructive" : ""}
                                     />
-                                    {errors.name && <span className="text-destructive text-xs">Required</span>}
+                                    {errors.name && <span className="text-destructive text-xs">{errors.name.message}</span>}
                                 </div>
 
-                                {/* Description */}
                                 <div className="space-y-2">
                                     <Label>Description *</Label>
                                     <Input
-                                        {...register("description", { required: true })}
-                                        placeholder="Description of the food..."
-                                        className={errors.description ? "border-destructive" : ""}
+                                        {...register("description", { required: "Description is required" })}
+                                        placeholder="Brief description..."
                                     />
-                                    {errors.description && <span className="text-destructive text-xs">Required</span>}
                                 </div>
 
-                                {/* Image */}
                                 <div className="space-y-2 col-span-full">
-                                    <Label>Food Image *</Label>
+                                    <Label>Food Image</Label>
                                     <div className="flex items-center gap-4">
                                         <Input
                                             type="file"
@@ -113,7 +125,6 @@ const FoodAdd = () => {
                                                     setValue("image", base);
                                                 }
                                             }}
-                                            className={errors.image ? "border-destructive" : ""}
                                         />
                                         {imagePreview && (
                                             <div className="w-16 h-16 border rounded overflow-hidden">
@@ -121,85 +132,85 @@ const FoodAdd = () => {
                                             </div>
                                         )}
                                     </div>
-                                    {errors.image && <span className="text-destructive text-xs">Required</span>}
                                 </div>
 
-                                {/* Restaurant ID */}
+                                {/* Restaurant Select */}
                                 <div className="space-y-2">
                                     <Label>Restaurant *</Label>
                                     <Controller
                                         name="restaurantid"
                                         control={control}
-                                        rules={{ required: true }}
+                                        rules={{ required: "Restaurant is required" }}
                                         render={({ field }) => (
                                             <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger className={errors.restaurantid ? "border-destructive" : ""}>
-                                                    <SelectValue placeholder={isSelectLoading ? "Loading..." : (
-                                                        selectData?.allRestaurants?.find(r => String(r.id) === String(field.value))?.name || "Select Restaurant"
-                                                    )} />                                                </SelectTrigger>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Restaurant" />
+                                                </SelectTrigger>
                                                 <SelectContent>
-                                                    {selectData?.allRestaurants?.map(res => (
-                                                        <SelectItem key={res.id} value={res.id}>{res.name}</SelectItem>
+                                                    {selectOptions?.allRestaurants?.map(res => (
+                                                        <SelectItem key={res.id} value={String(res.id)}>{res.name}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
                                         )}
                                     />
-                                    {errors.restaurantid && <span className="text-destructive text-xs">Required</span>}
                                 </div>
 
-                                {/* Category ID */}
+                                {/* Category Select */}
                                 <div className="space-y-2">
                                     <Label>Category *</Label>
                                     <Controller
                                         name="categoryid"
                                         control={control}
-                                        rules={{ required: true }}
+                                        rules={{ required: "Category is required" }}
                                         render={({ field }) => (
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger className={errors.categoryid ? "border-destructive" : ""}>
-                                                    <SelectValue placeholder={isSelectLoading ? "Loading..." : (field.value ? selectData?.allCategories?.find(c => String(c.id) === String(field.value))?.name : "Select Category")} />
+                                            <Select
+                                                onValueChange={(val) => {
+                                                    field.onChange(val);
+                                                    setValue("subcategoryid", ""); // إعادة تعيين الفرعي عند تغيير الرئيسي
+                                                }}
+                                                value={field.value}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Category" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {selectData?.allCategories?.map(cat => (
-                                                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                                    {selectOptions?.allCategories?.map(cat => (
+                                                        <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
                                         )}
                                     />
-                                    {errors.categoryid && <span className="text-destructive text-xs">Required</span>}
                                 </div>
 
-                                {/* SubCategory ID */}
+                                {/* Sub Category Select */}
                                 <div className="space-y-2">
                                     <Label>Sub Category *</Label>
                                     <Controller
                                         name="subcategoryid"
                                         control={control}
-                                        rules={{ required: true }}
+                                        rules={{ required: "Subcategory is required" }}
                                         render={({ field }) => (
                                             <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger className={errors.subcategoryid ? "border-destructive" : ""}>
-                                                    <SelectValue placeholder={isSelectLoading ? "Loading..." : (field.value ? selectData?.allSubcategories?.find(s => String(s.id) === String(field.value))?.name : "Select Sub Category")} />
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Sub Category" />
                                                 </SelectTrigger>
-                                                {/* Sub Category ID */}
                                                 <SelectContent>
-                                                    {selectData?.allSubcategories
-                                                        ?.filter(sub => String(sub.categoryId) === String(watch("categoryid"))) // تصفية الأقسام الفرعية
+                                                    {selectOptions?.allSubcategories
+                                                        ?.filter(sub => String(sub.categoryId) === String(selectedCategoryId))
                                                         ?.map(sub => (
-                                                            <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                                                            <SelectItem key={sub.id} value={String(sub.id)}>{sub.name}</SelectItem>
                                                         ))}
                                                 </SelectContent>
                                             </Select>
                                         )}
                                     />
-                                    {errors.subcategoryid && <span className="text-destructive text-xs">Required</span>}
                                 </div>
                             </div>
                         </TabsContent>
 
-                        {/* التبويب الثاني: التفاصيل والمواعيد */}
+                        {/* التبويب الثاني: التفاصيل */}
                         <TabsContent value="details" className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -208,66 +219,44 @@ const FoodAdd = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Nutrition (kcal)</Label>
-                                    <Input {...register("Nutrition")} placeholder="500 kcal" />
+                                    <Input {...register("Nutrition")} />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Allergens</Label>
-                                    <Input {...register("Allegren_Ingredients")} placeholder="milk, gluten" />
-                                </div>
-                                <div className="space-y-2 flex flex-col justify-center pt-6">
-                                    <div className="flex items-center space-x-2">
-                                        <Controller
-                                            name="is_Halal"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                            )}
-                                        />
-                                        <Label>Is Halal?</Label>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Start Time *</Label>
-                                    <Input
-                                        type="time"
-                                        {...register("startTime", { required: true })}
-                                        className={errors.startTime ? "border-destructive" : ""}
+                                <div className="space-y-2 flex items-center pt-8 gap-3">
+                                    <Controller
+                                        name="is_Halal"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                        )}
                                     />
-                                    {errors.startTime && <span className="text-destructive text-xs">Required</span>}
+                                    <Label>Is Halal?</Label>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>End Time *</Label>
-                                    <Input
-                                        type="time"
-                                        {...register("endTime", { required: true })}
-                                        className={errors.endTime ? "border-destructive" : ""}
-                                    />
-                                    {errors.endTime && <span className="text-destructive text-xs">Required</span>}
+                                    <Label>Start Time</Label>
+                                    <Input type="time" {...register("startTime")} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>End Time</Label>
+                                    <Input type="time" {...register("endTime")} />
                                 </div>
                             </div>
                         </TabsContent>
 
-                        {/* التبويب الثالث: التسعير والحالة */}
+                        {/* التبويب الثالث: التسعير */}
                         <TabsContent value="pricing" className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Base Price *</Label>
-                                    <Input
-                                        type="number"
-                                        {...register("price", { required: true })}
-                                        className={errors.price ? "border-destructive" : ""}
-                                    />
-                                    {errors.price && <span className="text-destructive text-xs">Required</span>}
+                                    <Input type="number" {...register("price", { required: true })} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Status</Label>
                                     <Controller
                                         name="status"
                                         control={control}
-                                        defaultValue="active"
                                         render={({ field }) => (
                                             <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="active">Active</SelectItem>
                                                     <SelectItem value="inactive">Inactive</SelectItem>
@@ -279,7 +268,7 @@ const FoodAdd = () => {
                             </div>
                         </TabsContent>
 
-                        {/* التبويب الرابع: الإضافات والخيارات */}
+                        {/* التبويب الرابع: الإضافات */}
                         <TabsContent value="variations">
                             <VariationsSection control={control} register={register} />
                         </TabsContent>
@@ -290,7 +279,7 @@ const FoodAdd = () => {
     );
 };
 
-// مكون إدارة الـ Variations
+// مكون الإضافات (Variations)
 const VariationsSection = ({ control, register }) => {
     const { fields, append, remove } = useFieldArray({
         control,
@@ -300,18 +289,13 @@ const VariationsSection = ({ control, register }) => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center border-b pb-4">
-                <div>
-                    <h3 className="text-lg font-semibold">Product Variations</h3>
-                    <p className="text-sm text-muted-foreground">Manage sizes or extras.</p>
-                </div>
+                <h3 className="text-lg font-semibold">Product Variations</h3>
                 <Button
                     type="button"
                     onClick={() => append({
                         name: '',
                         isRequired: false,
                         selectionType: 'single',
-                        min: 1,
-                        max: 1,
                         options: [{ optionName: '', additionalPrice: '0' }]
                     })}
                     className="bg-orange-500 hover:bg-orange-600"
@@ -321,20 +305,20 @@ const VariationsSection = ({ control, register }) => {
             </div>
 
             {fields.map((item, index) => (
-                <div key={item.id} className="p-6 border-2 rounded-xl bg-white shadow-sm relative space-y-4">
+                <div key={item.id} className="p-6 border-2 rounded-xl bg-white relative space-y-4 shadow-sm">
                     <Button
                         type="button"
                         variant="ghost"
                         onClick={() => remove(index)}
-                        className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        className="absolute top-2 right-2 text-red-500"
                     >
-                        Remove
+                        <Trash2 className="h-4 w-4" />
                     </Button>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label>Variation Name</Label>
-                            <Input {...register(`variations.${index}.name`)} placeholder="e.g. Size" />
+                            <Input {...register(`variations.${index}.name`)} placeholder="e.g. Sauce" />
                         </div>
 
                         <div className="space-y-2">
@@ -367,11 +351,7 @@ const VariationsSection = ({ control, register }) => {
                     </div>
 
                     <div className="mt-4 pt-4 border-t">
-                        <OptionsSection
-                            nestIndex={index}
-                            control={control}
-                            register={register}
-                        />
+                        <OptionsSection nestIndex={index} control={control} register={register} />
                     </div>
                 </div>
             ))}
@@ -379,7 +359,7 @@ const VariationsSection = ({ control, register }) => {
     );
 };
 
-// مكون إدارة الخيارات داخل الـ Variation
+// مكون الخيارات داخل الإضافة
 const OptionsSection = ({ nestIndex, control, register }) => {
     const { fields, append, remove } = useFieldArray({
         control,
@@ -389,28 +369,16 @@ const OptionsSection = ({ nestIndex, control, register }) => {
     return (
         <div className="space-y-3">
             <Label className="text-blue-600 font-bold">Options & Pricing</Label>
-
             {fields.map((item, k) => (
                 <div key={item.id} className="flex items-end gap-4 bg-slate-50 p-3 rounded-lg">
                     <div className="flex-1 space-y-1">
                         <Label className="text-xs">Option Name</Label>
-                        <Input
-                            {...register(`variations.${nestIndex}.options.${k}.optionName`)}
-                            placeholder="Small / Large"
-                            className="bg-white"
-                        />
+                        <Input {...register(`variations.${nestIndex}.options.${k}.optionName`)} className="bg-white" />
                     </div>
-
                     <div className="w-32 space-y-1">
                         <Label className="text-xs">Extra Price</Label>
-                        <Input
-                            type="number"
-                            {...register(`variations.${nestIndex}.options.${k}.additionalPrice`)}
-                            placeholder="0"
-                            className="bg-white"
-                        />
+                        <Input type="number" {...register(`variations.${nestIndex}.options.${k}.additionalPrice`)} className="bg-white" />
                     </div>
-
                     <Button
                         type="button"
                         variant="destructive"
@@ -422,13 +390,12 @@ const OptionsSection = ({ nestIndex, control, register }) => {
                     </Button>
                 </div>
             ))}
-
             <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => append({ optionName: '', additionalPrice: '0' })}
-                className="mt-2 text-blue-600 border-blue-600 hover:bg-blue-50"
+                className="mt-2 text-blue-600 border-blue-600"
             >
                 + Add Option
             </Button>
