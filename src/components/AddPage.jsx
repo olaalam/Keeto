@@ -51,22 +51,22 @@ const AddPage = ({
                 }
             });
 
-            reset(formattedData);
+            // keepDirtyValues: true → يخلي القيم اللي المستخدم غيرها (مثل lat/lng من الخريطة)
+            // محمية ومش بترجع للقيم القديمة عند أي re-render
+            reset(formattedData, { keepDirtyValues: true });
         }
     }, [initialData, reset, fields]);
     const onSubmit = (data) => {
+        // 1. لو إحنا في حالة تعديل
         if (isEdit) {
-            // بدلاً من الـ reduce والـ dirtyFields، أرسل الـ data كاملة
+            // ابعت الـ data اللي جاية من البرامتر فوراً
             updateMutation.mutate(
                 { id: initialData.id, payload: data },
                 { onSuccess: () => onSuccessAction?.() }
             );
         } else {
             postMutation.mutate(data, {
-                onSuccess: () => {
-                    reset();
-                    onSuccessAction?.();
-                }
+                onSuccess: () => onSuccessAction?.()
             });
         }
     };

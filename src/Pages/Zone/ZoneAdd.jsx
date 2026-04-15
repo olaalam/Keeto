@@ -12,6 +12,7 @@ const ZoneAdd = () => {
     const { state } = useLocation();
     const navigate = useNavigate();
     const isEdit = !!id;
+    const [location, setLocation] = useState({ lat: 30.0444, lng: 31.2357 });
 
     // 1. جلب قائمة المدن
     const { data: cities = [], isLoading: isLoadingCities } = useQuery({
@@ -40,8 +41,15 @@ const ZoneAdd = () => {
 
     const initialData = state?.zoneData || fetchedData;
 
-    // إعدادات الخريطة
-    const [location, setLocation] = useState({ lat: 31.2001, lng: 29.9187 });
+    useEffect(() => {
+        // لو فيه داتا جاية من التعديل، حدث الموقع المحلي فوراً
+        if (fetchedData?.lat && fetchedData?.lng) {
+            const newLat = parseFloat(fetchedData.lat);
+            const newLng = parseFloat(fetchedData.lng);
+
+            setLocation({ lat: newLat, lng: newLng });
+        }
+    }, [fetchedData]);
 
     // تحديث موقع الخريطة عند تحميل البيانات
     useEffect(() => {
@@ -83,7 +91,7 @@ const ZoneAdd = () => {
                         <h3 className="text-lg font-semibold">Zone Location</h3>
                     </div>
                     <p className="text-sm text-gray-500 mb-4">Click on the map or drag the marker to set the zone's exact location.</p>
-                    
+
                     <div className="border rounded-xl p-1 relative">
                         <MapComponent
                             form={methods}
@@ -92,14 +100,17 @@ const ZoneAdd = () => {
                             handleMapClick={(e) => {
                                 const { lat, lng } = e.latlng;
                                 setLocation({ lat, lng });
-                                methods.setValue('lat', String(lat), { shouldDirty: true });
-                                methods.setValue('lng', String(lng), { shouldDirty: true });
+
+                                // أضف الخيارات دي ضروري { shouldDirty: true, shouldValidate: true }
+                                methods.setValue('lat', String(lat), { shouldDirty: true, shouldValidate: true });
+                                methods.setValue('lng', String(lng), { shouldDirty: true, shouldValidate: true });
                             }}
                             onMarkerDragEnd={(e) => {
                                 const { lat, lng } = e.target.getLatLng();
                                 setLocation({ lat, lng });
-                                methods.setValue('lat', String(lat), { shouldDirty: true });
-                                methods.setValue('lng', String(lng), { shouldDirty: true });
+
+                                methods.setValue('lat', String(lat), { shouldDirty: true, shouldValidate: true });
+                                methods.setValue('lng', String(lng), { shouldDirty: true, shouldValidate: true });
                             }}
                         />
                     </div>

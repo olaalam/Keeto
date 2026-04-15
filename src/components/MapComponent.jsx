@@ -16,6 +16,16 @@ L.Icon.Default.mergeOptions({
     shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+const ChangeView = ({ center }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (center.lat && center.lng) {
+            map.setView([center.lat, center.lng], map.getZoom());
+        }
+    }, [center, map]);
+    return null;
+};
+
 const MapEvents = ({ handleMapClick, isMapClickEnabled }) => {
     const map = useMap(); // Get the map instance
 
@@ -66,6 +76,7 @@ const MapComponent = ({
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
+                    <ChangeView center={selectedLocation} />
                     <Marker
                         position={selectedLocation}
                         draggable={true}
