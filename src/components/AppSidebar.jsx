@@ -30,7 +30,7 @@ const items = [
     { title: "SubCategories", url: "/sub-categories", icon: Users },
     { title: "Restaurants", url: "/restaurants", icon: UtensilsCrossed },
     { title: "Addon Categories", url: "/addons-categories", icon: UtensilsCrossed },
-    { title: "Addons", url: "/addons", icon: UtensilsCrossed },
+    { title: "Modifier", url: "/addons", icon: UtensilsCrossed },
     { title: "Delivery Zones", url: "/delivery-zones", icon: UtensilsCrossed },
     { title: "Foods", url: "/foods", icon: UtensilsCrossed },
     { title: "Cuisines", url: "/cuisines", icon: UtensilsCrossed },

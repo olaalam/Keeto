@@ -15,7 +15,7 @@ const AddonsAdd = () => {
         queryKey: ['addonsSelectData'],
         queryFn: async () => {
             const res = await api.get('/api/superadmin/addons/select');
-            return res.data.data;
+            return res.data.data.data;
         }
     });
 
@@ -72,7 +72,7 @@ const AddonsAdd = () => {
 
     return (
         <AddPage
-            title="Addon"
+            title="Modifier"
             apiUrl="/api/superadmin/addons"
             queryKey="addons"
             fields={fields}

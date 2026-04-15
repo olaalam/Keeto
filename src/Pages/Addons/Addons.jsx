@@ -19,13 +19,13 @@ export default function Addons() {
         { accessorKey: 'name', header: 'Addon Name' },
         { accessorKey: 'price', header: 'Price' },
         { accessorKey: 'stock_type', header: 'Stock Type' },
-        { 
-            accessorKey: 'category.name', 
+        {
+            accessorKey: 'adonescategory.name',
             header: 'Category',
-            cell: ({ row }) => row.original.category?.name || 'N/A'
+            cell: ({ row }) => row.original.adonescategory?.name || 'N/A'
         },
-        { 
-            accessorKey: 'restaurant.name', 
+        {
+            accessorKey: 'restaurant.name',
             header: 'Restaurant',
             cell: ({ row }) => row.original.restaurant?.name || 'N/A'
         },
@@ -34,7 +34,7 @@ export default function Addons() {
     return (
         <div className="container mx-auto py-10">
             <GenericDataTable
-                title="Addons"
+                title="Modifier"
                 columns={columns}
                 data={addons}
                 isLoading={isLoading}
