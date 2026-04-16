@@ -22,7 +22,7 @@ const BusinessPlanAdd = () => {
         queryKey: ['business-plan', id],
         queryFn: async () => {
             const { data } = await api.get(`/api/superadmin/businessplans/${id}`);
-            return data.data;
+            return data.data.data;
         },
         enabled: !!id && !state?.planData,
     });
@@ -55,7 +55,7 @@ const BusinessPlanAdd = () => {
             type: 'select',
             options: [
                 { value: 'food_aggregator', label: 'Food Aggregator' },
-                { value: 'Keeto_App', label: 'Keeto App' }
+                { value: 'online_order', label: 'Online Order' }
             ]
         },
         { name: 'commissionRate', label: 'Commission Rate (%)', type: 'number', required: true },

@@ -48,7 +48,7 @@ export default function Restaurant() {
             )
         },
 
-        { accessorKey: "ownerPhone", header: "Phone" },
+        // { accessorKey: "ownerPhone", header: "Phone" },
         { accessorKey: "zone.name", header: "Zone" },
         {
             accessorKey: "view_food",
@@ -63,6 +63,19 @@ export default function Restaurant() {
                 </button>
             )
         },
+        {
+            accessorKey: "business_plan",
+            header: "Business Plan",
+            cell: ({ row }) => (
+                <button
+                    onClick={() => navigate(`business-plans/${row.original.id}`)}
+                    className="text-blue-600 hover:underline font-medium text-left"
+                >
+                    View Plans
+                </button>
+            )
+        },
+
         {
             accessorKey: "status",
             header: "Status",

@@ -206,15 +206,15 @@ const router = createBrowserRouter([
                 element: <CuisineAdd />,
             },
             {
-                path: "business-plans",
+                path: "restaurants/business-plans/:restaurantId",
                 element: <BusinessPlan />,
             },
             {
-                path: "business-plans/add",
+                path: "restaurants/business-plans/add",
                 element: <BusinessPlanAdd />,
             },
             {
-                path: "business-plans/edit/:id",
+                path: "restaurants/business-plans/edit/:id",
                 element: <BusinessPlanAdd />,
             },
             {
