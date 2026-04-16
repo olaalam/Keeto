@@ -1,9 +1,21 @@
 import {
     LayoutDashboard,
-    Users,
-    UtensilsCrossed,
+    UserCog,
+    Globe,
+    MapPin,
+    Map,
+    Layers,
+    Library,
+    Utensils,
+    PlusSquare,
+    Settings2,
+    Truck,
+    Beef,
+    ChefHat,
+    Briefcase,
+    ShieldCheck,
     LogOut,
-} from "lucide-react"
+} from "lucide-react";
 
 import {
     Sidebar,
@@ -22,21 +34,21 @@ import { Link } from "react-router-dom"
 
 const items = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-    { title: "Admins", url: "/admins", icon: Users },
-    { title: "Countries", url: "/countries", icon: Users },
-    { title: "Cities", url: "/cities", icon: Users },
-    { title: "Zones", url: "/zones", icon: Users },
-    { title: "Categories", url: "/categories", icon: Users },
-    { title: "SubCategories", url: "/sub-categories", icon: Users },
-    { title: "Restaurants", url: "/restaurants", icon: UtensilsCrossed },
-    { title: "Addon Categories", url: "/addons-categories", icon: UtensilsCrossed },
-    { title: "Modifier", url: "/addons", icon: UtensilsCrossed },
-    { title: "Delivery Zones", url: "/delivery-zones", icon: UtensilsCrossed },
-    { title: "Foods", url: "/foods", icon: UtensilsCrossed },
-    { title: "Cuisines", url: "/cuisines", icon: UtensilsCrossed },
-    { title: "Business Plans", url: "/business-plans", icon: UtensilsCrossed },
-    { title: "Permissions", url: "/permissions", icon: UtensilsCrossed },
-]
+    { title: "Admins", url: "/admins", icon: UserCog }, // تغيير من Users لـ UserCog (إدارة)
+    { title: "Countries", url: "/countries", icon: Globe }, // أيقونة العالم للبلاد
+    { title: "Cities", url: "/cities", icon: MapPin }, // دبوس الخريطة للمدن
+    { title: "Zones", url: "/zones", icon: Map }, // خريطة للمناطق
+    { title: "Categories", url: "/categories", icon: Layers }, // طبقات للتصنيفات
+    { title: "SubCategories", url: "/sub-categories", icon: Library }, // مكتبة أو تفريعة
+    { title: "Restaurants", url: "/restaurants", icon: Utensils }, // شوكة وسكينة (أنظف)
+    { title: "Addon Categories", url: "/addons-categories", icon: PlusSquare }, // إضافة تصنيف
+    { title: "Modifier", url: "/addons", icon: Settings2 }, // إعدادات الإضافات
+    { title: "Delivery Zones", url: "/delivery-zones", icon: Truck }, // سيارة شحن للتوصيل
+    { title: "Foods", url: "/foods", icon: Beef }, // أيقونة طعام (لحم/برجر)
+    { title: "Cuisines", url: "/cuisines", icon: ChefHat }, // قبعة طباخ لأنواع المطبخ
+    { title: "Business Plans", url: "/business-plans", icon: Briefcase }, // حقيبة عمل للخطط
+    { title: "Permissions", url: "/permissions", icon: ShieldCheck }, // درع للصلاحيات
+];
 
 export function AppSidebar() {
     const setLogout = useAuthStore((state) => state.setLogout);
