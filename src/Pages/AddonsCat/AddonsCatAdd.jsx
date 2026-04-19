@@ -23,6 +23,8 @@ const AddonsCatAdd = () => {
 
     const fields = [
         { name: 'name', label: 'Addon Category Name', required: true },
+        { name: 'nameAr', label: 'Addon Category Name (Arabic)', required: true },
+        { name: 'nameFr', label: 'Addon Category Name (Franko)', required: true },
 
     ];
 

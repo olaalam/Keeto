@@ -103,11 +103,43 @@ const FoodAdd = () => {
                                     />
                                     {errors.name && <span className="text-destructive text-xs">{errors.name.message}</span>}
                                 </div>
+                                <div className="space-y-2">
+                                    <Label>Food Name Ar *</Label>
+                                    <Input
+                                        {...register("nameAr", { required: "Name is required" })}
+                                        placeholder="e.g. Cheese Burger"
+                                        className={errors.nameAr ? "border-destructive" : ""}
+                                    />
+                                    {errors.nameAr && <span className="text-destructive text-xs">{errors.nameAr.message}</span>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Food Name Fr *</Label>
+                                    <Input
+                                        {...register("nameFr", { required: "Name is required" })}
+                                        placeholder="e.g. Cheese Burger"
+                                        className={errors.nameFr ? "border-destructive" : ""}
+                                    />
+                                    {errors.nameFr && <span className="text-destructive text-xs">{errors.nameFr.message}</span>}
+                                </div>
 
                                 <div className="space-y-2">
                                     <Label>Description *</Label>
                                     <Input
                                         {...register("description", { required: "Description is required" })}
+                                        placeholder="Brief description..."
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Description Ar *</Label>
+                                    <Input
+                                        {...register("descriptionAr", { required: "Description is required" })}
+                                        placeholder="Brief description..."
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Description Fr *</Label>
+                                    <Input
+                                        {...register("descriptionFr", { required: "Description is required" })}
                                         placeholder="Brief description..."
                                     />
                                 </div>

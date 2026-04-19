@@ -25,6 +25,8 @@ const AdminAdd = () => {
 
     const adminFields = [
         { name: 'name', label: 'name', required: true },
+        { name: 'nameAr', label: 'nameAr', required: true },
+        { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'email', label: 'email', type: 'email', required: true },
         { name: 'phoneNumber', label: 'phoneNumber', required: true },
         // الباسورد يظهر فقط عند الإضافة

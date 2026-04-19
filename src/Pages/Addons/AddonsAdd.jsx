@@ -36,6 +36,8 @@ const AddonsAdd = () => {
 
     const fields = [
         { name: 'name', label: 'Addon Name', required: true },
+        { name: 'nameAr', label: 'Addon Name (Arabic)', required: true },
+        { name: 'nameFr', label: 'Addon Name (Franko)', required: true },
         { name: 'price', label: 'Price', type: 'number', required: true },
         {
             name: 'stock_type',

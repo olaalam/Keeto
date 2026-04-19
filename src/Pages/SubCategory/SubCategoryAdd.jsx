@@ -44,7 +44,8 @@ const SubCategoryAdd = () => {
 
     const subcategoryFields = [
         { name: 'name', label: 'name', required: true },
-
+        { name: 'nameAr', label: 'nameAr', required: true },
+        { name: 'nameFr', label: 'nameFr', required: true },
         {
             name: 'subcategoryId',
             label: 'Subcategory',

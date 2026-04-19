@@ -25,6 +25,8 @@ const CategoryAdd = () => {
 
     const categoryFields = [
         { name: 'name', label: 'name', required: true },
+        { name: 'nameAr', label: 'nameAr', required: true },
+        { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'Image', label: 'image', type: 'file', required: true },
         { name: 'title', label: 'title', required: true },
         {

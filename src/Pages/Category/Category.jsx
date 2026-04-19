@@ -17,6 +17,8 @@ export default function Category() {
 
     const columns = [
         { accessorKey: 'name', header: 'name' },
+        { accessorKey: 'nameAr', header: 'nameAr' },
+        { accessorKey: 'nameFr', header: 'nameFr' },
         {
             accessorKey: "Image", // التأكد من مطابقة الاسم الراجع من الـ API (حرف I كبير)
             header: "Image",

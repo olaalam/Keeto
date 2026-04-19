@@ -46,6 +46,8 @@ const Foods = () => {
                 <span className="capitalize font-medium">{row.original.name}</span>
             )
         },
+        { accessorKey: 'nameAr', header: 'nameAr' },
+        { accessorKey: 'nameFr', header: 'nameFr' },
         {
             accessorKey: 'price',
             header: 'Price',

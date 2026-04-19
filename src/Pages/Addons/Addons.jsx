@@ -17,6 +17,8 @@ export default function Addons() {
 
     const columns = [
         { accessorKey: 'name', header: 'Addon Name' },
+        { accessorKey: 'nameAr', header: 'Addon Name (Arabic)' },
+        { accessorKey: 'nameFr', header: 'Addon Name (Franko)' },
         { accessorKey: 'price', header: 'Price' },
         { accessorKey: 'stock_type', header: 'Stock Type' },
         {

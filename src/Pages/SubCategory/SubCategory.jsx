@@ -19,6 +19,8 @@ export default function SubCategory() {
 
     const columns = [
         { accessorKey: 'name', header: 'name' },
+        { accessorKey: 'nameAr', header: 'nameAr' },
+        { accessorKey: 'nameFr', header: 'nameFr' },
         { accessorKey: 'category.name', header: 'category' },
         { accessorKey: 'priority', header: 'priority' },
 
