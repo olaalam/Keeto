@@ -17,8 +17,19 @@ export default function Admin() {
 
     const columns = [
         { accessorKey: 'name', header: 'name' },
+        { accessorKey: 'nameAr', header: 'nameAr' },
+        { accessorKey: 'nameFr', header: 'nameFr' },
         { accessorKey: 'email', header: 'email' },
         { accessorKey: 'phoneNumber', header: 'phoneNumber' },
+        {
+            accessorKey: 'role.name', // نستخدم النقطة للوصول للـ nested property
+            header: 'role',
+            cell: ({ row }) => (
+                <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                    {row.original.role?.name || 'N/A'}
+                </span>
+            )
+        },
         {
             accessorKey: 'status',
             header: 'status',

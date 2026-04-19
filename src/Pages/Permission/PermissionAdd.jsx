@@ -103,6 +103,8 @@ export default function PermissionAdd({ initialData }) {
                 initialData={initialData}
                 fields={[
                     { name: 'name', label: 'Role Name', type: 'text', required: true },
+                    { name: 'nameAr', label: 'nameAr', type: 'text', required: true },
+                    { name: 'nameFr', label: 'nameFr', type: 'text', required: true },
                 ]}
             >
                 {({ setValue }) => {

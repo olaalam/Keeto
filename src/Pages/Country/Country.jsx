@@ -17,6 +17,8 @@ export default function Country() {
 
     const columns = [
         { accessorKey: 'name', header: 'name' },
+        { accessorKey: 'nameAr', header: 'nameAr' },
+        { accessorKey: 'nameFr', header: 'nameFr' },
         // {
         //     accessorKey: 'status',
         //     header: 'status',

@@ -21,18 +21,35 @@ const AdminAdd = () => {
         enabled: !!id && !state?.adminData, // لا يتم التفعيل إلا لو فيه id ومافيش بيانات جاهزة
     });
 
-    const initialData = state?.adminData || adminData;
-
+    const { data: roles = [], isLoading: isRolesLoading } = useQuery({
+        queryKey: ['roles'],
+        queryFn: async () => {
+            const res = await api.get('/api/superadmin/roles');
+            // بناءً على الـ JSON اللي بعته:
+            // res.data هو الكائن كامل
+            // res.data.data هو الكائن اللي فيه roles
+            const rolesList = res.data.data.roles || [];
+            return rolesList;
+        }
+    });
+    const rawData = state?.adminData || adminData;
+    const initialData = rawData ? {
+        ...rawData,
+        // هنا نستخرج الـ id من كائن role ونضعه في roleId ليطابق اسم الحقل في الفورم
+        roleId: rawData.role?.id || rawData.roleId
+    } : null;
     const adminFields = [
         { name: 'name', label: 'name', required: true },
+        { name: 'nameAr', label: 'nameAr', required: true },
+        { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'email', label: 'email', type: 'email', required: true },
         { name: 'phoneNumber', label: 'phoneNumber', required: true },
+        { name: 'roleId', label: 'roles', type: 'select', required: true, options: roles.map(r => ({ label: r.name, value: r.id })) },
         // الباسورد يظهر فقط عند الإضافة
         ...(!id ? [{ name: 'password', label: 'password', type: 'password', required: true }] : [])
     ];
 
-    if (id && isFetching) return <LoadingSpinner />;
-
+    if ((id && isFetching) || isRolesLoading) return <LoadingSpinner />;
     return (
         <AddPage
             title="admin"

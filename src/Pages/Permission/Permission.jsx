@@ -19,6 +19,8 @@ export default function Permission() {
             accessorKey: 'name',
             header: 'NAME',
         },
+        { accessorKey: 'nameAr', header: 'nameAr' },
+        { accessorKey: 'nameFr', header: 'nameFr' },
         {
             id: 'view_permissions',
             header: 'PERMISSIONS',

@@ -65,6 +65,8 @@ const ZoneAdd = () => {
 
     const fields = [
         { name: 'name', label: 'Zone Name', required: true },
+        { name: 'nameAr', label: 'nameAr', required: true },
+        { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'displayName', label: 'Display Name', required: true },
         {
             name: 'cityId',

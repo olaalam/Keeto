@@ -45,6 +45,8 @@ const CityAdd = () => {
 
     const cityFields = [
         { name: 'name', label: 'name', required: true },
+        { name: 'nameAr', label: 'nameAr', required: true },
+        { name: 'nameFr', label: 'nameFr', required: true },
         {
             name: 'countryId',
             label: 'Country',

@@ -25,8 +25,12 @@ const CuisineAdd = () => {
 
     const cuisineFields = [
         { name: 'name', label: 'name', required: true },
+        { name: 'nameAr', label: 'nameAr', required: true },
+        { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'Image', label: 'image', type: 'file', required: true },
         { name: 'description', label: 'description', required: true },
+        { name: 'descriptionAr', label: 'descriptionAr', required: true },
+        { name: 'descriptionFr', label: 'descriptionFr', required: true },
         { name: 'meta_description', label: 'meta_description', required: true },
         { name: 'meta_image', label: 'meta_image', type: 'file', required: true },
         { name: 'status', label: 'status', required: true, type: 'switch' },

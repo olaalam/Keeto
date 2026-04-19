@@ -17,6 +17,8 @@ export default function AddonsCat() {
 
     const columns = [
         { accessorKey: 'name', header: 'Category Name' },
+        { accessorKey: 'nameAr', header: 'Category Name (Arabic)' },
+        { accessorKey: 'nameFr', header: 'Category Name (Franko)' },
     ];
 
     return (

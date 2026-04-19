@@ -60,6 +60,8 @@ const RestaurantAdd = () => {
     // تعريف الحقول لـ AddPage
     const fields = [
         { name: 'name', label: 'Restaurant Name', required: true },
+        { name: 'nameAr', label: 'nameAr', required: true },
+        { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'email', label: 'Email Address', type: 'email', required: true },
         ...(!isEdit ? [{ name: 'password', label: 'Password', type: 'password', required: true }] : []),
         {
