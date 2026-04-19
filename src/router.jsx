@@ -37,6 +37,9 @@ import Permission from "./Pages/Permission/Permission";
 import PermissionAdd from "./Pages/Permission/PermissionAdd";
 import PaymentMetod from "./Pages/PaymentMetod/PaymentMetod";
 import PaymentMetodAdd from "./Pages/PaymentMetod/PaymentMetodAdd";
+import Transaction from "./Pages/Transaction/Transaction";
+import Order from "./Pages/Order/Order";
+import WalletR from "./Pages/Restaurant/WalletR";
 
 
 const router = createBrowserRouter([
@@ -243,6 +246,18 @@ const router = createBrowserRouter([
             {
                 path: "payment-methods/edit/:id",
                 element: <PaymentMetodAdd />,
+            },
+            {
+                path: "restaurants/transaction/:restaurantId",
+                element: <Transaction />,
+            },
+            {
+                path: "restaurants/order/:restaurantId",
+                element: <Order />,
+            },
+            {
+                path: "restaurants/wallet/:restaurantId",
+                element: <WalletR />,
             },
 
 

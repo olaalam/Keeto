@@ -77,6 +77,42 @@ export default function Restaurant() {
                 </button>
             )
         },
+        {
+            accessorKey: "transaction",
+            header: "Transaction",
+            cell: ({ row }) => (
+                <button
+                    onClick={() => navigate(`transaction/${row.original.id}`)}
+                    className="text-blue-600 hover:underline font-medium text-left"
+                >
+                    Transaction
+                </button>
+            )
+        },
+        {
+            accessorKey: "order",
+            header: "Order",
+            cell: ({ row }) => (
+                <button
+                    onClick={() => navigate(`order/${row.original.id}`)}
+                    className="text-blue-600 hover:underline font-medium text-left"
+                >
+                    Order
+                </button>
+            )
+        },
+        {
+            accessorKey: "wallet",
+            header: "Wallet",
+            cell: ({ row }) => (
+                <button
+                    onClick={() => navigate(`wallet/${row.original.id}`)}
+                    className="text-blue-600 hover:underline font-medium text-left"
+                >
+                    Wallet
+                </button>
+            )
+        },
 
         {
             accessorKey: "status",
