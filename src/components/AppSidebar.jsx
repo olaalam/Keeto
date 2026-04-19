@@ -15,6 +15,7 @@ import {
     Briefcase,
     ShieldCheck,
     LogOut,
+
 } from "lucide-react";
 
 import {
@@ -48,6 +49,7 @@ const items = [
     { title: "Cuisines", url: "/cuisines", icon: ChefHat }, // قبعة طباخ لأنواع المطبخ
     { title: "Business Plans", url: "/business-plans", icon: Briefcase }, // حقيبة عمل للخطط
     { title: "Permissions", url: "/permissions", icon: ShieldCheck }, // درع للصلاحيات
+    { title: "Payment Methods", url: "/payment-methods", icon: ShieldCheck }, // درع للصلاحيات
 ];
 
 export function AppSidebar() {

@@ -35,6 +35,9 @@ import BusinessPlan from "./Pages/BusinessPlan/BusinessPlan";
 import BusinessPlanAdd from "./Pages/BusinessPlan/BusinessPlanAdd";
 import Permission from "./Pages/Permission/Permission";
 import PermissionAdd from "./Pages/Permission/PermissionAdd";
+import PaymentMetod from "./Pages/PaymentMetod/PaymentMetod";
+import PaymentMetodAdd from "./Pages/PaymentMetod/PaymentMetodAdd";
+
 
 const router = createBrowserRouter([
     {
@@ -229,6 +232,19 @@ const router = createBrowserRouter([
                 path: "permissions/edit/:id",
                 element: <PermissionAdd />,
             },
+            {
+                path: "payment-methods",
+                element: <PaymentMetod />,
+            },
+            {
+                path: "payment-methods/add",
+                element: <PaymentMetodAdd />,
+            },
+            {
+                path: "payment-methods/edit/:id",
+                element: <PaymentMetodAdd />,
+            },
+
 
         ],
     },
