@@ -68,6 +68,8 @@ const ZoneAdd = () => {
         { name: 'nameAr', label: 'nameAr', required: true },
         { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'displayName', label: 'Display Name', required: true },
+        { name: 'displayNameAr', label: 'Display Name Ar', required: true },
+        { name: 'displayNameFr', label: 'Display Name Fr', required: true },
         {
             name: 'cityId',
             label: 'City',

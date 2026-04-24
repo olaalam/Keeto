@@ -29,6 +29,8 @@ const CategoryAdd = () => {
         { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'Image', label: 'image', type: 'file', required: true },
         { name: 'title', label: 'title', required: true },
+        { name: 'titleAr', label: 'titleAr', required: true },
+        { name: 'titleFr', label: 'titleFr', required: true },
         {
             name: 'priority',
             label: 'priority',
@@ -41,6 +43,8 @@ const CategoryAdd = () => {
             ]
         },
         { name: 'meta_title', label: 'meta_title', required: true },
+        { name: 'meta_titleAr', label: 'meta_titleAr', required: true },
+        { name: 'meta_titleFr', label: 'meta_titleFr', required: true },
         { name: 'meta_image', label: 'meta_image', type: 'file', required: true },
         { name: 'status', label: 'status', required: true, type: 'switch' },
     ];
