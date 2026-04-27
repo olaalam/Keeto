@@ -38,7 +38,7 @@ const SubCategoryAdd = () => {
             ...rawData,
             // هنا بنخرج الـ id من جوه كائن الـ country ونحطه في countryId 
             // عشان الـ AddPage والـ Select يحسوا بيه
-            subcategoryId: rawData.subcategoryId || rawData.category?.id
+            categoryId: rawData.categoryId || rawData.category?.id
         };
     }, [rawData]);
 
@@ -47,8 +47,8 @@ const SubCategoryAdd = () => {
         { name: 'nameAr', label: 'nameAr', required: true },
         { name: 'nameFr', label: 'nameFr', required: true },
         {
-            name: 'subcategoryId',
-            label: 'Subcategory',
+            name: 'categoryId',
+            label: 'Category',
             required: true,
             type: 'select',
             // التأكد من أن الـ options بتستخدم الـ id والـ name الصح

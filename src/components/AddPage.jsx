@@ -20,6 +20,7 @@ const AddPage = ({
     fields = [],
     initialData,
     onSuccessAction,
+    beforeSubmit, // دالة اختيارية لتحويل البيانات قبل الإرسال
     children
 }) => {
     const isEdit = !!initialData?.id;
@@ -57,15 +58,18 @@ const AddPage = ({
         }
     }, [initialData, reset, fields]);
     const onSubmit = (data) => {
+        // التحقق من وجود دالة تحويل البيانات قبل الإرسال
+        const finalData = beforeSubmit ? beforeSubmit(data) : data;
+
         // 1. لو إحنا في حالة تعديل
         if (isEdit) {
             // ابعت الـ data اللي جاية من البرامتر فوراً
             updateMutation.mutate(
-                { id: initialData.id, payload: data },
+                { id: initialData.id, payload: finalData },
                 { onSuccess: () => onSuccessAction?.() }
             );
         } else {
-            postMutation.mutate(data, {
+            postMutation.mutate(finalData, {
                 onSuccess: () => onSuccessAction?.()
             });
         }

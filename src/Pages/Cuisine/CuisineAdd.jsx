@@ -21,7 +21,15 @@ const CuisineAdd = () => {
         enabled: !!id && !state?.cuisineData, // لا يتم التفعيل إلا لو فيه id ومافيش بيانات جاهزة
     });
 
-    const initialData = state?.cuisineData || cuisineData;
+    const rawData = state?.cuisineData || cuisineData;
+
+    const initialData = React.useMemo(() => {
+        if (!rawData) return null;
+        return {
+            ...rawData,
+            status: rawData.status === true || rawData.status === 'active' ? 'active' : 'inactive'
+        };
+    }, [rawData]);
 
     const cuisineFields = [
         { name: 'name', label: 'name', required: true },
@@ -32,8 +40,19 @@ const CuisineAdd = () => {
         { name: 'descriptionAr', label: 'descriptionAr', required: true },
         { name: 'descriptionFr', label: 'descriptionFr', required: true },
         { name: 'meta_description', label: 'meta_description', required: true },
+        { name: 'meta_descriptionAr', label: 'meta_descriptionAr', required: true },
+        { name: 'meta_descriptionFr', label: 'meta_descriptionFr', required: true },
         { name: 'meta_image', label: 'meta_image', type: 'file', required: true },
-        { name: 'status', label: 'status', required: true, type: 'switch' },
+        {
+            name: 'status',
+            label: 'status',
+            type: 'select',
+            required: true,
+            options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Inactive', value: 'inactive' },
+            ]
+        },
     ];
 
     if (id && isFetching) return <LoadingSpinner />;

@@ -34,8 +34,8 @@ const RestaurantAdd = () => {
                 cuisineId: String(raw.cuisineId),
                 zoneId: String(raw.zoneId),
                 tags: Array.isArray(raw.tags) ? raw.tags.join(', ') : raw.tags,
-                // lat: String(raw.lat || ""),
-                // lng: String(raw.lng || ""),
+                deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
+                status: raw.status || "active",
             };
         },
         enabled: !!id && !state?.restaurantData,
@@ -64,6 +64,9 @@ const RestaurantAdd = () => {
         { name: 'nameFr', label: 'nameFr', required: true },
         { name: 'email', label: 'Email Address', type: 'email', required: true },
         ...(!isEdit ? [{ name: 'password', label: 'Password', type: 'password', required: true }] : []),
+        { name: 'address', label: 'Address (EN)', required: true },
+        { name: 'addressAr', label: 'Address (AR)', required: true },
+        { name: 'addressFr', label: 'Address (FR)', required: true },
         {
             name: 'cuisineId',
             label: 'Cuisine Type',
@@ -77,8 +80,19 @@ const RestaurantAdd = () => {
         { name: 'ownerFirstName', label: 'Owner First Name', required: true },
         { name: 'ownerLastName', label: 'Owner Last Name', required: true },
         { name: 'ownerPhone', label: 'Owner Phone', required: true },
-        { name: 'minDeliveryTime', label: 'Min Delivery (Mins)', type: 'number', required: true },
-        { name: 'maxDeliveryTime', label: 'Max Delivery (Mins)', type: 'number', required: true },
+        { name: 'minDeliveryTime', label: 'Min Delivery', type: 'number', required: true },
+        { name: 'maxDeliveryTime', label: 'Max Delivery', type: 'number', required: true },
+        {
+            name: 'deliveryTimeUnit',
+            label: 'Delivery Time Unit',
+            type: 'select',
+            required: true,
+            options: [
+                { label: 'Minutes', value: 'Minutes' },
+                { label: 'Hours', value: 'Hours' },
+                { label: 'Days', value: 'Days' },
+            ]
+        },
         { name: 'taxNumber', label: 'Tax Number', required: true },
         { name: 'taxExpireDate', label: 'Tax Expire Date', type: 'date', required: true },
         { name: 'tags', label: 'Tags (comma separated)', required: false },
@@ -89,7 +103,16 @@ const RestaurantAdd = () => {
             required: true,
             options: selectData?.allZones?.map(z => ({ label: z.name, value: z.id }))
         },
-        // { name: 'address', label: 'Detailed Address', required: true },
+        {
+            name: 'status',
+            label: 'Status',
+            type: 'select',
+            required: true,
+            options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Inactive', value: 'inactive' },
+            ]
+        },
     ];
 
     return (
@@ -101,6 +124,14 @@ const RestaurantAdd = () => {
             fields={fields}
             initialData={initialData}
             onSuccessAction={() => navigate(-1)}
+            beforeSubmit={(data) => ({
+                ...data,
+                tags: typeof data.tags === 'string' 
+                    ? data.tags.split(',').map(t => t.trim()).filter(t => t !== "") 
+                    : data.tags,
+                minDeliveryTime: String(data.minDeliveryTime),
+                maxDeliveryTime: String(data.maxDeliveryTime),
+            })}
         >
             {/* {(methods) => (
                 <div className="space-y-4 pt-4 border-t">
