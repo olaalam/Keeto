@@ -31,7 +31,7 @@ const PaymentMethodAdd = () => {
         { name: 'description', label: 'description', required: true },
         { name: 'descriptionAr', label: 'descriptionAr', required: true },
         { name: 'descriptionFr', label: 'descriptionFr', required: true },
-        { name: 'type', label: 'type', required: true, type: 'select', options: [{ value: 'manual', label: 'manual' }, { value: 'automatic', label: 'automatic' }] },
+        { name: 'type', label: 'type', required: true, type: 'select', options: [{ value: 'cash', label: 'cash' }, { value: 'visa', label: 'visa' }] },
 
     ];
 
