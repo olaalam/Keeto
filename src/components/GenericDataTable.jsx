@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   useReactTable,
   getCoreRowModel,
@@ -40,6 +41,7 @@ export default function GenericDataTable({
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteId, setDeleteId] = useState(null);
+  const navigate = useNavigate();
 
   const tableColumns = useMemo(
     () => [
@@ -221,6 +223,11 @@ export default function GenericDataTable({
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
+      </div>
+      <div>
+        <Button onClick={() => navigate("/")}>
+          Back to home
+        </Button>
       </div>
 
       {/* DELETE */}
