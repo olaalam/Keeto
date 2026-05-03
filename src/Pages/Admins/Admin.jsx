@@ -17,8 +17,8 @@ export default function Admin() {
 
   const columns = [
     { accessorKey: "name", header: "name" },
-    { accessorKey: "nameAr", header: "nameAr" },
-    { accessorKey: "nameFr", header: "nameFr" },
+   /*  { accessorKey: "nameAr", header: "nameAr" },
+    { accessorKey: "nameFr", header: "nameFr" }, */
     {
       accessorKey: "email",
       header: () => (

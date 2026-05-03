@@ -200,7 +200,20 @@ const AddPage = ({
                     control={control}
                     defaultValue={initialData?.[field.name] ?? false}
                     render={({ field: { onChange, value } }) => (
-                      <Switch checked={value} onCheckedChange={onChange} />
+                      <Switch
+                        checked={value}
+                        onCheckedChange={(checked) => {
+                          onChange(checked); // ✅ always update RHF state
+
+                          // ✅ if a custom onChange exists (e.g. patchStatus), call it with the real value
+                          if (field.onChange) {
+                            const newValue = checked
+                              ? (field.trueValue ?? true)
+                              : (field.falseValue ?? false);
+                            field.onChange(newValue);
+                          }
+                        }}
+                      />
                     )}
                   />
                 ) : (
