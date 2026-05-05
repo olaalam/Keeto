@@ -78,7 +78,9 @@ export default function Layout() {
                   )}
                 </div>
               </div>
-
+              <div>
+                <img  className="w-15 h-15" src="/src/assets/logo.webp" alt="" />
+              </div>
               {/* الجزء الأيمن: زر تسجيل الخروج */}
               <button
                 onClick={setLogout}

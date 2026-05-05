@@ -30,63 +30,52 @@ import LoadingSpinner from "./LoadingSpinner";
 import clsx from "clsx";
 
 export default function GenericDataTable({
-  columns,
-  data,
-  title,
-  onAdd,
-  onEdit,
-  deleteApiUrl,
-  queryKey,
-  isLoading,
+    columns, data, title, onAdd, onEdit, deleteApiUrl, queryKey, isLoading, actions = true
 }) {
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [deleteId, setDeleteId] = useState(null);
-  const navigate = useNavigate();
+    const [globalFilter, setGlobalFilter] = useState('');
+    const [deleteId, setDeleteId] = useState(null);
+    const navigate = useNavigate();
 
-  const tableColumns = useMemo(
-    () => [
-      ...columns,
-      {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition">
-            {onEdit && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hover:bg-blue-50"
-                onClick={() => onEdit(row.original)}
-              >
-                <Pencil className="h-4 w-4 text-blue-600" />
-              </Button>
-            )}
-            {deleteApiUrl && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hover:bg-red-50"
-                onClick={() => setDeleteId(row.original.id)}
-              >
-                <Trash2 className="h-4 w-4 text-red-600" />
-              </Button>
-            )}
-          </div>
-        ),
-      },
-    ],
-    [columns, onEdit, deleteApiUrl],
-  );
 
-  const table = useReactTable({
-    data,
-    columns: tableColumns,
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
+    // إضافة عمود العمليات تلقائياً
+    const tableColumns = useMemo(() => {
+        // 1. نبدأ بالأعمدة الأساسية المرسلة عبر الـ props
+        const baseColumns = [...columns];
+
+        // 2. إذا كانت actions تساوي true، نضيف عمود العمليات للمصفوفة
+        if (actions) {
+            baseColumns.push({
+                id: 'actions',
+                header: 'Actions',
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-2">
+                        {onEdit && (
+                            <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)}>
+                                <Pencil className="h-4 w-4 text-blue-600" />
+                            </Button>
+                        )}
+                        {deleteApiUrl && (
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(row.original.id)}>
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                        )}
+                    </div>
+                ),
+            });
+        }
+
+        return baseColumns;
+    }, [columns, onEdit, deleteApiUrl, actions]);
+
+    const table = useReactTable({
+        data,
+        columns: tableColumns,
+        state: { globalFilter },
+        onGlobalFilterChange: setGlobalFilter,
+        getCoreRowModel: getCoreRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+    });
 
   return (
     <div className="space-y-5 w-full">
