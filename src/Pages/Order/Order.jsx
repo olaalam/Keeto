@@ -82,7 +82,7 @@ export default function Order() {
           {/* زر عرض الطلب (نفس منطق زر الـ Food) */}
           <button
             onClick={() =>
-              navigate(`/orders/details/${row.original.internalId}`)
+              navigate(`/orders/details/${restaurantId}/${row.original.orderId}`)
             }
             className="flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-600 rounded-md hover:bg-orange-200 transition-colors"
           >

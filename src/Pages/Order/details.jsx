@@ -12,7 +12,6 @@ import {
   CreditCard,
   Store,
   Receipt,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,23 +65,22 @@ const statusConfig = {
 };
 
 export default function Details() {
-  const { internalId: orderId } = useParams();
+  const { orderId, restaurantId } = useParams();
   const navigate = useNavigate();
 
   // 1. استدعاء البيانات باستخدام useQuery
   const {
-    data: response,
+    data: orderData,
     isLoading,
     isError,
   } = useQuery({
     queryKey: ["orderDetails", orderId],
     queryFn: async () => {
-      const res = await api.get(`/api/superadmin/order/${orderId}`);
-      console.log(res);
-      
-      return res.data;
+      const res = await api.get(`/api/superadmin/order/${restaurantId}/${orderId}`);
+      // استخراج البيانات بناءً على الهيكل المتوقع من السورس
+      return res.data?.data?.data || res.data?.data;
     },
-    enabled: !!orderId,
+    enabled: !!orderId && !!restaurantId,
   });
 
   // 2. معالجة حالة التحميل
@@ -91,7 +89,7 @@ export default function Details() {
   }
 
   // 3. معالجة حالة الخطأ أو عدم وجود بيانات
-  if (isError || !response?.data) {
+  if (isError || !orderData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <XCircle className="w-10 h-10 text-red-500" />
@@ -106,12 +104,8 @@ export default function Details() {
     );
   }
 
-  // 4. استخراج البيانات (تصحيح اسم المتغير من orderdetails إلى response)
-  const order = response?.data?.data;
-  console.log(order);
-  
-
-  const currentStatus = statusConfig[order.status] || statusConfig.pending;
+  // 4. تعيين الحالة والأيقونة
+  const currentStatus = statusConfig[orderData.status] || statusConfig.pending;
   const StatusIcon = currentStatus.icon;
 
   return (
@@ -120,10 +114,10 @@ export default function Details() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-lg border shadow-sm">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Order #{order.orderNumber}
+            Order #{orderData.orderNumber}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {new Date(order.createdAt).toLocaleString()}
+            {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString() : "Date N/A"}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -150,16 +144,16 @@ export default function Details() {
               <div>
                 <p className="text-muted-foreground">Name</p>
                 <p className="font-medium">
-                  {order.customer?.name || "Unknown"}
+                  {orderData.customer?.name || "Unknown"}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground">Phone</p>
-                <p className="font-medium">{order.customer?.phone || "N/A"}</p>
+                <p className="font-medium">{orderData.customer?.phone || "N/A"}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Email</p>
-                <p className="font-medium">{order.customer?.email || "N/A"}</p>
+                <p className="font-medium">{orderData.customer?.email || "N/A"}</p>
               </div>
             </CardContent>
           </Card>
@@ -173,16 +167,16 @@ export default function Details() {
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Restaurant</span>
-                <span className="font-medium">{order.restaurant?.name}</span>
+                <span className="font-medium">{orderData.restaurant?.name || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Branch</span>
-                <span className="font-medium">{order.branch?.name}</span>
+                <span className="font-medium">{orderData.branch?.name || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment</span>
-                <span className="font-medium flex items-center gap-1">
-                  <CreditCard size={14} /> {order.paymentMethod?.name}
+                <span className="font-medium flex items-center gap-1 text-capitalize">
+                  <CreditCard size={14} /> {orderData.paymentMethod?.name || "Cash"}
                 </span>
               </div>
             </CardContent>
@@ -199,18 +193,22 @@ export default function Details() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {order.items?.map((item) => (
+                {orderData.items?.map((item) => (
                   <div
                     key={item.id}
                     className="flex justify-between items-center border-b pb-4 last:border-0 last:pb-0"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
-                        <img
-                          src={item.foodImage}
-                          alt={item.foodName}
-                          className="w-full h-full object-cover"
-                        />
+                        {item.foodImage ? (
+                          <img
+                            src={item.foodImage}
+                            alt={item.foodName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No Image</div>
+                        )}
                       </div>
                       <div>
                         <p className="font-semibold">{item.foodName}</p>
@@ -229,20 +227,20 @@ export default function Details() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>EGP {order.subtotal}</span>
+                  <span>EGP {orderData.subtotal}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Delivery Fee</span>
-                  <span>EGP {order.deliveryFee}</span>
+                  <span>EGP {orderData.deliveryFee}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Service Fee</span>
-                  <span>EGP {order.serviceFee}</span>
+                  <span>EGP {orderData.serviceFee}</span>
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between text-base font-bold">
                   <span>Total Amount</span>
-                  <span className="text-primary">EGP {order.totalAmount}</span>
+                  <span className="text-primary">EGP {orderData.totalAmount}</span>
                 </div>
               </div>
             </CardContent>
