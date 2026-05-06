@@ -65,7 +65,7 @@ const statusConfig = {
 };
 
 export default function Details() {
-  const { orderId, restaurantId } = useParams();
+  const { internalId, restaurantId } = useParams();
   const navigate = useNavigate();
 
   // 1. استدعاء البيانات باستخدام useQuery
@@ -74,13 +74,15 @@ export default function Details() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["orderDetails", orderId],
+    queryKey: ["orderDetails", internalId, restaurantId],
     queryFn: async () => {
-      const res = await api.get(`/api/superadmin/order/${restaurantId}/${orderId}`);
+      const res = await api.get(
+        `/api/superadmin/order/${restaurantId}/${internalId}`,
+      );
       // استخراج البيانات بناءً على الهيكل المتوقع من السورس
       return res.data?.data?.data || res.data?.data;
     },
-    enabled: !!orderId && !!restaurantId,
+    enabled: !!internalId && !!restaurantId,
   });
 
   // 2. معالجة حالة التحميل
@@ -105,7 +107,8 @@ export default function Details() {
   }
 
   // 4. تعيين الحالة والأيقونة
-  const currentStatus = statusConfig[orderData.status] || statusConfig.pending;
+  const currentStatus =
+    statusConfig[orderData.orderStatus] || statusConfig.pending;
   const StatusIcon = currentStatus.icon;
 
   return (
@@ -117,7 +120,9 @@ export default function Details() {
             Order #{orderData.orderNumber}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString() : "Date N/A"}
+            {orderData.orderDate
+              ? new Date(orderData.orderDate).toLocaleString()
+              : "Date N/A"}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -144,16 +149,14 @@ export default function Details() {
               <div>
                 <p className="text-muted-foreground">Name</p>
                 <p className="font-medium">
-                  {orderData.customer?.name || "Unknown"}
+                  {orderData.customerName || "Unknown"}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground">Phone</p>
-                <p className="font-medium">{orderData.customer?.phone || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Email</p>
-                <p className="font-medium">{orderData.customer?.email || "N/A"}</p>
+                <p className="font-medium">
+                  {orderData.customerPhone || "N/A"}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -165,20 +168,25 @@ export default function Details() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between">
+              {/* <div className="flex justify-between">
                 <span className="text-muted-foreground">Restaurant</span>
-                <span className="font-medium">{orderData.restaurant?.name || "-"}</span>
-              </div>
-              <div className="flex justify-between">
+                <span className="font-medium">
+                  {orderData.restaurant?.name || "-"}
+                </span>
+              </div> */}
+             {/*  <div className="flex justify-between">
                 <span className="text-muted-foreground">Branch</span>
-                <span className="font-medium">{orderData.branch?.name || "-"}</span>
-              </div>
-              <div className="flex justify-between">
+                <span className="font-medium">
+                  {orderData.branch?.name || "-"}
+                </span>
+              </div> */}
+             {/*  <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment</span>
                 <span className="font-medium flex items-center gap-1 text-capitalize">
-                  <CreditCard size={14} /> {orderData.paymentMethod?.name || "Cash"}
+                  <CreditCard size={14} />{" "}
+                  {orderData.paymentMethod?.name || "Cash"}
                 </span>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
         </div>
@@ -207,7 +215,9 @@ export default function Details() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No Image</div>
+                          <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">
+                            No Image
+                          </div>
                         )}
                       </div>
                       <div>
@@ -240,7 +250,9 @@ export default function Details() {
                 <Separator className="my-2" />
                 <div className="flex justify-between text-base font-bold">
                   <span>Total Amount</span>
-                  <span className="text-primary">EGP {orderData.totalAmount}</span>
+                  <span className="text-primary">
+                    EGP {orderData.totalAmount}
+                  </span>
                 </div>
               </div>
             </CardContent>

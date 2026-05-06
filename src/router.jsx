@@ -257,7 +257,7 @@ const router = createBrowserRouter([
                 element: <Order />,
             },
             {
-                path: "/orders/details/:restaurantId/:orderId",
+                path: "/orders/details/:restaurantId/:internalId",
                 element: <Details />,
             },
             {
