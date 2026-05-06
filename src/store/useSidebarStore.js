@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware"; // 1. استورد الـ persist
+import { persist } from "zustand/middleware";
+import { modules } from "@/config/modules";
 
 const useSidebarStore = create(
   persist(
@@ -8,7 +9,18 @@ const useSidebarStore = create(
       setActiveModule: (module) => set({ activeModule: module }),
     }),
     {
-      name: "sidebar-storage", // 2. الاسم اللي هيتحفظ بيه في الـ localStorage
+      name: "sidebar-storage",
+      partialize: (state) => ({
+        activeModuleKey: state.activeModule?.key || null,
+      }),
+      merge: (persistedState, currentState) => {
+        const key = persistedState?.activeModuleKey;
+        const module = modules.find((m) => m.key === key) || null;
+        return {
+          ...currentState,
+          activeModule: module,
+        };
+      },
     }
   )
 );
