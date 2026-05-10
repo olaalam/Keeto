@@ -41,6 +41,7 @@ import Transaction from "./Pages/Transaction/Transaction";
 import Order from "./Pages/Order/Order";
 import WalletR from "./Pages/Restaurant/WalletR";
 import Details from "./Pages/Order/details";
+import FinancialReport from "./Pages/FinancialReport/FinancialReport";
 
 
 const router = createBrowserRouter([
@@ -263,6 +264,10 @@ const router = createBrowserRouter([
             {
                 path: "restaurants/wallet/:restaurantId",
                 element: <WalletR />,
+            },
+            {
+                path: "financial-report",
+                element: <FinancialReport />,
             },
 
 

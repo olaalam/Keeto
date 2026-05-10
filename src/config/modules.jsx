@@ -15,6 +15,7 @@ import {
   PlusSquare,
   Settings2,
 Briefcase,
+  FileBarChart
 } from "lucide-react";
 
 export const modules = [
@@ -64,6 +65,7 @@ export const modules = [
       },
       { title: "Modifier", url: "/addons", icon: Settings2 },
       { title: "Business Plans", url: "/business-plans", icon: Briefcase },
+      {title: "Financial report", url: "/financial-report", icon: FileBarChart},
     ],
   },
 ];

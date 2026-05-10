@@ -213,11 +213,7 @@ export default function GenericDataTable({
           </Button>
         </div>
       </div>
-      <div>
-        <Button onClick={() => navigate("/")}>
-          Back to home
-        </Button>
-      </div>
+      
 
       {/* DELETE */}
       <DeleteDialog
