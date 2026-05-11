@@ -15,7 +15,7 @@ import useSidebarStore from "@/store/useSidebarStore";
 import useAuthStore from "@/store/useAuthStore";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, HelpCircle } from "lucide-react"; // استيراد الأيقونات الأساسية فقط
+import { LogOut, HelpCircle, Home } from "lucide-react"; // استيراد الأيقونات الأساسية فقط
 
 export function AppSidebar() {
   const { open } = useSidebar();
@@ -88,11 +88,18 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              tooltip="Logout"
+              tooltip="Home"
               className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
             >
-              <div>
-                <Button onClick={() => navigate("/")}>Back to home</Button>
+              <div className="w-full">
+                <Button
+                  onClick={() => navigate("/")}
+                  className={`w-full ${!open ? "px-2 justify-center" : ""}`}
+                >
+                  <Home size={18} />
+
+                  {open && <span className="ml-2">Back to home</span>}
+                </Button>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
