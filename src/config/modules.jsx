@@ -15,7 +15,12 @@ import {
   PlusSquare,
   Settings2,
 Briefcase,
-  FileBarChart
+  FileBarChart,
+  BellRing,
+  TicketPercent,
+  BadgePercent,
+ 
+  
 } from "lucide-react";
 
 export const modules = [
@@ -68,4 +73,13 @@ export const modules = [
       {title: "Financial report", url: "/financial-report", icon: FileBarChart},
     ],
   },
+  {
+    name: "Marketing",
+    key: "marketing",
+    items: [
+      { title: "Discounts", url: "/discounts", icon: BadgePercent },
+      { title: "Coupons", url: "/coupons", icon: TicketPercent },
+      { title: "Popups", url: "/offers", icon: BellRing },
+    ],
+  }
 ];
