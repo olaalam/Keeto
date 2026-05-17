@@ -52,16 +52,20 @@ export default function GenericDataTable({
         id: "rowNumber",
         header: "#",
         cell: ({ row, table }) => {
-          // حساب الرقم التسلسلي مع مراعاة رقم الصفحة الحالية والـ Pagination
           const pageIndex = table.getState().pagination.pageIndex;
           const pageSize = table.getState().pagination.pageSize;
+
+          // 👇 الحل المضمون: إيجاد مكان الصف الفعلي داخل الصفحة الحالية فقط
+          const indexInCurrentPage = table
+            .getRowModel()
+            .rows.findIndex((r) => r.id === row.id);
+
           return (
             <span className="font-mono text-gray-500">
-              {pageIndex * pageSize + row.index + 1}
+              {pageIndex * pageSize + indexInCurrentPage + 1}
             </span>
           );
         },
-        // تحديد عرض العمود ليكون صغيراً ومناسباً للأرقام
         size: 50,
       },
       ...columns,
@@ -108,6 +112,11 @@ export default function GenericDataTable({
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 15,
+      },
+    },
   });
 
   return (

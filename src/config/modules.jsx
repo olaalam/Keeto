@@ -35,7 +35,6 @@ export const modules = [
     items: [
       { title: "Admins", url: "/admins", icon: UserCog },
       { title: "Permissions", url: "/permissions", icon: ShieldCheck },
-      { title: "Payment Methods", url: "/payment-methods", icon: Wallet },
     ],
   },
   {
@@ -57,20 +56,21 @@ export const modules = [
       { title: "Restaurants", url: "/restaurants", icon: Utensils },
       { title: "Foods", url: "/foods", icon: Beef },
       { title: "Cuisines", url: "/cuisines", icon: ChefHat },
-    ],
-  },
-    {
-    name: "Business",
-    key: "business",
-    items: [
+      { title: "Modifier", url: "/addons", icon: Settings2 },
       {
         title: "Addon Categories",
         url: "/addons-categories",
         icon: PlusSquare,
       },
-      { title: "Modifier", url: "/addons", icon: Settings2 },
+    ],
+  },
+  {
+    name: "Business",
+    key: "business",
+    items: [
       { title: "Business Plans", url: "/business-plans", icon: Briefcase },
       {title: "Financial report", url: "/financial-report", icon: FileBarChart},
+      { title: "Payment Methods", url: "/payment-methods", icon: Wallet },
     ],
   },
   {

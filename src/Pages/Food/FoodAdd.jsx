@@ -1,19 +1,18 @@
 import React from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/api/axios';
 import AddPage from '@/components/AddPage';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Controller, useFieldArray } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import api from '@/api/axios';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import { Controller, useFieldArray } from "react-hook-form";
+import { Trash2, Plus } from 'lucide-react';
 
-// دالة مساعدة لتحويل الصورة لـ Base64
 const toBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -21,13 +20,201 @@ const toBase64 = (file) => new Promise((resolve, reject) => {
     reader.onerror = error => reject(error);
 });
 
+// Dynamic Variations Group Manager
+const VariationsManager = ({ control, register, errors, watch }) => {
+    const { fields: variationFields, append: appendVariation, remove: removeVariation } = useFieldArray({
+        control,
+        name: "variations"
+    });
+
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <Label className="text-base font-bold">Product Variations</Label>
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => appendVariation({ 
+                        name: "", 
+                        nameAr: "", 
+                        nameFr: "", 
+                        type: "single", 
+                        min: "1", 
+                        max: "1", 
+                        isRequired: false, 
+                        options: [] 
+                    })}
+                >
+                    <Plus className="w-4 h-4 mr-2" /> Add Variation Group
+                </Button>
+            </div>
+
+            {variationFields.map((field, index) => {
+                const currentType = watch(`variations.${index}.type`) || "single";
+
+                return (
+                    <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-gray-50/50 relative">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 text-destructive hover:bg-destructive/10"
+                            onClick={() => removeVariation(index)}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </Button>
+
+                        {/* Text Titles */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pr-8">
+                            <div className="space-y-2">
+                                <Label>Group Name (EN) *</Label>
+                                <Input {...register(`variations.${index}.name`, { required: true })} placeholder="e.g. Choose Crust" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Group Name (AR) *</Label>
+                                <Input {...register(`variations.${index}.nameAr`, { required: true })} placeholder="مثال: نوع الحواف" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Group Name (FR) *</Label>
+                                <Input {...register(`variations.${index}.nameFr`, { required: true })} placeholder="e.g. Type de croûte" />
+                            </div>
+                        </div>
+
+                        {/* Selection configuration logic parameters */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end pt-2">
+                            <div className="space-y-2">
+                                <Label>Selection Type *</Label>
+                                <Controller
+                                    name={`variations.${index}.type`}
+                                    control={control}
+                                    defaultValue="single"
+                                    render={({ field: typeField }) => (
+                                        <Select onValueChange={typeField.onChange} value={typeField.value}>
+                                            <SelectTrigger className="bg-white">
+                                                <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="single">Single Choice (Radio)</SelectItem>
+                                                <SelectItem value="multiple">Multiple Choice (Checkbox)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+
+                            {/* Conditionally reveal min/max constraints input metrics fields */}
+                            {currentType === "multiple" && (
+                                <>
+                                    <div className="space-y-2 animate-in fade-in duration-200">
+                                        <Label>Minimum Selection *</Label>
+                                        <Input 
+                                            type="number" 
+                                            min="1" 
+                                            className="bg-white"
+                                            {...register(`variations.${index}.min`, { required: true })} 
+                                        />
+                                    </div>
+                                    <div className="space-y-2 animate-in fade-in duration-200">
+                                        <Label>Maximum Selection *</Label>
+                                        <Input 
+                                            type="number" 
+                                            min="1" 
+                                            className="bg-white"
+                                            {...register(`variations.${index}.max`, { required: true })} 
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Controller
+                                name={`variations.${index}.isRequired`}
+                                control={control}
+                                render={({ field: switchField }) => (
+                                    <Switch
+                                        id={`required-${index}`}
+                                        checked={switchField.value}
+                                        onCheckedChange={switchField.onChange}
+                                    />
+                                )}
+                            />
+                            <Label htmlFor={`required-${index}`}>Required Selection Group</Label>
+                        </div>
+
+                        {/* Options Section */}
+                        <div className="pl-4 border-l-2 border-gray-200 space-y-3">
+                            <OptionsManager nestIndex={index} control={control} register={register} />
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+const OptionsManager = ({ nestIndex, control, register }) => {
+    const { fields: optionFields, append: appendOption, remove: removeOption } = useFieldArray({
+        control,
+        name: `variations.${nestIndex}.options`
+    });
+
+    return (
+        <div className="space-y-3">
+            <div className="flex justify-between items-center">
+                <Label className="text-xs font-semibold text-gray-500">Choices / Options</Label>
+                <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs h-8"
+                    onClick={() => appendOption({ name: "", nameAr: "", nameFr: "", additionalPrice: "0" })}
+                >
+                    <Plus className="w-3 h-3 mr-1" /> Add Choice
+                </Button>
+            </div>
+
+            {optionFields.map((optField, optIndex) => (
+                <div key={optField.id} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end bg-white p-2 border rounded-lg shadow-sm">
+                    <div>
+                        <Label className="text-xs">Option (EN)</Label>
+                        <Input {...register(`variations.${nestIndex}.options.${optIndex}.name`, { required: true })} className="h-8 text-xs" />
+                    </div>
+                    <div>
+                        <Label className="text-xs">Option (AR)</Label>
+                        <Input {...register(`variations.${nestIndex}.options.${optIndex}.nameAr`, { required: true })} className="h-8 text-xs text-right" dir="rtl" />
+                    </div>
+                    <div>
+                        <Label className="text-xs">Extra Price</Label>
+                        <Input type="number" step="0.01" {...register(`variations.${nestIndex}.options.${optIndex}.additionalPrice`, { required: true })} className="h-8 text-xs" />
+                    </div>
+                    <div className="flex items-center justify-between pb-1">
+                        <div className="w-full pl-1">
+                            <Label className="text-xs">Option (FR)</Label>
+                            <Input {...register(`variations.${nestIndex}.options.${optIndex}.nameFr`, { required: true })} className="h-8 text-xs" />
+                        </div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive h-8 w-8 ml-1 mt-4"
+                            onClick={() => removeOption(optIndex)}
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const FoodAdd = () => {
     const { id } = useParams();
     const { state } = useLocation();
     const navigate = useNavigate();
 
-    // 1. جلب خيارات القوائم (المطاعم، الأقسام، إلخ)
-    // تم تعديل المسار ليتوافق مع الصورة التي أرفقتها (response.data.data.data)
     const { data: selectOptions, isLoading: isSelectLoading } = useQuery({
         queryKey: ['food-select-options'],
         queryFn: async () => {
@@ -36,24 +223,24 @@ const FoodAdd = () => {
         }
     });
 
-    // 2. جلب بيانات المنتج في حالة التعديل وتنسيقها لتناسب الحقول
     const { data: foodData, isLoading: isFetching } = useQuery({
         queryKey: ['food', id],
         queryFn: async () => {
             const { data } = await api.get(`/api/superadmin/food/${id}`);
             const raw = data.data.data;
 
-            // تحويل البيانات لتكون متوافقة مع الـ Selects والـ FieldArray
             return {
                 ...raw,
                 restaurantid: String(raw.restaurantid || raw.restaurant?.id || ""),
                 categoryid: String(raw.categoryid || raw.category?.id || ""),
                 subcategoryid: String(raw.subcategoryid || raw.subcategory?.id || ""),
                 price: raw.price ? String(raw.price) : "",
-                // التأكد من تنسيق الإضافات (Variations)
                 variations: raw.variations?.map(v => ({
-
                     ...v,
+                    type: v.type || "single",
+                    // Handle null values coming from the database smoothly
+                    min: v.min !== null && v.min !== undefined ? String(v.min) : "1",
+                    max: v.max !== null && v.max !== undefined ? String(v.max) : "1",
                     isRequired: Boolean(v.isRequired),
                     options: v.options?.map(o => ({
                         ...o,
@@ -66,114 +253,96 @@ const FoodAdd = () => {
     });
 
     const initialData = state?.foodData || foodData;
+
     if (isSelectLoading || (id && isFetching)) {
-        return <LoadingSpinner />
+        return <LoadingSpinner />;
     }
 
     return (
         <AddPage
             title="Food Item"
             apiUrl="/api/superadmin/food"
-            queryKey={['foods']}
-            fields={[]}
+            queryKey="foods"
+            fields={[]} 
             initialData={initialData}
-            onSuccessAction={() => navigate("/foods")}
+            onSuccessAction={() => navigate(-1)}
+            beforeSubmit={(data) => ({
+                ...data,
+                price: Number(data.price),
+                restaurantid: Number(data.restaurantid),
+                categoryid: Number(data.categoryid),
+                subcategoryid: data.subcategoryid ? Number(data.subcategoryid) : null,
+                variations: data.variations?.map(v => ({
+                    ...v,
+                    type: v.type,
+                    // If single type selection, clean it up and send null back to your database structure
+                    min: v.type === "multiple" ? Number(v.min) : null,
+                    max: v.type === "multiple" ? Number(v.max) : null,
+                    isRequired: Boolean(v.isRequired),
+                    options: v.options?.map(o => ({
+                        ...o,
+                        additionalPrice: Number(o.additionalPrice)
+                    }))
+                })) || []
+            })}
         >
-            {({ register, control, formState: { errors }, setValue, watch }) => {
+            {(methods) => {
+                const { register, control, formState: { errors }, setValue, watch } = methods;
                 const imagePreview = watch("image");
                 const selectedCategoryId = watch("categoryid");
 
+                const availableSubCategories = selectOptions?.allSubCategories?.filter(
+                    sub => String(sub.categoryId) === String(selectedCategoryId)
+                ) || [];
+
                 return (
                     <Tabs defaultValue="basic" className="w-full mt-4">
-                        <TabsList className="grid w-full grid-cols-4 mb-6">
+                        <TabsList className="grid w-full grid-cols-4 mb-8">
                             <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                            <TabsTrigger value="details">Details</TabsTrigger>
-                            <TabsTrigger value="pricing">Pricing & Stock</TabsTrigger>
+                            <TabsTrigger value="details">Classification</TabsTrigger>
+                            <TabsTrigger value="pricing">Pricing & Media</TabsTrigger>
                             <TabsTrigger value="variations">Variations</TabsTrigger>
                         </TabsList>
 
-                        {/* التبويب الأول: المعلومات الأساسية */}
+                        {/* Basic Info */}
                         <TabsContent value="basic" className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Food Name *</Label>
-                                    <Input
-                                        {...register("name", { required: "Name is required" })}
-                                        placeholder="e.g. Cheese Burger"
-                                        className={errors.name ? "border-destructive" : ""}
-                                    />
-                                    {errors.name && <span className="text-destructive text-xs">{errors.name.message}</span>}
+                                    <Label>Food Name (EN) *</Label>
+                                    <Input {...register("name", { required: true })} placeholder="e.g. Cheese Burger" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Food Name Ar *</Label>
-                                    <Input
-                                        {...register("nameAr", { required: "Name is required" })}
-                                        placeholder="e.g. Cheese Burger"
-                                        className={errors.nameAr ? "border-destructive" : ""}
-                                    />
-                                    {errors.nameAr && <span className="text-destructive text-xs">{errors.nameAr.message}</span>}
+                                    <Label>Food Name (AR) *</Label>
+                                    <Input {...register("nameAr", { required: true })} placeholder="برجر جبنة" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Food Name Fr *</Label>
-                                    <Input
-                                        {...register("nameFr", { required: "Name is required" })}
-                                        placeholder="e.g. Cheese Burger"
-                                        className={errors.nameFr ? "border-destructive" : ""}
-                                    />
-                                    {errors.nameFr && <span className="text-destructive text-xs">{errors.nameFr.message}</span>}
+                                    <Label>Food Name (FR) *</Label>
+                                    <Input {...register("nameFr", { required: true })} placeholder="Burger au Fromage" />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label>Description (EN) *</Label>
+                                    <Input {...register("description", { required: true })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Description (AR) *</Label>
+                                    <Input {...register("descriptionAr", { required: true })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Description (FR) *</Label>
+                                    <Input {...register("descriptionFr", { required: true })} />
+                                </div>
+                            </div>
+                        </TabsContent>
 
+                        {/* Classification */}
+                        <TabsContent value="details" className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Description *</Label>
-                                    <Input
-                                        {...register("description", { required: "Description is required" })}
-                                        placeholder="Brief description..."
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Description Ar *</Label>
-                                    <Input
-                                        {...register("descriptionAr", { required: "Description is required" })}
-                                        placeholder="Brief description..."
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Description Fr *</Label>
-                                    <Input
-                                        {...register("descriptionFr", { required: "Description is required" })}
-                                        placeholder="Brief description..."
-                                    />
-                                </div>
-
-                                <div className="space-y-2 col-span-full">
-                                    <Label>Food Image</Label>
-                                    <div className="flex items-center gap-4">
-                                        <Input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={async (e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    const base = await toBase64(file);
-                                                    setValue("image", base);
-                                                }
-                                            }}
-                                        />
-                                        {imagePreview && (
-                                            <div className="w-16 h-16 border rounded overflow-hidden">
-                                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Restaurant Select */}
-                                <div className="space-y-2">
-                                    <Label>Restaurant *</Label>
+                                    <Label>Restaurant Target *</Label>
                                     <Controller
                                         name="restaurantid"
                                         control={control}
-                                        rules={{ required: "Restaurant is required" }}
+                                        rules={{ required: true }}
                                         render={({ field }) => (
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <SelectTrigger>
@@ -189,19 +358,18 @@ const FoodAdd = () => {
                                     />
                                 </div>
 
-                                {/* Category Select */}
                                 <div className="space-y-2">
-                                    <Label>Category *</Label>
+                                    <Label>Main Category *</Label>
                                     <Controller
                                         name="categoryid"
                                         control={control}
-                                        rules={{ required: "Category is required" }}
+                                        rules={{ required: true }}
                                         render={({ field }) => (
-                                            <Select
+                                            <Select 
                                                 onValueChange={(val) => {
                                                     field.onChange(val);
-                                                    setValue("subcategoryid", ""); // إعادة تعيين الفرعي عند تغيير الرئيسي
-                                                }}
+                                                    setValue("subcategoryid", "");
+                                                }} 
                                                 value={field.value}
                                             >
                                                 <SelectTrigger>
@@ -217,24 +385,24 @@ const FoodAdd = () => {
                                     />
                                 </div>
 
-                                {/* Sub Category Select */}
                                 <div className="space-y-2">
-                                    <Label>Sub Category *</Label>
+                                    <Label>Sub Category</Label>
                                     <Controller
                                         name="subcategoryid"
                                         control={control}
-                                        rules={{ required: false }}
                                         render={({ field }) => (
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <Select 
+                                                onValueChange={field.onChange} 
+                                                value={field.value}
+                                                disabled={!selectedCategoryId || availableSubCategories.length === 0}
+                                            >
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select Sub Category" />
+                                                    <SelectValue placeholder={availableSubCategories.length === 0 ? "No Subcategories" : "Select Sub Category"} />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {selectOptions?.allSubcategories
-                                                        ?.filter(sub => String(sub.categoryId) === String(selectedCategoryId))
-                                                        ?.map(sub => (
-                                                            <SelectItem key={sub.id} value={String(sub.id)}>{sub.name}</SelectItem>
-                                                        ))}
+                                                    {availableSubCategories.map(sub => (
+                                                        <SelectItem key={sub.id} value={String(sub.id)}>{sub.name}</SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         )}
@@ -243,212 +411,50 @@ const FoodAdd = () => {
                             </div>
                         </TabsContent>
 
-                        {/* التبويب الثاني: التفاصيل */}
-                        <TabsContent value="details" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Food Type</Label>
-                                    <Input {...register("foodtype")} placeholder="non-veg / veg" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Nutrition (kcal)</Label>
-                                    <Input {...register("Nutrition")} />
-                                </div>
-                                <div className="space-y-2 flex items-center pt-8 gap-3">
-                                    <Controller
-                                        name="is_Halal"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Switch checked={!!field.value} onCheckedChange={field.onChange} />
-                                        )}
-                                    />
-                                    <Label>Is Halal?</Label>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Start Time</Label>
-                                    <Input type="time" {...register("startTime")} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>End Time</Label>
-                                    <Input type="time" {...register("endTime")} />
-                                </div>
-                            </div>
-                        </TabsContent>
-
-                        {/* التبويب الثالث: التسعير */}
+                        {/* Pricing & Media */}
                         <TabsContent value="pricing" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Base Price *</Label>
-                                    <Input type="number" {...register("price", { required: true })} />
+                                    <Input type="number" step="0.01" {...register("price", { required: true })} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Status</Label>
-                                    <Controller
-                                        name="status"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="active">Active</SelectItem>
-                                                    <SelectItem value="inactive">Inactive</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                    <Label>Food Image</Label>
+                                    <div className="flex items-center gap-4">
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={async (e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    const base = await toBase64(file);
+                                                    setValue("image", base, { shouldDirty: true });
+                                                }
+                                            }}
+                                        />
+                                        {imagePreview && (
+                                            <div className="w-16 h-16 border rounded overflow-hidden shrink-0">
+                                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                            </div>
                                         )}
-                                    />
+                                    </div>
                                 </div>
                             </div>
                         </TabsContent>
 
-                        {/* التبويب الرابع: الإضافات */}
-                        <TabsContent value="variations">
-                            <VariationsSection control={control} register={register} />
+                        {/* Variations Manager */}
+                        <TabsContent value="variations" className="space-y-4">
+                            <VariationsManager 
+                                control={control} 
+                                register={register} 
+                                errors={errors} 
+                                watch={watch} 
+                            />
                         </TabsContent>
                     </Tabs>
                 );
             }}
         </AddPage>
-    );
-};
-
-// مكون الإضافات (Variations)
-const VariationsSection = ({ control, register }) => {
-    const { fields, append, remove } = useFieldArray({
-        control,
-        name: "variations"
-    });
-
-    return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center border-b pb-4">
-                <h3 className="text-lg font-semibold">Product Variations</h3>
-                <Button
-                    type="button"
-                    onClick={() => append({
-                        name: '',
-                        isRequired: false,
-                        selectionType: 'single',
-                        options: [{ optionName: '', additionalPrice: '0' }]
-                    })}
-                    className="bg-orange-500 hover:bg-orange-600"
-                >
-                    + Add Variation
-                </Button>
-            </div>
-
-            {fields.map((item, index) => (
-                <div key={item.id} className="p-6 border-2 rounded-xl bg-white relative space-y-4 shadow-sm">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => remove(index)}
-                        className="absolute top-2 right-2 text-red-500"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <Label>Variation Name</Label>
-                            <Input {...register(`variations.${index}.name`)} placeholder="e.g. Sauce" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Variation Name AR</Label>
-                            <Input {...register(`variations.${index}.nameAr`)} placeholder="e.g. Sauce" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Variation Name FR</Label>
-                            <Input {...register(`variations.${index}.nameFr`)} placeholder="e.g. Sauce" />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Selection Type</Label>
-                            <Controller
-                                name={`variations.${index}.selectionType`}
-                                control={control}
-                                render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="single">Single (Radio)</SelectItem>
-                                            <SelectItem value="multiple">Multiple (Checkbox)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            />
-                        </div>
-
-                        <div className="flex items-center space-x-2 pt-8">
-                            <Controller
-                                name={`variations.${index}.isRequired`}
-                                control={control}
-                                render={({ field }) => (
-                                    <Switch checked={!!field.value} onCheckedChange={field.onChange} />
-                                )}
-                            />
-                            <Label>Required?</Label>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t">
-                        <OptionsSection nestIndex={index} control={control} register={register} />
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-};
-
-// مكون الخيارات داخل الإضافة
-const OptionsSection = ({ nestIndex, control, register }) => {
-    const { fields, append, remove } = useFieldArray({
-        control,
-        name: `variations.${nestIndex}.options`
-    });
-
-    return (
-        <div className="space-y-3">
-            <Label className="text-blue-600 font-bold">Options & Pricing</Label>
-            {fields.map((item, k) => (
-                <div key={item.id} className="flex items-end gap-4 bg-slate-50 p-3 rounded-lg">
-                    <div className="flex-1 space-y-1">
-                        <Label className="text-xs">Option Name</Label>
-                        <Input {...register(`variations.${nestIndex}.options.${k}.optionName`)} className="bg-white" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                        <Label className="text-xs">Option Name FR</Label>
-                        <Input {...register(`variations.${nestIndex}.options.${k}.optionNameFr`)} className="bg-white" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                        <Label className="text-xs">Option Name AR</Label>
-                        <Input {...register(`variations.${nestIndex}.options.${k}.optionNameAr`)} className="bg-white" />
-                    </div>
-                    <div className="w-32 space-y-1">
-                        <Label className="text-xs">Extra Price</Label>
-                        <Input type="number" {...register(`variations.${nestIndex}.options.${k}.additionalPrice`)} className="bg-white" />
-                    </div>
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => remove(k)}
-                        disabled={fields.length === 1}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </div>
-            ))}
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append({ optionName: '', additionalPrice: '0' })}
-                className="mt-2 text-blue-600 border-blue-600"
-            >
-                + Add Option
-            </Button>
-        </div>
     );
 };
 
