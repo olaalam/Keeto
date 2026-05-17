@@ -41,10 +41,10 @@ export default function Cuisine() {
         );
       },
     },
-    { accessorKey: "description", header: "description" },
+  /*   { accessorKey: "description", header: "description" },
     { accessorKey: "descriptionAr", header: "descriptionAr" },
-    { accessorKey: "descriptionFr", header: "descriptionFr" },
-    { accessorKey: "meta_description", header: "meta_description" },
+    { accessorKey: "descriptionFr", header: "descriptionFr" }, */
+   /*  { accessorKey: "meta_description", header: "meta_description" },
     {
       accessorKey: "meta_image",
       header: "Meta Image",
@@ -61,7 +61,7 @@ export default function Cuisine() {
           </div>
         );
       },
-    },
+    }, */
     {
       accessorKey: "status",
       header: "Status",

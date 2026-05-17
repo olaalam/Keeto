@@ -446,14 +446,14 @@ const RestaurantAdd = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tax Number *</Label>
-                  <Input {...register("taxNumber", { required: true })} />
+                  <Label>Tax Number </Label>
+                  <Input {...register("taxNumber", { required: false })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Tax Expire Date *</Label>
+                  <Label>Tax Expire Date </Label>
                   <Input
                     type="date"
-                    {...register("taxExpireDate", { required: true })}
+                    {...register("taxExpireDate", { required: false })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -503,7 +503,7 @@ const RestaurantAdd = () => {
                 </div>
                 <div className="p-4 border rounded-lg space-y-2 col-span-full">
                   <Label className="text-blue-600 font-bold">
-                    Tax Certificate (PDF or Image) *
+                    Tax Certificate (PDF or Image) 
                   </Label>
                   <Input
                     type="file"
