@@ -30,7 +30,6 @@ const RestaurantAdd = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
   const isEdit = !!id;
-
   const [location, setLocation] = useState({ lat: 31.2001, lng: 29.9187 });
 
   // حالات البحث على الخريطة
@@ -261,6 +260,7 @@ const RestaurantAdd = () => {
               </div>
             </TabsContent>
 
+          
             {/* 2. الموقع والخريطة والبحث */}
             <TabsContent value="location" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
@@ -271,6 +271,7 @@ const RestaurantAdd = () => {
                     placeholder="Address in English"
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Address (AR) *</Label>
                   <Input
@@ -279,22 +280,45 @@ const RestaurantAdd = () => {
                   />
                 </div>
 
+                {/* ✅ LAT INPUT (editable) */}
                 <div className="space-y-2">
                   <Label>Latitude</Label>
                   <Input
                     {...register("lat")}
-                    placeholder="Optional (Click map)"
-                    readOnly
-                    className="bg-gray-50 font-mono text-xs cursor-not-allowed"
+                    placeholder="Type or pick from map"
+                    className="font-mono text-xs"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setValue("lat", val);
+
+                      if (!isNaN(Number(val))) {
+                        setLocation((prev) => ({
+                          ...prev,
+                          lat: Number(val),
+                        }));
+                      }
+                    }}
                   />
                 </div>
+
+                {/* ✅ LNG INPUT (editable) */}
                 <div className="space-y-2">
                   <Label>Longitude</Label>
                   <Input
                     {...register("lng")}
-                    placeholder="Optional (Click map)"
-                    readOnly
-                    className="bg-gray-50 font-mono text-xs cursor-not-allowed"
+                    placeholder="Type or pick from map"
+                    className="font-mono text-xs"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setValue("lng", val);
+
+                      if (!isNaN(Number(val))) {
+                        setLocation((prev) => ({
+                          ...prev,
+                          lng: Number(val),
+                        }));
+                      }
+                    }}
                   />
                 </div>
 
@@ -324,10 +348,12 @@ const RestaurantAdd = () => {
                 </div>
               </div>
 
+              {/* Search */}
               <div className="relative z-50 w-full max-w-md">
                 <Label className="mb-1 block text-sm font-medium">
                   Search Location on Map
                 </Label>
+
                 <div className="relative">
                   <Input
                     type="text"
@@ -371,6 +397,7 @@ const RestaurantAdd = () => {
                 )}
               </div>
 
+              {/* Map */}
               <div className="border rounded-xl p-1 relative h-[350px] overflow-hidden z-10">
                 <MapComponent
                   form={methods}
@@ -378,12 +405,14 @@ const RestaurantAdd = () => {
                   isMapClickEnabled={true}
                   handleMapClick={(e) => {
                     const { lat, lng } = e.latlng;
+
                     setLocation({ lat, lng });
                     setValue("lat", String(lat), { shouldDirty: true });
                     setValue("lng", String(lng), { shouldDirty: true });
                   }}
                   onMarkerDragEnd={(e) => {
                     const { lat, lng } = e.target.getLatLng();
+
                     setLocation({ lat, lng });
                     setValue("lat", String(lat), { shouldDirty: true });
                     setValue("lng", String(lng), { shouldDirty: true });
@@ -391,7 +420,6 @@ const RestaurantAdd = () => {
                 />
               </div>
             </TabsContent>
-
             {/* 3. بيانات العمل والمالك */}
             <TabsContent value="business" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -503,7 +531,7 @@ const RestaurantAdd = () => {
                 </div>
                 <div className="p-4 border rounded-lg space-y-2 col-span-full">
                   <Label className="text-blue-600 font-bold">
-                    Tax Certificate (PDF or Image) 
+                    Tax Certificate (PDF or Image)
                   </Label>
                   <Input
                     type="file"

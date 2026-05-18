@@ -210,35 +210,68 @@ const ZoneAdd = () => {
             {/* 2. الموقع والخريطة */}
             <TabsContent value="location" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                {/* LAT */}
                 <div className="space-y-2">
                   <Label>Latitude</Label>
                   <Input
                     {...register("lat")}
-                    placeholder="Click on map"
-                    readOnly
-                    className="bg-gray-50 font-mono text-xs cursor-not-allowed"
+                    placeholder="Type or pick from map"
+                    className="bg-white font-mono text-xs"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setValue("lat", val, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+
+                      if (!isNaN(Number(val))) {
+                        setLocation((prev) => ({
+                          ...prev,
+                          lat: Number(val),
+                        }));
+                      }
+                    }}
                   />
                 </div>
+
+                {/* LNG */}
                 <div className="space-y-2">
                   <Label>Longitude</Label>
                   <Input
                     {...register("lng")}
-                    placeholder="Click on map"
-                    readOnly
-                    className="bg-gray-50 font-mono text-xs cursor-not-allowed"
+                    placeholder="Type or pick from map"
+                    className="bg-white font-mono text-xs"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setValue("lng", val, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+
+                      if (!isNaN(Number(val))) {
+                        setLocation((prev) => ({
+                          ...prev,
+                          lng: Number(val),
+                        }));
+                      }
+                    }}
                   />
                 </div>
               </div>
 
               <div className="flex items-center gap-2 pt-2">
                 <MapPin className="text-primary w-5 h-5" />
-                <h3 className="text-sm font-semibold">Interactive Map Configuration</h3>
+                <h3 className="text-sm font-semibold">
+                  Interactive Map Configuration
+                </h3>
               </div>
+
               <p className="text-xs text-gray-500 mb-2">
-                Search for a location, click on the map, or drag the marker to set the zone's exact coordinate framework.
+                Search for a location, click on the map, or drag the marker to
+                set coordinates.
               </p>
 
-              {/* شريط البحث فوق الخريطة */}
+              {/* SEARCH */}
               <div className="relative z-50 w-full max-w-md">
                 <div className="relative">
                   <Input
@@ -257,7 +290,6 @@ const ZoneAdd = () => {
                   </div>
                 </div>
 
-                {/* قائمة نتائج البحث المنسدلة */}
                 {searchResults.length > 0 && (
                   <ul className="absolute left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto z-[9999]">
                     {searchResults.map((result, index) => (
@@ -268,10 +300,12 @@ const ZoneAdd = () => {
                           const lng = parseFloat(result.lon);
 
                           setLocation({ lat, lng });
+
                           setValue("lat", String(lat), {
                             shouldDirty: true,
                             shouldValidate: true,
                           });
+
                           setValue("lng", String(lng), {
                             shouldDirty: true,
                             shouldValidate: true,
@@ -289,7 +323,7 @@ const ZoneAdd = () => {
                 )}
               </div>
 
-              {/* حاوية الخريطة */}
+              {/* MAP */}
               <div className="border rounded-xl p-1 relative h-[350px] overflow-hidden z-10">
                 <MapComponent
                   form={methods}
@@ -297,11 +331,14 @@ const ZoneAdd = () => {
                   isMapClickEnabled={true}
                   handleMapClick={(e) => {
                     const { lat, lng } = e.latlng;
+
                     setLocation({ lat, lng });
+
                     setValue("lat", String(lat), {
                       shouldDirty: true,
                       shouldValidate: true,
                     });
+
                     setValue("lng", String(lng), {
                       shouldDirty: true,
                       shouldValidate: true,
@@ -309,11 +346,14 @@ const ZoneAdd = () => {
                   }}
                   onMarkerDragEnd={(e) => {
                     const { lat, lng } = e.target.getLatLng();
+
                     setLocation({ lat, lng });
+
                     setValue("lat", String(lat), {
                       shouldDirty: true,
                       shouldValidate: true,
                     });
+
                     setValue("lng", String(lng), {
                       shouldDirty: true,
                       shouldValidate: true,
