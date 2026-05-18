@@ -110,20 +110,31 @@ const RestaurantAdd = () => {
       fields={[]} // نتركها فارغة لنستخدم نظام الـ Tabs المخصص بالداخل
       initialData={initialData}
       onSuccessAction={() => navigate(-1)}
-      beforeSubmit={(data) => ({
-        ...data,
-        tags:
-          typeof data.tags === "string"
-            ? data.tags
-                .split(",")
-                .map((t) => t.trim())
-                .filter((t) => t !== "")
-            : data.tags,
-        minDeliveryTime: String(data.minDeliveryTime),
-        maxDeliveryTime: String(data.maxDeliveryTime),
-        // نمرر مصفوفة المطابخ مباشرة أو نقوم بتحويلها لأرقام حسب متطلبات الـ API الخلفي الخاص بك
-        cuisineIds: data.cuisineIds ? data.cuisineIds.map(Number) : [],
-      })}
+      beforeSubmit={(data) => {
+        // 1. Convert tags, times, and cuisines as you did before
+        const formattedData = {
+          ...data,
+          tags:
+            typeof data.tags === "string"
+              ? data.tags
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter((t) => t !== "")
+              : data.tags,
+          minDeliveryTime: String(data.minDeliveryTime),
+          maxDeliveryTime: String(data.maxDeliveryTime),
+          cuisineIds: data.cuisineIds ? data.cuisineIds.map(Number) : [],
+        };
+
+        // 2. ✅ FIX: If editing, remove password fields so the backend validation isn't triggered
+        if (isEdit) {
+          delete formattedData.password;
+          delete formattedData.password_confirmation;
+          delete formattedData.confirmPassword; // Just in case it's named this way
+        }
+
+        return formattedData;
+      }}
     >
       {(methods) => {
         const {
@@ -134,6 +145,19 @@ const RestaurantAdd = () => {
           formState: { errors },
         } = methods;
         const selectedCuisines = watch("cuisineIds") || [];
+
+        // ✅ Helper function to convert files to Base64 instantly on change
+        const handleFileToBase64 = (e, fieldName) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            // reader.result will contain the full Data URL string (e.g., "data:image/jpeg;base64,...")
+            setValue(fieldName, reader.result, { shouldDirty: true });
+          };
+          reader.readAsDataURL(file);
+        };
 
         return (
           <Tabs defaultValue="basic" className="w-full mt-4">
@@ -260,7 +284,6 @@ const RestaurantAdd = () => {
               </div>
             </TabsContent>
 
-          
             {/* 2. الموقع والخريطة والبحث */}
             <TabsContent value="location" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
@@ -420,6 +443,7 @@ const RestaurantAdd = () => {
                 />
               </div>
             </TabsContent>
+
             {/* 3. بيانات العمل والمالك */}
             <TabsContent value="business" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -517,7 +541,8 @@ const RestaurantAdd = () => {
                   </Label>
                   <Input
                     type="file"
-                    onChange={(e) => setValue("logo", e.target.files[0])}
+                    accept="image/*"
+                    onChange={(e) => handleFileToBase64(e, "logo")}
                   />
                 </div>
                 <div className="p-4 border rounded-lg space-y-2">
@@ -526,7 +551,8 @@ const RestaurantAdd = () => {
                   </Label>
                   <Input
                     type="file"
-                    onChange={(e) => setValue("cover", e.target.files[0])}
+                    accept="image/*"
+                    onChange={(e) => handleFileToBase64(e, "cover")}
                   />
                 </div>
                 <div className="p-4 border rounded-lg space-y-2 col-span-full">
@@ -535,9 +561,8 @@ const RestaurantAdd = () => {
                   </Label>
                   <Input
                     type="file"
-                    onChange={(e) =>
-                      setValue("taxCertificate", e.target.files[0])
-                    }
+                    accept="image/*,application/pdf"
+                    onChange={(e) => handleFileToBase64(e, "taxCertificate")}
                   />
                 </div>
               </div>

@@ -169,7 +169,7 @@ const OptionsManager = ({ nestIndex, control, register }) => {
                     variant="ghost" 
                     size="sm" 
                     className="text-xs h-8"
-                    onClick={() => appendOption({ name: "", nameAr: "", nameFr: "", additionalPrice: "0" })}
+                    onClick={() => appendOption({ optionName: "", optionNameAr: "", nameFr: "", additionalPrice: "0" })}
                 >
                     <Plus className="w-3 h-3 mr-1" /> Add Choice
                 </Button>
@@ -179,11 +179,11 @@ const OptionsManager = ({ nestIndex, control, register }) => {
                 <div key={optField.id} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end bg-white p-2 border rounded-lg shadow-sm">
                     <div>
                         <Label className="text-xs">Option (EN)</Label>
-                        <Input {...register(`variations.${nestIndex}.options.${optIndex}.name`, { required: true })} className="h-8 text-xs" />
+                        <Input {...register(`variations.${nestIndex}.options.${optIndex}.optionName`, { required: true })} className="h-8 text-xs" />
                     </div>
                     <div>
                         <Label className="text-xs">Option (AR)</Label>
-                        <Input {...register(`variations.${nestIndex}.options.${optIndex}.nameAr`, { required: true })} className="h-8 text-xs text-right" dir="rtl" />
+                        <Input {...register(`variations.${nestIndex}.options.${optIndex}.optionNameAr`, { required: true })} className="h-8 text-xs text-right" dir="rtl" />
                     </div>
                     <div>
                         <Label className="text-xs">Extra Price</Label>
