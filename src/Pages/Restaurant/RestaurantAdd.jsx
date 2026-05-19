@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
@@ -32,7 +32,6 @@ const RestaurantAdd = () => {
   const isEdit = !!id;
   const [location, setLocation] = useState({ lat: 31.2001, lng: 29.9187 });
 
-  // حالات البحث على الخريطة
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -53,7 +52,6 @@ const RestaurantAdd = () => {
       if (raw.lat && raw.lng)
         setLocation({ lat: parseFloat(raw.lat), lng: parseFloat(raw.lng) });
 
-      // تحويل المطابخ المحددة مسبقاً لمصفوفة نصوص لتلائم الـ Form
       const cuisineIds = Array.isArray(raw.cuisines)
         ? raw.cuisines.map((c) => String(c.id))
         : raw.cuisineId
@@ -76,7 +74,6 @@ const RestaurantAdd = () => {
 
   const initialData = state?.restaurantData || fetchedData;
 
-  // دالة البحث عن العناوين باستخدام OpenStreetMap Nominatim
   const handleMapSearch = async (e) => {
     const value = e.target.value;
     setSearchQuery(value);
@@ -107,11 +104,10 @@ const RestaurantAdd = () => {
       title="Restaurant"
       apiUrl="/api/superadmin/restaurants"
       queryKey="restaurants"
-      fields={[]} // نتركها فارغة لنستخدم نظام الـ Tabs المخصص بالداخل
+      fields={[]}
       initialData={initialData}
       onSuccessAction={() => navigate(-1)}
       beforeSubmit={(data) => {
-        // 1. Convert tags, times, and cuisines as you did before
         const formattedData = {
           ...data,
           tags:
@@ -126,11 +122,12 @@ const RestaurantAdd = () => {
           cuisineIds: data.cuisineIds ? data.cuisineIds.map(Number) : [],
         };
 
-        // 2. ✅ FIX: If editing, remove password fields so the backend validation isn't triggered
+        // ✅ Only send password fields if user actually typed something
         if (isEdit) {
-          delete formattedData.password;
-          delete formattedData.password_confirmation;
-          delete formattedData.confirmPassword; // Just in case it's named this way
+          if (!formattedData.password) {
+            delete formattedData.password;
+            delete formattedData.confirmPassword;
+          }
         }
 
         return formattedData;
@@ -142,18 +139,17 @@ const RestaurantAdd = () => {
           control,
           setValue,
           watch,
+          getValues,
           formState: { errors },
         } = methods;
+
         const selectedCuisines = watch("cuisineIds") || [];
 
-        // ✅ Helper function to convert files to Base64 instantly on change
         const handleFileToBase64 = (e, fieldName) => {
           const file = e.target.files[0];
           if (!file) return;
-
           const reader = new FileReader();
           reader.onloadend = () => {
-            // reader.result will contain the full Data URL string (e.g., "data:image/jpeg;base64,...")
             setValue(fieldName, reader.result, { shouldDirty: true });
           };
           reader.readAsDataURL(file);
@@ -199,6 +195,8 @@ const RestaurantAdd = () => {
                     {...register("email", { required: true })}
                   />
                 </div>
+
+                {/* ✅ Password — only on Add */}
                 {!isEdit && (
                   <div className="space-y-2">
                     <Label>Password *</Label>
@@ -209,7 +207,7 @@ const RestaurantAdd = () => {
                   </div>
                 )}
 
-                {/* حقل اختيار متعدد للمطابخ */}
+                {/* Cuisine Types */}
                 <div className="space-y-2">
                   <Label>Cuisine Types *</Label>
                   <Controller
@@ -218,7 +216,6 @@ const RestaurantAdd = () => {
                     rules={{ required: true }}
                     defaultValue={[]}
                     render={({ field }) => {
-                      // دالة لتحديث المصفوفة عند الضغط على العناصر
                       const handleSelectChange = (cuisineId) => {
                         const currentValues = field.value || [];
                         if (currentValues.includes(cuisineId)) {
@@ -230,7 +227,6 @@ const RestaurantAdd = () => {
                         }
                       };
 
-                      // استخراج الأسماء المختارة لعرضها كعنوان زر القائمة المنسدلة
                       const selectedLabels = selectData?.allCuisines
                         ?.filter((c) => selectedCuisines.includes(String(c.id)))
                         ?.map((c) => c.name)
@@ -275,6 +271,7 @@ const RestaurantAdd = () => {
                   )}
                 </div>
               </div>
+
               <div className="space-y-2">
                 <Label>Tags</Label>
                 <Input
@@ -284,7 +281,7 @@ const RestaurantAdd = () => {
               </div>
             </TabsContent>
 
-            {/* 2. الموقع والخريطة والبحث */}
+            {/* 2. الموقع والخريطة */}
             <TabsContent value="location" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
                 <div className="space-y-2">
@@ -294,7 +291,6 @@ const RestaurantAdd = () => {
                     placeholder="Address in English"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Address (AR) *</Label>
                   <Input
@@ -302,8 +298,6 @@ const RestaurantAdd = () => {
                     placeholder="العنوان بالعربي"
                   />
                 </div>
-
-                {/* ✅ LAT INPUT (editable) */}
                 <div className="space-y-2">
                   <Label>Latitude</Label>
                   <Input
@@ -313,18 +307,12 @@ const RestaurantAdd = () => {
                     onChange={(e) => {
                       const val = e.target.value;
                       setValue("lat", val);
-
                       if (!isNaN(Number(val))) {
-                        setLocation((prev) => ({
-                          ...prev,
-                          lat: Number(val),
-                        }));
+                        setLocation((prev) => ({ ...prev, lat: Number(val) }));
                       }
                     }}
                   />
                 </div>
-
-                {/* ✅ LNG INPUT (editable) */}
                 <div className="space-y-2">
                   <Label>Longitude</Label>
                   <Input
@@ -334,17 +322,12 @@ const RestaurantAdd = () => {
                     onChange={(e) => {
                       const val = e.target.value;
                       setValue("lng", val);
-
                       if (!isNaN(Number(val))) {
-                        setLocation((prev) => ({
-                          ...prev,
-                          lng: Number(val),
-                        }));
+                        setLocation((prev) => ({ ...prev, lng: Number(val) }));
                       }
                     }}
                   />
                 </div>
-
                 <div className="space-y-2 md:col-span-2 lg:col-span-4">
                   <Label>Zone *</Label>
                   <Controller
@@ -376,7 +359,6 @@ const RestaurantAdd = () => {
                 <Label className="mb-1 block text-sm font-medium">
                   Search Location on Map
                 </Label>
-
                 <div className="relative">
                   <Input
                     type="text"
@@ -393,7 +375,6 @@ const RestaurantAdd = () => {
                     )}
                   </div>
                 </div>
-
                 {searchResults.length > 0 && (
                   <ul className="absolute left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto z-[9999]">
                     {searchResults.map((result, index) => (
@@ -402,12 +383,9 @@ const RestaurantAdd = () => {
                         onClick={() => {
                           const lat = parseFloat(result.lat);
                           const lng = parseFloat(result.lon);
-
                           setLocation({ lat, lng });
-
                           setValue("lat", String(lat), { shouldDirty: true });
                           setValue("lng", String(lng), { shouldDirty: true });
-
                           setSearchQuery(result.display_name);
                           setSearchResults([]);
                         }}
@@ -428,14 +406,12 @@ const RestaurantAdd = () => {
                   isMapClickEnabled={true}
                   handleMapClick={(e) => {
                     const { lat, lng } = e.latlng;
-
                     setLocation({ lat, lng });
                     setValue("lat", String(lat), { shouldDirty: true });
                     setValue("lng", String(lng), { shouldDirty: true });
                   }}
                   onMarkerDragEnd={(e) => {
                     const { lat, lng } = e.target.getLatLng();
-
                     setLocation({ lat, lng });
                     setValue("lat", String(lat), { shouldDirty: true });
                     setValue("lng", String(lng), { shouldDirty: true });
@@ -459,6 +435,39 @@ const RestaurantAdd = () => {
                   <Label>Owner Phone *</Label>
                   <Input {...register("ownerPhone", { required: true })} />
                 </div>
+
+                {/* ✅ Password fields — only shown in Edit mode */}
+                {isEdit && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>New Password</Label>
+                      <Input
+                        type="password"
+                        placeholder="Leave blank to keep current"
+                        {...register("password")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Confirm Password</Label>
+                      <Input
+                        type="password"
+                        placeholder="Repeat new password"
+                        {...register("confirmPassword", {
+                          validate: (val) => {
+                            const pwd = getValues("password");
+                            if (!pwd) return true;
+                            return val === pwd || "Passwords do not match";
+                          },
+                        })}
+                      />
+                      {errors.confirmPassword && (
+                        <p className="text-xs text-red-500">
+                          {errors.confirmPassword.message}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="space-y-2">
                   <Label>Min Delivery Time *</Label>
@@ -498,15 +507,12 @@ const RestaurantAdd = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tax Number </Label>
-                  <Input {...register("taxNumber", { required: false })} />
+                  <Label>Tax Number</Label>
+                  <Input {...register("taxNumber")} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Tax Expire Date </Label>
-                  <Input
-                    type="date"
-                    {...register("taxExpireDate", { required: false })}
-                  />
+                  <Label>Tax Expire Date</Label>
+                  <Input type="date" {...register("taxExpireDate")} />
                 </div>
                 <div className="space-y-2">
                   <Label>Status *</Label>
@@ -544,7 +550,22 @@ const RestaurantAdd = () => {
                     accept="image/*"
                     onChange={(e) => handleFileToBase64(e, "logo")}
                   />
+                  {/* ✅ Logo preview */}
+                  {watch("logo") && (
+                    <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
+                      <img
+                        src={watch("logo")}
+                        alt="Logo Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => (e.target.style.display = "none")}
+                      />
+                      <div className="absolute top-0 right-0 bg-primary text-white text-[10px] px-2 py-1">
+                        Current
+                      </div>
+                    </div>
+                  )}
                 </div>
+
                 <div className="p-4 border rounded-lg space-y-2">
                   <Label className="text-blue-600 font-bold">
                     Cover Image *
@@ -554,7 +575,22 @@ const RestaurantAdd = () => {
                     accept="image/*"
                     onChange={(e) => handleFileToBase64(e, "cover")}
                   />
+                  {/* ✅ Cover preview */}
+                  {watch("cover") && (
+                    <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
+                      <img
+                        src={watch("cover")}
+                        alt="Cover Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => (e.target.style.display = "none")}
+                      />
+                      <div className="absolute top-0 right-0 bg-primary text-white text-[10px] px-2 py-1">
+                        Current
+                      </div>
+                    </div>
+                  )}
                 </div>
+
                 <div className="p-4 border rounded-lg space-y-2 col-span-full">
                   <Label className="text-blue-600 font-bold">
                     Tax Certificate (PDF or Image)
@@ -564,6 +600,21 @@ const RestaurantAdd = () => {
                     accept="image/*,application/pdf"
                     onChange={(e) => handleFileToBase64(e, "taxCertificate")}
                   />
+                  {/* ✅ Tax certificate preview (images only) */}
+                  {watch("taxCertificate") &&
+                    !watch("taxCertificate").includes("application/pdf") && (
+                      <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
+                        <img
+                          src={watch("taxCertificate")}
+                          alt="Certificate Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => (e.target.style.display = "none")}
+                        />
+                        <div className="absolute top-0 right-0 bg-primary text-white text-[10px] px-2 py-1">
+                          Current
+                        </div>
+                      </div>
+                    )}
                 </div>
               </div>
             </TabsContent>

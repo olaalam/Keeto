@@ -14,15 +14,20 @@ import {
   Wallet,
   PlusSquare,
   Settings2,
-Briefcase,
+  Briefcase,
   FileBarChart,
   BellRing,
   TicketPercent,
   BadgePercent,
- 
-  
 } from "lucide-react";
-
+import keetoImage from "../../public/WhatsApp Image 2026-05-18 at 11.27.30 AM.jpeg";
+const KeetoIcon = (props) => (
+  <img 
+    src={keetoImage} 
+    alt="Keeto" 
+    className={`object-contain rounded-sm ${props.className || 'w-5 h-5'}`} 
+  />
+);
 export const modules = [
   {
     name: "Dashboard",
@@ -69,8 +74,13 @@ export const modules = [
     key: "business",
     items: [
       { title: "Business Plans", url: "/business-plans", icon: Briefcase },
-      {title: "Financial report", url: "/financial-report", icon: FileBarChart},
+      {
+        title: "Financial report",
+        url: "/financial-report",
+        icon: FileBarChart,
+      },
       { title: "Payment Methods", url: "/payment-methods", icon: Wallet },
+      { title: "MyKeeto Report", url: "/mykeeto", icon: KeetoIcon },
     ],
   },
   {
@@ -81,5 +91,5 @@ export const modules = [
       { title: "Coupons", url: "/coupons", icon: TicketPercent },
       { title: "Popups", url: "/offers", icon: BellRing },
     ],
-  }
+  },
 ];

@@ -154,6 +154,22 @@ const CategoryAdd = () => {
                   accept="image/*"
                   onChange={(e) => handleFileToBase64(e, "meta_image")}
                 />
+                {(() => {
+                  const val = methods.watch("meta_image");
+                  return val ? (
+                    <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
+                      <img
+                        src={val}
+                        alt="Meta Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => (e.target.style.display = "none")}
+                      />
+                      <div className="absolute top-0 right-0 bg-primary text-white text-[10px] px-2 py-1">
+                        Current
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 <p className="text-xs text-muted-foreground">
                   This image is used for social media sharing preview.
                 </p>
@@ -173,6 +189,22 @@ const CategoryAdd = () => {
                     className="cursor-pointer"
                     onChange={(e) => handleFileToBase64(e, "Image")}
                   />
+                  {(() => {
+                    const val = methods.watch("Image");
+                    return val ? (
+                      <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
+                        <img
+                          src={val}
+                          alt="Category Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => (e.target.style.display = "none")}
+                        />
+                        <div className="absolute top-0 right-0 bg-primary text-white text-[10px] px-2 py-1">
+                          Current
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </div>
 
