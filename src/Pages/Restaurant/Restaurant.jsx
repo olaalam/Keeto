@@ -38,8 +38,8 @@ export default function Restaurant() {
                 </button>
             )
         },
-        { accessorKey: 'nameAr', header: 'nameAr' },
-        { accessorKey: 'nameFr', header: 'nameFr' },
+       /*  { accessorKey: 'nameAr', header: 'nameAr' },
+        { accessorKey: 'nameFr', header: 'nameFr' }, */
         {
             accessorKey: "logo",
             header: "Logo",

@@ -40,12 +40,24 @@ const CategoryAdd = () => {
       title="Category"
       apiUrl="/api/superadmin/categories"
       queryKey="categories"
-      fields={[]} // نستخدم نظام الـ Tabs بدلاً من المصفوفة التلقائية
+      fields={[]}
       initialData={initialData}
       onSuccessAction={() => navigate(-1)}
     >
       {(methods) => {
-        const { register, control } = methods;
+        const { register, control, setValue } = methods;
+
+        // ✅ Same as RestaurantAdd — stores base64 string
+        const handleFileToBase64 = (e, fieldName) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setValue(fieldName, reader.result, { shouldDirty: true });
+          };
+          reader.readAsDataURL(file);
+        };
 
         return (
           <Tabs defaultValue="basic" className="w-full mt-4">
@@ -134,13 +146,13 @@ const CategoryAdd = () => {
                   <Input {...register("meta_titleFr", { required: true })} />
                 </div>
               </div>
+
               <div className="p-4 border rounded-lg bg-slate-50/50 space-y-2">
                 <Label className="text-blue-600 font-bold">Meta Image *</Label>
                 <Input
                   type="file"
-                  onChange={(e) =>
-                    methods.setValue("meta_image", e.target.files[0])
-                  }
+                  accept="image/*"
+                  onChange={(e) => handleFileToBase64(e, "meta_image")}
                 />
                 <p className="text-xs text-muted-foreground">
                   This image is used for social media sharing preview.
@@ -157,10 +169,9 @@ const CategoryAdd = () => {
                   </Label>
                   <Input
                     type="file"
+                    accept="image/*"
                     className="cursor-pointer"
-                    onChange={(e) =>
-                      methods.setValue("Image", e.target.files[0])
-                    }
+                    onChange={(e) => handleFileToBase64(e, "Image")}
                   />
                 </div>
               </div>
