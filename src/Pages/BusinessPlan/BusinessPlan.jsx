@@ -36,7 +36,7 @@ export default function BusinessPlan() {
     // });
 
     const columns = [
-        { accessorKey: 'restaurant.name', header: 'Restaurant' },
+        { accessorKey: 'restaurantDetails.name', header: 'Restaurant' },
         
         { accessorKey: 'platformType', header: 'Platform' },
         { accessorKey: 'commissionRate', header: 'Commission (%)' },
