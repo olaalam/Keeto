@@ -91,7 +91,6 @@ export const modules = [
     items: [
       { title: "Discounts", url: "/discounts", icon: BadgePercent },
       { title: "Coupons", url: "/coupons", icon: TicketPercent },
-      { title: "Popups", url: "/offers", icon: BellRing },
     ],
   },
 ];
