@@ -1,3 +1,4 @@
+import { popup } from "leaflet";
 import {
   LayoutDashboard,
   UserCog,
@@ -51,6 +52,7 @@ export const modules = [
       { title: "Restaurants", url: "/restaurants", icon: Utensils },
       { title: "Foods", url: "/foods", icon: Beef },
       { title: "Cuisines", url: "/cuisines", icon: ChefHat },
+      { title: "Popup", url: "/popup", icon: Layers },
     ],
   },
     {

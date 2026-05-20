@@ -41,6 +41,8 @@ import Transaction from "./Pages/Transaction/Transaction";
 import Order from "./Pages/Order/Order";
 import WalletR from "./Pages/Restaurant/WalletR";
 import Details from "./Pages/Order/details";
+import Popup from "./Pages/Popup/Popup";
+import PopupAdd from "./Pages/Popup/PopupAdd";
 
 
 const router = createBrowserRouter([
@@ -264,6 +266,22 @@ const router = createBrowserRouter([
                 path: "restaurants/wallet/:restaurantId",
                 element: <WalletR />,
             },
+                        {
+                path: "popup",
+                element: <Popup />,
+            },
+            {
+                path: "popup/add",
+                element: <PopupAdd />,
+            },
+            {
+                path: "popup/edit/:id",
+                element: <PopupAdd />,
+            },
+
+
+
+
 
 
         ],
