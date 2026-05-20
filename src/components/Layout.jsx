@@ -1,22 +1,48 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "./AppSidebar";
 import useSidebarStore from "@/store/useSidebarStore";
 import useAuthStore from "@/store/useAuthStore";
-import { LogOut, ChevronLeft } from "lucide-react";
+import {
+  LogOut,
+  ChevronLeft,
+  UserCircle2,
+} from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Layout() {
-  const activeModule = useSidebarStore((state) => state.activeModule);
-  const setActiveModule = useSidebarStore((state) => state.setActiveModule);
-  const { setLogout } = useAuthStore((state) => state);
+  const activeModule = useSidebarStore(
+    (state) => state.activeModule
+  );
+
+  const setActiveModule = useSidebarStore(
+    (state) => state.setActiveModule
+  );
+
+  const { setLogout } = useAuthStore(
+    (state) => state
+  );
+
   const location = useLocation();
   const navigate = useNavigate();
 
-  // وظيفة الرجوع للخلف (تستخدم سجل المتصفح)
+  // وظيفة الرجوع للخلف
   const handleBack = () => {
-    if (window.history.state && window.history.state.idx === 0) {
+    if (
+      window.history.state &&
+      window.history.state.idx === 0
+    ) {
       navigate("/");
       setActiveModule(null);
     } else {
@@ -24,7 +50,7 @@ export default function Layout() {
     }
   };
 
-  // تصفير الموديول النشط تلقائياً عند العودة لصفحة الهوم
+  // تصفير الموديول عند الرجوع للهوم
   useEffect(() => {
     if (location.pathname === "/") {
       setActiveModule(null);
@@ -34,17 +60,18 @@ export default function Layout() {
   return (
     <TooltipProvider delayDuration={0}>
       <SidebarProvider>
-        {/* السايد بار يظهر فقط عند وجود موديول نشط */}
+        {/* Sidebar */}
         {activeModule && <AppSidebar />}
 
-        {/* الحاوية الرئيسية: نستخدم max-h-screen لمنع الصفحة من التمدد الطولي */}
         <main className="relative flex flex-col flex-1 min-w-0 max-h-screen overflow-hidden bg-background">
-          {/* الهيدر الثابت: flex-none يمنعه من التمدد، و z-50 ليبقى فوق المحتوى */}
+          {/* Header */}
           <header className="flex-none sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex items-center justify-between p-4 h-16">
-              {/* الجزء الأيسر: زر السايد بار + سهم العودة + العنوان */}
+              {/* Left Section */}
               <div className="flex items-center gap-4 overflow-hidden">
-                {activeModule && <SidebarTrigger className="shrink-0" />}
+                {activeModule && (
+                  <SidebarTrigger className="shrink-0" />
+                )}
 
                 <div className="flex items-center gap-3 truncate">
                   {!activeModule && (
@@ -64,7 +91,6 @@ export default function Layout() {
                         />
                       </button>
 
-                      {/* فاصل بصري بسيط */}
                       <div className="h-4 w-[1px] bg-border shrink-0" />
 
                       <span className="font-bold text-lg tracking-tight text-slate-800 dark:text-slate-100 truncate">
@@ -78,24 +104,58 @@ export default function Layout() {
                   )}
                 </div>
               </div>
+
+              {/* Logo */}
               <div>
-                <img  className="w-15 h-15" src="/src/assets/logo.webp" alt="" />
+                <button
+                  onClick={() => navigate("/")}
+                >
+                  <img
+                    className="w-30 h-15"
+                    src="/logo.webp"
+                    alt="Logo"
+                  />
+                </button>
               </div>
-              {/* الجزء الأيمن: زر تسجيل الخروج */}
-              <button
-                onClick={setLogout}
-                className="shrink-0 group flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-red-600 transition-all duration-200"
-              >
-                <LogOut
-                  size={18}
-                  className="text-slate-400 group-hover:text-red-600 transition-colors"
-                />
-                <span className="hidden sm:inline">Log out</span>
-              </button>
+
+              {/* Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="rounded-full p-1 hover:bg-accent transition-colors">
+                    <UserCircle2
+                      size={36}
+                      className="text-slate-600 hover:text-primary transition-colors"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  align="end"
+                  className="w-52 rounded-xl"
+                >
+                  <DropdownMenuItem
+                    onClick={() =>
+                      navigate("/profile")
+                    }
+                    className="cursor-pointer flex items-center gap-2"
+                  >
+                    <UserCircle2 size={16} />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={setLogout}
+                    className="cursor-pointer flex items-center gap-2 text-red-600 focus:text-red-600"
+                  >
+                    <LogOut size={16} />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </header>
 
-          {/* منطقة المحتوى: overflow-auto تجعل السكرول داخل هذه المنطقة فقط */}
+          {/* Content */}
           <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-transparent">
             <div className="p-6 h-full">
               <Outlet />

@@ -41,6 +41,8 @@ import Transaction from "./Pages/Transaction/Transaction";
 import Order from "./Pages/Order/Order";
 import WalletR from "./Pages/Restaurant/WalletR";
 import Details from "./Pages/Order/details";
+import FinancialReport from "./Pages/FinancialReport/FinancialReport";
+import Mykeeto from "./Pages/Mykeeto/mykeeto";
 import Popup from "./Pages/Popup/Popup";
 import PopupAdd from "./Pages/Popup/PopupAdd";
 
@@ -215,7 +217,7 @@ const router = createBrowserRouter([
                 element: <CuisineAdd />,
             },
             {
-                path: "restaurants/business-plans/:restaurantId",
+                path: "business-plans",
                 element: <BusinessPlan />,
             },
             {
@@ -225,6 +227,10 @@ const router = createBrowserRouter([
             {
                 path: "restaurants/business-plans/edit/:id",
                 element: <BusinessPlanAdd />,
+            },
+            {
+                path:"mykeeto",
+                element:<Mykeeto />
             },
             {
                 path: "permissions",
@@ -265,6 +271,10 @@ const router = createBrowserRouter([
             {
                 path: "restaurants/wallet/:restaurantId",
                 element: <WalletR />,
+            },
+            {
+                path: "financial-report",
+                element: <FinancialReport />,
             },
                         {
                 path: "popup",

@@ -15,9 +15,20 @@ import {
   Wallet,
   PlusSquare,
   Settings2,
-Briefcase,
+  Briefcase,
+  FileBarChart,
+  BellRing,
+  TicketPercent,
+  BadgePercent,
 } from "lucide-react";
-
+import keetoImage from "../../public/WhatsApp Image 2026-05-18 at 11.27.30 AM.jpeg";
+const KeetoIcon = (props) => (
+  <img 
+    src={keetoImage} 
+    alt="Keeto" 
+    className={`object-contain rounded-sm ${props.className || 'w-5 h-5'}`} 
+  />
+);
 export const modules = [
   {
     name: "Dashboard",
@@ -30,7 +41,6 @@ export const modules = [
     items: [
       { title: "Admins", url: "/admins", icon: UserCog },
       { title: "Permissions", url: "/permissions", icon: ShieldCheck },
-      { title: "Payment Methods", url: "/payment-methods", icon: Wallet },
     ],
   },
   {
@@ -52,20 +62,36 @@ export const modules = [
       { title: "Restaurants", url: "/restaurants", icon: Utensils },
       { title: "Foods", url: "/foods", icon: Beef },
       { title: "Cuisines", url: "/cuisines", icon: ChefHat },
-      { title: "Popup", url: "/popup", icon: Layers },
-    ],
-  },
-    {
-    name: "Business",
-    key: "business",
-    items: [
+      { title: "Modifier", url: "/addons", icon: Settings2 },
       {
         title: "Addon Categories",
         url: "/addons-categories",
         icon: PlusSquare,
       },
-      { title: "Modifier", url: "/addons", icon: Settings2 },
+      { title: "Popup", url: "/popup", icon: Layers },
+    ],
+  },
+  {
+    name: "Business",
+    key: "business",
+    items: [
       { title: "Business Plans", url: "/business-plans", icon: Briefcase },
+      {
+        title: "Financial report",
+        url: "/financial-report",
+        icon: FileBarChart,
+      },
+      { title: "Payment Methods", url: "/payment-methods", icon: Wallet },
+      { title: "MyKeeto Report", url: "/mykeeto", icon: KeetoIcon },
+    ],
+  },
+  {
+    name: "Marketing",
+    key: "marketing",
+    items: [
+      { title: "Discounts", url: "/discounts", icon: BadgePercent },
+      { title: "Coupons", url: "/coupons", icon: TicketPercent },
+      { title: "Popups", url: "/offers", icon: BellRing },
     ],
   },
 ];

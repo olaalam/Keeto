@@ -30,52 +30,94 @@ import LoadingSpinner from "./LoadingSpinner";
 import clsx from "clsx";
 
 export default function GenericDataTable({
-    columns, data, title, onAdd, onEdit, deleteApiUrl, queryKey, isLoading, actions = true
+  columns,
+  data,
+  title,
+  onAdd,
+  onEdit,
+  deleteApiUrl,
+  queryKey,
+  isLoading,
+  actions = true,
 }) {
-    const [globalFilter, setGlobalFilter] = useState('');
-    const [deleteId, setDeleteId] = useState(null);
-    const navigate = useNavigate();
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [deleteId, setDeleteId] = useState(null);
+  const navigate = useNavigate();
 
+  // إضافة عمود الترقيم التلقائي وعمود العمليات
+  const tableColumns = useMemo(() => {
+    // 1. نبدأ بعمود الترقيم التسلسلي في بداية الجدول
+    const baseColumns = [
+      {
+        id: "rowNumber",
+        header: "#",
+        cell: ({ row, table }) => {
+          const pageIndex = table.getState().pagination.pageIndex;
+          const pageSize = table.getState().pagination.pageSize;
 
-    // إضافة عمود العمليات تلقائياً
-    const tableColumns = useMemo(() => {
-        // 1. نبدأ بالأعمدة الأساسية المرسلة عبر الـ props
-        const baseColumns = [...columns];
+          // 👇 الحل المضمون: إيجاد مكان الصف الفعلي داخل الصفحة الحالية فقط
+          const indexInCurrentPage = table
+            .getRowModel()
+            .rows.findIndex((r) => r.id === row.id);
 
-        // 2. إذا كانت actions تساوي true، نضيف عمود العمليات للمصفوفة
-        if (actions) {
-            baseColumns.push({
-                id: 'actions',
-                header: 'Actions',
-                cell: ({ row }) => (
-                    <div className="flex items-center gap-2">
-                        {onEdit && (
-                            <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)}>
-                                <Pencil className="h-4 w-4 text-blue-600" />
-                            </Button>
-                        )}
-                        {deleteApiUrl && (
-                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(row.original.id)}>
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                        )}
-                    </div>
-                ),
-            });
-        }
+          return (
+            <span className="font-mono text-gray-500">
+              {pageIndex * pageSize + indexInCurrentPage + 1}
+            </span>
+          );
+        },
+        size: 50,
+      },
+      ...columns,
+    ];
 
-        return baseColumns;
-    }, [columns, onEdit, deleteApiUrl, actions]);
+    // 2. إذا كانت actions تساوي true، نضيف عمود العمليات لنهاية المصفوفة
+    if (actions) {
+      baseColumns.push({
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onEdit(row.original)}
+              >
+                <Pencil className="h-4 w-4 text-blue-600" />
+              </Button>
+            )}
+            {deleteApiUrl && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setDeleteId(row.original.id)}
+              >
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
+            )}
+          </div>
+        ),
+      });
+    }
 
-    const table = useReactTable({
-        data,
-        columns: tableColumns,
-        state: { globalFilter },
-        onGlobalFilterChange: setGlobalFilter,
-        getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-    });
+    return baseColumns;
+  }, [columns, onEdit, deleteApiUrl, actions]);
+
+  const table = useReactTable({
+    data,
+    columns: tableColumns,
+    state: { globalFilter },
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 15,
+      },
+    },
+  });
 
   return (
     <div className="space-y-5 w-full">
@@ -84,7 +126,6 @@ export default function GenericDataTable({
         <div className="flex items-center gap-3">
           {/* Icon */}
           <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
-            {/* ممكن تغير الأيقونة حسب الصفحة */}
             <span className="text-lg font-bold">{title?.[0]}</span>
           </div>
 
@@ -212,11 +253,6 @@ export default function GenericDataTable({
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
-      </div>
-      <div>
-        <Button onClick={() => navigate("/")}>
-          Back to home
-        </Button>
       </div>
 
       {/* DELETE */}

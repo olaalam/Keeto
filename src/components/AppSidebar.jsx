@@ -13,13 +13,16 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import useSidebarStore from "@/store/useSidebarStore";
 import useAuthStore from "@/store/useAuthStore";
-import { LogOut, HelpCircle } from "lucide-react"; // استيراد الأيقونات الأساسية فقط
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { LogOut, HelpCircle, Home } from "lucide-react"; // استيراد الأيقونات الأساسية فقط
 
 export function AppSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
   const activeModule = useSidebarStore((s) => s.activeModule);
-  const setLogout = useAuthStore((state) => state.setLogout);
+  //const setLogout = useAuthStore((state) => state.setLogout);
+  const navigate = useNavigate();
 
   // إذا لم يكن هناك موديول نشط، لا تظهر الـ Sidebar
   if (!activeModule) return null;
@@ -29,7 +32,7 @@ export function AppSidebar() {
       <SidebarHeader className="flex justify-center py-5">
         <h2 className="text-2xl font-black text-primary">
           {/* عرض الاسم كاملاً أو الحرف الأول بناءً على حالة الفتح[cite: 1] */}
-          {open ? activeModule.name : (activeModule.name?.[0] || "")}
+          {open ? activeModule.name : activeModule.name?.[0] || ""}
         </h2>
       </SidebarHeader>
 
@@ -48,10 +51,11 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild tooltip={item.title}>
                       <Link
                         to={item.url}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 ${active
+                        className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 ${
+                          active
                             ? "bg-primary text-white shadow-md"
                             : "text-gray-600 hover:bg-gray-200"
-                          }`}
+                        }`}
                       >
                         {/* رندر الأيقونة مباشرة[cite: 1] */}
                         {IconComponent ? (
@@ -61,7 +65,9 @@ export function AppSidebar() {
                         )}
 
                         {open && (
-                          <span className="text-sm font-medium">{item.title}</span>
+                          <span className="text-sm font-medium">
+                            {item.title}
+                          </span>
                         )}
 
                         {active && open && (
@@ -82,13 +88,19 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              tooltip="Logout"
+              tooltip="Home"
               className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
             >
-              <button onClick={setLogout} className="flex items-center w-full">
-                <LogOut size={20} className="shrink-0" />
-                {open && <span className="ml-3 font-medium">Logout</span>}
-              </button>
+              <div className="w-full">
+                <Button
+                  onClick={() => navigate("/")}
+                  className={`w-full ${!open ? "px-2 justify-center" : ""}`}
+                >
+                  <Home size={18} />
+
+                  {open && <span className="ml-2">Back to home</span>}
+                </Button>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

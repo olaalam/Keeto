@@ -14,7 +14,7 @@ export default function BusinessPlan() {
     const { data: plans = [], isLoading } = useQuery({
         queryKey: ['business-plans'],
         queryFn: async () => {
-            const res = await api.get(`/api/superadmin/businessplans/restaurant/${restaurantId}`);
+            const res = await api.get("/api/superadmin/businessplans");
             return res.data?.data?.data || res.data?.data || [];
         }
     });
@@ -36,9 +36,8 @@ export default function BusinessPlan() {
     // });
 
     const columns = [
-        { accessorKey: 'restaurant.name', header: 'Restaurant' },
-        { accessorKey: 'restaurant.nameAr', header: 'Restaurant (Arabic)' },
-        { accessorKey: 'restaurant.nameFr', header: 'Restaurant (Franko)' },
+        { accessorKey: 'restaurantDetails.name', header: 'Restaurant' },
+        
         { accessorKey: 'platformType', header: 'Platform' },
         { accessorKey: 'commissionRate', header: 'Commission (%)' },
         { accessorKey: 'serviceFee', header: 'Service Fee' },
