@@ -8,15 +8,19 @@ import MapComponent from "@/components/MapComponent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Controller } from "react-hook-form";
-import { MapPin, Search, Loader2 } from "lucide-react";
+import { MapPin, Search, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const ZoneAdd = () => {
   const { id } = useParams();
@@ -178,25 +182,58 @@ const ZoneAdd = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              {/* حقل اختيار المدينة المطور مع ميزة البحث */}
+              <div className="space-y-2 flex flex-col">
                 <Label>City *</Label>
                 <Controller
                   name="cityId"
                   control={control}
                   rules={{ required: true }}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select City" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cities?.map((c) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between font-normal text-left",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? cities.find((c) => String(c.id) === field.value)?.name
+                            : "Select City"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search city..." />
+                          <CommandList>
+                            <CommandEmpty>No city found.</CommandEmpty>
+                            <CommandGroup>
+                              {cities?.map((c) => (
+                                <CommandItem
+                                  key={c.id}
+                                  value={c.name}
+                                  onSelect={() => {
+                                    field.onChange(String(c.id));
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      String(c.id) === field.value ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {c.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   )}
                 />
                 {errors.cityId && (

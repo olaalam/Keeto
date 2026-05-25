@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useReactTable,
@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
   Pencil,
@@ -27,11 +28,10 @@ import {
 } from "lucide-react";
 import DeleteDialog from "./DeleteDialog";
 import LoadingSpinner from "./LoadingSpinner";
-import clsx from "clsx";
 
 export default function GenericDataTable({
   columns,
-  data,
+  data = [],
   title,
   onAdd,
   onEdit,
@@ -43,6 +43,17 @@ export default function GenericDataTable({
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteId, setDeleteId] = useState(null);
   const navigate = useNavigate();
+  const [highlightedId, setHighlightedId] = useState(null);
+
+  // Pre-process and sort data to append newly added items at the very end
+  const sortedData = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+    return [...data].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime; // newest first → newly added at top
+    });
+  }, [data]);
 
   // إضافة عمود الترقيم التلقائي وعمود العمليات
   const tableColumns = useMemo(() => {
@@ -105,7 +116,7 @@ export default function GenericDataTable({
   }, [columns, onEdit, deleteApiUrl, actions]);
 
   const table = useReactTable({
-    data,
+    data: sortedData, // Using the custom sorted array wrapper here
     columns: tableColumns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,

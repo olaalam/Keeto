@@ -15,15 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+// Shadcn Search Select (Combobox) UI Components
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { Controller } from "react-hook-form";
-import { Search, Loader2, ChevronDown } from "lucide-react";
+import { Search, Loader2, ChevronsUpDown, Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const RestaurantAdd = () => {
   const { id } = useParams();
@@ -122,7 +130,6 @@ const RestaurantAdd = () => {
           cuisineIds: data.cuisineIds ? data.cuisineIds.map(Number) : [],
         };
 
-        // ✅ Only send password fields if user actually typed something
         if (isEdit) {
           if (!formattedData.password) {
             delete formattedData.password;
@@ -196,7 +203,6 @@ const RestaurantAdd = () => {
                   />
                 </div>
 
-                {/* ✅ Password — only on Add */}
                 {!isEdit && (
                   <div className="space-y-2">
                     <Label>Password *</Label>
@@ -207,8 +213,8 @@ const RestaurantAdd = () => {
                   </div>
                 )}
 
-                {/* Cuisine Types */}
-                <div className="space-y-2">
+                {/* Cuisine Types (Searchable Multi-Select) */}
+                <div className="space-y-2 flex flex-col justify-end">
                   <Label>Cuisine Types *</Label>
                   <Controller
                     name="cuisineIds"
@@ -219,55 +225,80 @@ const RestaurantAdd = () => {
                       const handleSelectChange = (cuisineId) => {
                         const currentValues = field.value || [];
                         if (currentValues.includes(cuisineId)) {
-                          field.onChange(
-                            currentValues.filter((id) => id !== cuisineId),
-                          );
+                          field.onChange(currentValues.filter((id) => id !== cuisineId));
                         } else {
                           field.onChange([...currentValues, cuisineId]);
                         }
                       };
 
-                      const selectedLabels = selectData?.allCuisines
-                        ?.filter((c) => selectedCuisines.includes(String(c.id)))
-                        ?.map((c) => c.name)
-                        ?.join(", ");
-
                       return (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                        <Popover>
+                          <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              className="w-full justify-between text-left font-normal"
+                              role="combobox"
+                              className="w-full justify-between font-normal text-left h-10 px-3 text-sm rounded-md"
                             >
-                              <span className="truncate">
-                                {selectedLabels || "Select Cuisines"}
-                              </span>
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-60 overflow-y-auto">
-                            {selectData?.allCuisines?.map((c) => (
-                              <DropdownMenuCheckboxItem
-                                key={c.id}
-                                checked={selectedCuisines.includes(
-                                  String(c.id),
+                              <div className="flex flex-wrap gap-1 max-w-[90%] overflow-hidden truncate">
+                                {selectedCuisines.length > 0 ? (
+                                  selectData?.allCuisines
+                                    ?.filter((c) => selectedCuisines.includes(String(c.id)))
+                                    ?.map((c) => (
+                                      <Badge
+                                        variant="secondary"
+                                        key={c.id}
+                                        className="text-[11px] font-normal px-1 h-5 flex items-center gap-1"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSelectChange(String(c.id));
+                                        }}
+                                      >
+                                        {c.name}
+                                        <X className="h-3 w-3 opacity-60 hover:opacity-100" />
+                                      </Badge>
+                                    ))
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">Select Cuisines</span>
                                 )}
-                                onCheckedChange={() =>
-                                  handleSelectChange(String(c.id))
-                                }
-                              >
-                                {c.name}
-                              </DropdownMenuCheckboxItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              </div>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-[var(--radix-popover-trigger-width)] p-0"
+                            align="start"
+                          >
+                            <Command>
+                              <CommandInput placeholder="Search cuisines..." className="h-9 text-xs" />
+                              <CommandList>
+                                <CommandEmpty className="p-2 text-xs text-center text-gray-500">No cuisines found.</CommandEmpty>
+                                <CommandGroup>
+                                  {selectData?.allCuisines?.map((c) => (
+                                    <CommandItem
+                                      key={c.id}
+                                      value={c.name}
+                                      className="text-xs py-1.5 px-2 cursor-pointer"
+                                      onSelect={() => handleSelectChange(String(c.id))}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-3.5 w-3.5",
+                                          selectedCuisines.includes(String(c.id)) ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {c.name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       );
                     }}
                   />
                   {errors.cuisineIds && (
-                    <span className="text-xs text-red-500">
-                      This field is required
-                    </span>
+                    <span className="text-xs text-red-500">This field is required</span>
                   )}
                 </div>
               </div>
@@ -328,29 +359,68 @@ const RestaurantAdd = () => {
                     }}
                   />
                 </div>
-                <div className="space-y-2 md:col-span-2 lg:col-span-4">
+
+                {/* Zone Selector (Searchable Combobox layout) */}
+                <div className="space-y-2 md:col-span-2 lg:col-span-4 flex flex-col">
                   <Label>Zone *</Label>
                   <Controller
                     name="zoneId"
                     control={control}
+                    rules={{ required: true }}
                     render={({ field }) => (
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Zone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectData?.allZones?.map((z) => (
-                            <SelectItem key={z.id} value={String(z.id)}>
-                              {z.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between font-normal text-left h-10 px-3 text-sm rounded-md",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? selectData?.allZones?.find((z) => String(z.id) === field.value)?.name
+                              : "Select Zone"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-[var(--radix-popover-trigger-width)] p-0"
+                          align="start"
+                        >
+                          <Command>
+                            <CommandInput placeholder="Search zone..." className="h-9 text-xs" />
+                            <CommandList>
+                              <CommandEmpty className="p-2 text-xs text-center text-gray-500">No zones found.</CommandEmpty>
+                              <CommandGroup>
+                                {selectData?.allZones?.map((z) => (
+                                  <CommandItem
+                                    key={z.id}
+                                    value={z.name}
+                                    className="text-xs py-1.5 px-2 cursor-pointer"
+                                    onSelect={() => {
+                                      field.onChange(String(z.id));
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-3.5 w-3.5",
+                                        String(z.id) === field.value ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {z.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     )}
                   />
+                  {errors.zoneId && (
+                    <span className="text-xs text-red-500">Zone field is required</span>
+                  )}
                 </div>
               </div>
 
@@ -436,7 +506,6 @@ const RestaurantAdd = () => {
                   <Input {...register("ownerPhone", { required: true })} />
                 </div>
 
-                {/* ✅ Password fields — only shown in Edit mode */}
                 {isEdit && (
                   <>
                     <div className="space-y-2">
@@ -550,7 +619,6 @@ const RestaurantAdd = () => {
                     accept="image/*"
                     onChange={(e) => handleFileToBase64(e, "logo")}
                   />
-                  {/* ✅ Logo preview */}
                   {watch("logo") && (
                     <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
                       <img
@@ -575,7 +643,6 @@ const RestaurantAdd = () => {
                     accept="image/*"
                     onChange={(e) => handleFileToBase64(e, "cover")}
                   />
-                  {/* ✅ Cover preview */}
                   {watch("cover") && (
                     <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
                       <img
@@ -600,7 +667,6 @@ const RestaurantAdd = () => {
                     accept="image/*,application/pdf"
                     onChange={(e) => handleFileToBase64(e, "taxCertificate")}
                   />
-                  {/* ✅ Tax certificate preview (images only) */}
                   {watch("taxCertificate") &&
                     !watch("taxCertificate").includes("application/pdf") && (
                       <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
