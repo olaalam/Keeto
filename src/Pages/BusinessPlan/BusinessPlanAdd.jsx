@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import AddPage from '@/components/AddPage';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/api/axios';
@@ -7,7 +7,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 
 const BusinessPlanAdd = () => {
     const { id } = useParams();
-    const { state } = useLocation();
+    const navigate = useNavigate();
 
     // جلب قائمة المطاعم لربط الخطة بمطعم معين
     const { data: restaurants = [], isLoading: isRestaurantsLoading } = useQuery({
@@ -24,18 +24,16 @@ const BusinessPlanAdd = () => {
             const { data } = await api.get(`/api/superadmin/businessplans/${id}`);
             return data.data.data;
         },
-        enabled: !!id && !state?.planData,
+        enabled: !!id,
     });
 
-    const rawData = state?.planData || planData;
-
     const initialData = React.useMemo(() => {
-        if (!rawData) return null;
+        if (!planData) return null;
         return {
-            ...rawData,
-            restaurantId: rawData.restaurantId || rawData.restaurant?.id
+            ...planData,
+            restaurantId: planData.restaurantId || planData.restaurant?.id
         };
-    }, [rawData]);
+    }, [planData]);
 
     const businessPlanFields = [
         {
@@ -75,7 +73,7 @@ const BusinessPlanAdd = () => {
             queryKey="business-plans"
             fields={businessPlanFields}
             initialData={initialData}
-            onSuccessAction={() => window.history.back()}
+            onSuccessAction={() => navigate('/business-plans')}
         />
     );
 };
