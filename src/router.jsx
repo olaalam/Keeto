@@ -45,7 +45,7 @@ import FinancialReport from "./Pages/FinancialReport/FinancialReport";
 import Mykeeto from "./Pages/Mykeeto/mykeeto";
 import Popup from "./Pages/Popup/Popup";
 import PopupAdd from "./Pages/Popup/PopupAdd";
-import Policy from "./Pages/Policy/Policy";
+import Policy from "./Pages/Policy/policy";
 import EditPolicy from "./Pages/Policy/EditPolicy";
 
 
