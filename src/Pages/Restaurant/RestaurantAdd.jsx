@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios";
 import AddPage from "@/components/AddPage";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -34,22 +34,24 @@ import { Badge } from "@/components/ui/badge";
 
 import { Button } from "@/components/ui/button";
 import { Controller } from "react-hook-form";
-import { Search, Loader2, ChevronsUpDown, Check, X, Save } from "lucide-react";
+import { Search, Loader2, ChevronsUpDown, Check, X, Save, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePost } from "@/hooks/usePost";
 import { useUpdate } from "@/hooks/useUpdate";
 import { Switch } from "@/components/ui/switch";
 import { useForm, Controller as RHFController } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import DeleteDialog from "@/components/DeleteDialog";
 
 // ─── Inline Business Plan Tab ────────────────────────────────────────────────
 const BusinessPlanTab = ({ restaurantId }) => {
+  const queryClient = useQueryClient();
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ["business-plans", restaurantId],
     enabled: !!restaurantId,
     queryFn: async () => {
       const res = await api.get("/api/superadmin/businessplans");
-      const all = res.data?.data?.data || [];
+      const all = res.data?.data?.data || res.data?.data || [];
       const arr = Array.isArray(all) ? all : [all];
       return arr.filter((p) => p.restaurantId === restaurantId);
     },
@@ -57,6 +59,13 @@ const BusinessPlanTab = ({ restaurantId }) => {
 
   const [editingPlan, setEditingPlan] = React.useState(null);
   const [showForm, setShowForm] = React.useState(false);
+  const [deletingPlanId, setDeletingPlanId] = React.useState(null);
+
+  const handleDone = () => {
+    setShowForm(false);
+    setEditingPlan(null);
+    queryClient.invalidateQueries({ queryKey: ["business-plans", restaurantId] });
+  };
 
   if (!restaurantId)
     return (
@@ -74,11 +83,7 @@ const BusinessPlanTab = ({ restaurantId }) => {
         {!showForm && (
           <Button
             size="sm"
-            onClick={() => {
-              setEditingPlan(null);
-              setShowForm(true);
-            }}
-          >
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingPlan(null); setShowForm(true); }}          >
             <Save className="h-4 w-4 mr-1" /> Add Plan
           </Button>
         )}
@@ -102,16 +107,25 @@ const BusinessPlanTab = ({ restaurantId }) => {
                     {plan.serviceFee}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingPlan(plan);
-                    setShowForm(true);
-                  }}
-                >
-                  Edit
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingPlan(plan); setShowForm(true); }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="text-red-500 hover:text-red-600 hover:border-red-300"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeletingPlanId(plan.id); }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -123,24 +137,28 @@ const BusinessPlanTab = ({ restaurantId }) => {
         <BusinessPlanForm
           restaurantId={restaurantId}
           plan={editingPlan}
-          onDone={() => setShowForm(false)}
+          onDone={handleDone}
         />
       )}
+
+      <DeleteDialog
+        isOpen={!!deletingPlanId}
+        onClose={() => {
+          setDeletingPlanId(null);
+          queryClient.invalidateQueries({ queryKey: ["business-plans", restaurantId] });
+        }}
+        apiUrl="/api/superadmin/businessplans"
+        id={deletingPlanId}
+        title="Delete Business Plan?"
+      />
     </div>
   );
 };
 
 const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
   const isEdit = !!plan?.id;
-  const postMutation = usePost("/api/superadmin/businessplans", "post", [
-    "business-plans",
-    restaurantId,
-  ]);
-  console.log("PLAN", plan);
-  const updateMutation = useUpdate(`/api/superadmin/businessplans`, [
-    "business-plans",
-    restaurantId,
-  ]);
+  const postMutation = usePost("/api/superadmin/businessplans", "post");
+  const updateMutation = useUpdate(`/api/superadmin/businessplans`);
 
   const {
     register,
@@ -187,7 +205,7 @@ const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Platform Type */}
             <div className="space-y-1">
@@ -285,7 +303,7 @@ const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button type="submit" size="sm" disabled={isPending}>
+            <Button type="button" size="sm" disabled={isPending} onClick={handleSubmit(onSubmit)}>
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -293,11 +311,11 @@ const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
               )}
               {isEdit ? "Update" : "Save"}
             </Button>
-            <Button type="button" size="sm" variant="outline" onClick={onDone}>
+            <Button type="button" size="sm" variant="outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDone(); }}>
               Cancel
             </Button>
           </div>
-        </form>
+        </div>
       </CardContent>
     </Card>
   );
