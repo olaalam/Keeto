@@ -10,7 +10,7 @@ export default function DetailedFinancialReport() {
   const { startDate, endDate } = useParams();
 
   // 2. Fetch the detailed report data using useQuery
-  const { data: reportData, isLoading } = useQuery({
+  const { data: responseData, isLoading } = useQuery({
     queryKey: ["detailedFinancialReport", startDate, endDate],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/report/detailed", {
@@ -23,78 +23,96 @@ export default function DetailedFinancialReport() {
     },
   });
 
-  // 3. Prepare top stats cards
+  // Extract summaries and restaurant lists safely
+  const summary = responseData?.summary;
+  const restaurantsList = responseData?.restaurants || [];
+
+  // 3. Prepare top stats cards using the new summary keys
   const statsCards = [
     {
       title: "Grand Total Platform Sales",
-      value: `${reportData?.grandTotalOrdersAmount ?? "0.00"} E£`,
+      value: `${summary?.grandTotalSales ?? "0.00"} E£`,
       icon: ShoppingBag,
       bgIcon: "bg-orange-100 text-orange-600",
     },
     {
       title: "Total Active Restaurants",
-      value: reportData?.totalRestaurants ?? 0,
+      value: summary?.totalRestaurants ?? 0,
       icon: Utensils,
       bgIcon: "bg-blue-100 text-blue-600",
     },
   ];
 
-  // 4. Define table columns matching the response and wireframe
+  // 4. Define table columns with explicit styling and matching alignments
   const columns = [
     {
       accessorKey: "restaurantName",
-      header: "Restaurant",
+      header: () => (
+        <div className="text-left font-bold min-w-[120px]">Restaurant</div>
+      ),
       cell: ({ row }) => (
-        <div className="font-bold text-slate-800">
+        <div className="text-left font-bold text-slate-800">
           {row.getValue("restaurantName")}
         </div>
       ),
     },
     {
-      accessorKey: "totalOrders",
-      header: "Total Orders",
+      accessorKey: "orders.total",
+      header: () => (
+        <div className="text-center font-bold min-w-[100px]">Total Orders</div>
+      ),
       cell: ({ row }) => (
-        <span className="font-medium font-mono">
-          {row.getValue("totalOrders")}
-        </span>
+        <div className="text-center font-medium font-mono">
+          {row.original?.orders?.total ?? 0}
+        </div>
       ),
     },
     {
-      accessorKey: "totalOrdersAmount",
-      header: "Revenue",
+      accessorKey: "financials.totalSales",
+      header: () => (
+        <div className="text-right font-bold min-w-[110px]">Revenue</div>
+      ),
       cell: ({ row }) => (
-        <span className="font-semibold text-slate-700 font-mono">
-          {row.getValue("totalOrdersAmount")} E£
-        </span>
+        <div className="text-right font-semibold text-slate-700 font-mono">
+          {row.original?.financials?.totalSales ?? "0.00"} E£
+        </div>
       ),
     },
     {
-      accessorKey: "totalCashAmount",
-      header: "Cash",
+      accessorKey: "financials.cashOrders",
+      header: () => (
+        <div className="text-right font-bold min-w-[100px]">Cash</div>
+      ),
       cell: ({ row }) => (
-        <span className="font-semibold text-green-600 font-mono">
-          {row.getValue("totalCashAmount")} E£
-        </span>
+        <div className="text-right font-semibold text-green-600 font-mono">
+          {row.original?.financials?.cashOrders ?? "0.00"} E£
+        </div>
       ),
     },
     {
-      accessorKey: "totalDigitalAmount",
-      header: "Visa / Digital",
+      accessorKey: "financials.digitalOrders",
+      header: () => (
+        <div className="text-right font-bold min-w-[120px]">Visa / Digital</div>
+      ),
       cell: ({ row }) => (
-        <span className="font-semibold text-blue-600 font-mono">
-          {row.getValue("totalDigitalAmount")} E£
-        </span>
+        <div className="text-right font-semibold text-blue-600 font-mono">
+          {row.original?.financials?.digitalOrders ?? "0.00"} E£
+        </div>
       ),
     },
     {
-      accessorKey: "calculatedCommission",
-      header: "Calculated Commission",
+      accessorKey: "financials.calculatedCommission",
+      header: () => (
+        <div className="text-right font-bold min-w-[160px]">
+          Calculated Commission
+        </div>
+      ),
       cell: ({ row }) => {
-        const rate = row.original.commissionRate;
+        const rate = row.original?.financials?.commissionRate ?? "0.00%";
         return (
-          <div className="flex flex-col">
+          <div className="text-right flex flex-col items-end min-w-[160px]">
             <span className="font-bold text-amber-600 font-mono">
-              {row.getValue("calculatedCommission")} E£
+              {row.original?.financials?.calculatedCommission ?? "0.00"} E£
             </span>
             <span className="text-xs text-slate-400 font-mono">({rate})</span>
           </div>
@@ -102,30 +120,38 @@ export default function DetailedFinancialReport() {
       },
     },
     {
-      accessorKey: "recordedAppCommission",
-      header: "App Commission (Keeto)",
+      accessorKey: "financials.platformCommission",
+      header: () => (
+        <div className="text-right font-bold min-w-[160px]">
+          App Commission (Keeto)
+        </div>
+      ),
       cell: ({ row }) => (
-        <span className="font-bold text-rose-600 font-mono">
-          {row.getValue("recordedAppCommission")} E£
-        </span>
+        <div className="text-right font-bold text-rose-600 font-mono">
+          {row.original?.financials?.platformCommission ?? "0.00"} E£
+        </div>
       ),
     },
     {
       accessorKey: "businessPlan",
-      header: "Business Plan & Fees",
+      header: () => (
+        <div className="text-left font-bold min-w-[240px] pl-2">
+          Business Plan & Fees
+        </div>
+      ),
       cell: ({ row }) => {
         const plans = row.getValue("businessPlan") || [];
         return (
-          <div className="flex flex-col gap-1 max-w-[200px]">
+          <div className="flex flex-col gap-1 w-[240px] text-left pl-2">
             {plans.map((plan, idx) => (
               <div
                 key={idx}
-                className="text-xs bg-slate-50 border p-1 rounded text-slate-600"
+                className="text-xs bg-slate-50 border p-1.5 rounded text-slate-600 shadow-sm"
               >
                 <span className="font-medium">
                   {plan.platformType === "food_aggregator" ? "App" : "Web"}:
                 </span>{" "}
-                <span className="font-mono">{plan.commissionRate}%</span> |
+                <span className="font-mono">{plan.commissionRate}%</span> |{" "}
                 Service: <span className="font-mono">{plan.serviceFee}</span>
               </div>
             ))}
@@ -168,7 +194,7 @@ export default function DetailedFinancialReport() {
       <GenericDataTable
         title="Detailed Financial Report"
         columns={columns}
-        data={reportData?.restaurants || []}
+        data={restaurantsList}
         isLoading={isLoading}
         queryKey="detailedFinancialReport"
         onEdit={false}

@@ -45,6 +45,8 @@ import FinancialReport from "./Pages/FinancialReport/FinancialReport";
 import Mykeeto from "./Pages/Mykeeto/mykeeto";
 import Popup from "./Pages/Popup/Popup";
 import PopupAdd from "./Pages/Popup/PopupAdd";
+import Policy from "./Pages/Policy/Policy";
+import EditPolicy from "./Pages/Policy/EditPolicy";
 
 
 const router = createBrowserRouter([
@@ -79,6 +81,15 @@ const router = createBrowserRouter([
             {
                 path: "countries",
                 element: <Country />,
+            },
+            {
+                path: "policy",
+                element: <Policy />,
+
+            },
+            {
+                path:"policy/edit/:id",
+                element:<EditPolicy/>
             },
             {
                 path: "countries/add",

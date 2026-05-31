@@ -79,6 +79,7 @@ export default function BusinessPlan() {
                 columns={columns}
                 data={plans}
                 isLoading={isLoading}
+                actions = {false}
                 queryKey="business-plans"
                 deleteApiUrl="/api/superadmin/businessplans"
                 onAdd={() => navigate(`/restaurants/business-plans/add`)}

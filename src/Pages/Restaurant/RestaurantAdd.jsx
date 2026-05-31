@@ -17,7 +17,11 @@ import {
 } from "@/components/ui/select";
 
 // Shadcn Search Select (Combobox) UI Components
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -30,8 +34,275 @@ import { Badge } from "@/components/ui/badge";
 
 import { Button } from "@/components/ui/button";
 import { Controller } from "react-hook-form";
-import { Search, Loader2, ChevronsUpDown, Check, X } from "lucide-react";
+import { Search, Loader2, ChevronsUpDown, Check, X, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePost } from "@/hooks/usePost";
+import { useUpdate } from "@/hooks/useUpdate";
+import { Switch } from "@/components/ui/switch";
+import { useForm, Controller as RHFController } from "react-hook-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// ─── Inline Business Plan Tab ────────────────────────────────────────────────
+const BusinessPlanTab = ({ restaurantId }) => {
+  const { data: plans = [], isLoading } = useQuery({
+    queryKey: ["business-plans", restaurantId],
+    enabled: !!restaurantId,
+    queryFn: async () => {
+      const res = await api.get("/api/superadmin/businessplans");
+      const all = res.data?.data?.data || [];
+      const arr = Array.isArray(all) ? all : [all];
+      return arr.filter((p) => p.restaurantId === restaurantId);
+    },
+  });
+
+  const [editingPlan, setEditingPlan] = React.useState(null);
+  const [showForm, setShowForm] = React.useState(false);
+
+  if (!restaurantId)
+    return (
+      <p className="text-sm text-gray-400 text-center py-10">
+        Save the restaurant first, then come back to manage business plans.
+      </p>
+    );
+
+  if (isLoading) return <LoadingSpinner />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-semibold text-gray-700">Business Plans</h3>
+        {!showForm && (
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingPlan(null);
+              setShowForm(true);
+            }}
+          >
+            <Save className="h-4 w-4 mr-1" /> Add Plan
+          </Button>
+        )}
+      </div>
+
+      {/* Existing plans list */}
+      {!showForm && (
+        <div className="space-y-2">
+          {plans.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">
+              No business plans yet.
+            </p>
+          )}
+          {plans.map((plan) => (
+            <Card key={plan.id} className="border shadow-none">
+              <CardContent className="p-4 flex justify-between items-center">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">{plan.platformType}</p>
+                  <p className="text-xs text-gray-500">
+                    Commission: {plan.commissionRate}% · Service Fee:{" "}
+                    {plan.serviceFee}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingPlan(plan);
+                    setShowForm(true);
+                  }}
+                >
+                  Edit
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Add / Edit form */}
+      {showForm && (
+        <BusinessPlanForm
+          restaurantId={restaurantId}
+          plan={editingPlan}
+          onDone={() => setShowForm(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
+  const isEdit = !!plan?.id;
+  const postMutation = usePost("/api/superadmin/businessplans", "post", [
+    "business-plans",
+    restaurantId,
+  ]);
+  console.log("PLAN", plan);
+  const updateMutation = useUpdate(`/api/superadmin/businessplans`, [
+    "business-plans",
+    restaurantId,
+  ]);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: plan
+      ? {
+          platformType: plan.platformType || "",
+          commissionRate: plan.commissionRate || "",
+          serviceFee: plan.serviceFee || "",
+          isMonthlyActive: plan.isMonthlyActive || false,
+          monthlyAmount: plan.monthlyAmount || "",
+          isQuarterlyActive: plan.isQuarterlyActive || false,
+          isAnnuallyActive: plan.isAnnuallyActive || false,
+        }
+      : {
+          platformType: "",
+          commissionRate: "",
+          serviceFee: "",
+          isMonthlyActive: false,
+          monthlyAmount: "",
+          isQuarterlyActive: false,
+          isAnnuallyActive: false,
+        },
+  });
+
+  const onSubmit = (data) => {
+    const payload = { ...data, restaurantId };
+    if (isEdit) {
+      updateMutation.mutate({ id: plan.id, payload }, { onSuccess: onDone });
+    } else {
+      postMutation.mutate(payload, { onSuccess: onDone });
+    }
+  };
+
+  const isPending = postMutation.isPending || updateMutation.isPending;
+  return (
+    <Card className="border shadow-none">
+      <CardHeader className="pb-2 pt-4 px-4">
+        <CardTitle className="text-sm font-semibold">
+          {isEdit ? "Edit Plan" : "New Business Plan"}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Platform Type */}
+            <div className="space-y-1">
+              <Label className="text-xs">Platform Type *</Label>
+              <RHFController
+                name="platformType"
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger
+                      className={errors.platformType ? "border-red-500" : ""}
+                    >
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="food_aggregator">
+                        Food Aggregator
+                      </SelectItem>
+                      <SelectItem value="online_order">Online Order</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            {/* Commission Rate */}
+            <div className="space-y-1">
+              <Label className="text-xs">Commission Rate (%) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...register("commissionRate", { required: true })}
+                className={errors.commissionRate ? "border-red-500" : ""}
+              />
+            </div>
+
+            {/* Service Fee */}
+            <div className="space-y-1">
+              <Label className="text-xs">Service Fee *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...register("serviceFee", { required: true })}
+                className={errors.serviceFee ? "border-red-500" : ""}
+              />
+            </div>
+
+            {/* Monthly Amount */}
+            <div className="space-y-1">
+              <Label className="text-xs">Monthly Amount</Label>
+              <Input type="number" step="0.01" {...register("monthlyAmount")} />
+            </div>
+
+            {/* Switches */}
+            <div className="flex items-center gap-3">
+              <RHFController
+                name="isMonthlyActive"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <Label className="text-xs">Monthly Active</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <RHFController
+                name="isQuarterlyActive"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <Label className="text-xs">Quarterly Active</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <RHFController
+                name="isAnnuallyActive"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <Label className="text-xs">Annually Active</Label>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" size="sm" disabled={isPending}>
+              {isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              {isEdit ? "Update" : "Save"}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={onDone}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
 
 const RestaurantAdd = () => {
   const { id } = useParams();
@@ -164,14 +435,15 @@ const RestaurantAdd = () => {
 
         return (
           <Tabs defaultValue="basic" className="w-full mt-4">
-            <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="basic">General Info</TabsTrigger>
               <TabsTrigger value="location">Location & Map</TabsTrigger>
               <TabsTrigger value="business">Business Details</TabsTrigger>
               <TabsTrigger value="images">Identity & Media</TabsTrigger>
+              <TabsTrigger value="business-plan">Business Plan</TabsTrigger>
             </TabsList>
 
-            {/* 1. المعلومات الأساسية */}
+            {/* 1. General Info */}
             <TabsContent value="basic" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -213,7 +485,7 @@ const RestaurantAdd = () => {
                   </div>
                 )}
 
-                {/* Cuisine Types (Searchable Multi-Select) */}
+                {/* Cuisine Types */}
                 <div className="space-y-2 flex flex-col justify-end">
                   <Label>Cuisine Types *</Label>
                   <Controller
@@ -225,7 +497,9 @@ const RestaurantAdd = () => {
                       const handleSelectChange = (cuisineId) => {
                         const currentValues = field.value || [];
                         if (currentValues.includes(cuisineId)) {
-                          field.onChange(currentValues.filter((id) => id !== cuisineId));
+                          field.onChange(
+                            currentValues.filter((id) => id !== cuisineId),
+                          );
                         } else {
                           field.onChange([...currentValues, cuisineId]);
                         }
@@ -242,7 +516,9 @@ const RestaurantAdd = () => {
                               <div className="flex flex-wrap gap-1 max-w-[90%] overflow-hidden truncate">
                                 {selectedCuisines.length > 0 ? (
                                   selectData?.allCuisines
-                                    ?.filter((c) => selectedCuisines.includes(String(c.id)))
+                                    ?.filter((c) =>
+                                      selectedCuisines.includes(String(c.id)),
+                                    )
                                     ?.map((c) => (
                                       <Badge
                                         variant="secondary"
@@ -258,7 +534,9 @@ const RestaurantAdd = () => {
                                       </Badge>
                                     ))
                                 ) : (
-                                  <span className="text-muted-foreground text-sm">Select Cuisines</span>
+                                  <span className="text-muted-foreground text-sm">
+                                    Select Cuisines
+                                  </span>
                                 )}
                               </div>
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -269,21 +547,32 @@ const RestaurantAdd = () => {
                             align="start"
                           >
                             <Command>
-                              <CommandInput placeholder="Search cuisines..." className="h-9 text-xs" />
+                              <CommandInput
+                                placeholder="Search cuisines..."
+                                className="h-9 text-xs"
+                              />
                               <CommandList>
-                                <CommandEmpty className="p-2 text-xs text-center text-gray-500">No cuisines found.</CommandEmpty>
+                                <CommandEmpty className="p-2 text-xs text-center text-gray-500">
+                                  No cuisines found.
+                                </CommandEmpty>
                                 <CommandGroup>
                                   {selectData?.allCuisines?.map((c) => (
                                     <CommandItem
                                       key={c.id}
                                       value={c.name}
                                       className="text-xs py-1.5 px-2 cursor-pointer"
-                                      onSelect={() => handleSelectChange(String(c.id))}
+                                      onSelect={() =>
+                                        handleSelectChange(String(c.id))
+                                      }
                                     >
                                       <Check
                                         className={cn(
                                           "mr-2 h-3.5 w-3.5",
-                                          selectedCuisines.includes(String(c.id)) ? "opacity-100" : "opacity-0"
+                                          selectedCuisines.includes(
+                                            String(c.id),
+                                          )
+                                            ? "opacity-100"
+                                            : "opacity-0",
                                         )}
                                       />
                                       {c.name}
@@ -298,7 +587,9 @@ const RestaurantAdd = () => {
                     }}
                   />
                   {errors.cuisineIds && (
-                    <span className="text-xs text-red-500">This field is required</span>
+                    <span className="text-xs text-red-500">
+                      This field is required
+                    </span>
                   )}
                 </div>
               </div>
@@ -312,7 +603,7 @@ const RestaurantAdd = () => {
               </div>
             </TabsContent>
 
-            {/* 2. الموقع والخريطة */}
+            {/* 2. Location & Map */}
             <TabsContent value="location" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
                 <div className="space-y-2">
@@ -360,7 +651,7 @@ const RestaurantAdd = () => {
                   />
                 </div>
 
-                {/* Zone Selector (Searchable Combobox layout) */}
+                {/* Zone Selector */}
                 <div className="space-y-2 md:col-span-2 lg:col-span-4 flex flex-col">
                   <Label>Zone *</Label>
                   <Controller
@@ -375,11 +666,13 @@ const RestaurantAdd = () => {
                             role="combobox"
                             className={cn(
                               "w-full justify-between font-normal text-left h-10 px-3 text-sm rounded-md",
-                              !field.value && "text-muted-foreground"
+                              !field.value && "text-muted-foreground",
                             )}
                           >
                             {field.value
-                              ? selectData?.allZones?.find((z) => String(z.id) === field.value)?.name
+                              ? selectData?.allZones?.find(
+                                  (z) => String(z.id) === field.value,
+                                )?.name
                               : "Select Zone"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -389,9 +682,14 @@ const RestaurantAdd = () => {
                           align="start"
                         >
                           <Command>
-                            <CommandInput placeholder="Search zone..." className="h-9 text-xs" />
+                            <CommandInput
+                              placeholder="Search zone..."
+                              className="h-9 text-xs"
+                            />
                             <CommandList>
-                              <CommandEmpty className="p-2 text-xs text-center text-gray-500">No zones found.</CommandEmpty>
+                              <CommandEmpty className="p-2 text-xs text-center text-gray-500">
+                                No zones found.
+                              </CommandEmpty>
                               <CommandGroup>
                                 {selectData?.allZones?.map((z) => (
                                   <CommandItem
@@ -405,7 +703,9 @@ const RestaurantAdd = () => {
                                     <Check
                                       className={cn(
                                         "mr-2 h-3.5 w-3.5",
-                                        String(z.id) === field.value ? "opacity-100" : "opacity-0"
+                                        String(z.id) === field.value
+                                          ? "opacity-100"
+                                          : "opacity-0",
                                       )}
                                     />
                                     {z.name}
@@ -419,7 +719,9 @@ const RestaurantAdd = () => {
                     )}
                   />
                   {errors.zoneId && (
-                    <span className="text-xs text-red-500">Zone field is required</span>
+                    <span className="text-xs text-red-500">
+                      Zone field is required
+                    </span>
                   )}
                 </div>
               </div>
@@ -490,7 +792,7 @@ const RestaurantAdd = () => {
               </div>
             </TabsContent>
 
-            {/* 3. بيانات العمل والمالك */}
+            {/* 3. Business Details */}
             <TabsContent value="business" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -607,7 +909,7 @@ const RestaurantAdd = () => {
               </div>
             </TabsContent>
 
-            {/* 4. الصور والملفات */}
+            {/* 4. Identity & Media */}
             <TabsContent value="images" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-4 border rounded-lg space-y-2">
@@ -683,6 +985,11 @@ const RestaurantAdd = () => {
                     )}
                 </div>
               </div>
+            </TabsContent>
+
+            {/* 5. Business Plan */}
+            <TabsContent value="business-plan">
+              <BusinessPlanTab restaurantId={id} />
             </TabsContent>
           </Tabs>
         );

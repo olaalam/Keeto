@@ -69,6 +69,7 @@ export const modules = [
         icon: PlusSquare,
       },
       { title: "Popup", url: "/popup", icon: Layers },
+      {title: "Policy", url: "/policy", icon: BellRing},
     ],
   },
   {
