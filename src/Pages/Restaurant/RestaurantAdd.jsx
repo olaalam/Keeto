@@ -357,7 +357,7 @@ const RestaurantAdd = () => {
 
       return {
         ...raw,
-        cuisineIds: cuisineIds,
+        cuisineId: cuisineIds,
         zoneId: String(raw.zoneId),
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
@@ -416,7 +416,7 @@ const RestaurantAdd = () => {
               : data.tags,
           minDeliveryTime: String(data.minDeliveryTime),
           maxDeliveryTime: String(data.maxDeliveryTime),
-          cuisineIds: data.cuisineIds ? data.cuisineIds.map(Number) : [],
+          cuisineId: data.cuisineIds ? data.cuisineIds[0] : null,
         };
 
         if (isEdit) {
