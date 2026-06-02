@@ -30,7 +30,7 @@ export default function Restaurant() {
       header: "Restaurant Name",
       cell: ({ row }) => (
         <button
-          onClick={() => navigate(`/restaurants/setting/${row.original.id}`)}
+          onClick={() => navigate(`/restaurants/mykeetresturant/${row.original.id}`)}
           className="text-blue-600 hover:underline font-medium text-left"
         >
           {row.getValue("name")}
@@ -78,6 +78,30 @@ export default function Restaurant() {
           className="text-blue-600 hover:underline font-medium text-left"
         >
           Transaction
+        </button>
+      ),
+    },
+     {
+      accessorKey: "setting",
+      header: "Settings",
+      cell: ({ row }) => (
+        <button
+          onClick={() => navigate(`setting/${row.original.id}`)}
+          className="text-blue-600 hover:underline font-medium text-left"
+        >
+          Settings
+        </button>
+      ),
+    },
+     {
+      accessorKey: "invoice",
+      header: "Invoice",
+      cell: ({ row }) => (
+        <button
+          onClick={() => navigate(`invoice/${row.original.id}`)}
+          className="text-blue-600 hover:underline font-medium text-left"
+        >
+          Invoice
         </button>
       ),
     },

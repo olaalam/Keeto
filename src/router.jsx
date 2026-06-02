@@ -47,269 +47,276 @@ import Popup from "./Pages/Popup/Popup";
 import PopupAdd from "./Pages/Popup/PopupAdd";
 import Policy from "./Pages/Policy/policy";
 import EditPolicy from "./Pages/Policy/EditPolicy";
-
+import Mykeetresturant from "./Pages/Restaurant/mykeetresturant";
+import Invoice from "./Pages/Restaurant/invoice";
+import InvoiceAdd from "./Pages/Restaurant/InvoiceAdd";
 
 const router = createBrowserRouter([
-    {
-        path: "/login",
-        element: <Login />,
-    },
-    {
-        path: "/",
-        element: (
-            <ProtectedRoute>
-                <Layout /> {/* استخدمي Layout هنا بدلاً من Home لتنظيم الصفحة */}
-            </ProtectedRoute>
-        ),
-        children: [
-            {
-                index: true, // ليعرض صفحة Home عند الدخول على "/" مباشرة
-                element: <Home />,
-            },
-            {
-                path: "admins",
-                element: <Admin />,
-            },
-            {
-                path: "admins/add",
-                element: <AdminAdd />,
-            },
-            {
-                path: "admins/edit/:id",
-                element: <AdminAdd />,
-            },
-            {
-                path: "countries",
-                element: <Country />,
-            },
-            {
-                path: "policy",
-                element: <Policy />,
-
-            },
-            {
-                path:"policy/edit/:id",
-                element:<EditPolicy/>
-            },
-            {
-                path: "countries/add",
-                element: <CountryAdd />,
-            },
-            {
-                path: "countries/edit/:id",
-                element: <CountryAdd />,
-            },
-            {
-                path: "cities",
-                element: <City />,
-            },
-            {
-                path: "cities/add",
-                element: <CityAdd />,
-            },
-            {
-                path: "cities/edit/:id",
-                element: <CityAdd />,
-            },
-            {
-                path: "zones",
-                element: <Zone />,
-            },
-            {
-                path: "zones/add",
-                element: <ZoneAdd />,
-            },
-            {
-                path: "zones/edit/:id",
-                element: <ZoneAdd />,
-            },
-            {
-                path: "categories",
-                element: <Category />,
-            },
-            {
-                path: "categories/add",
-                element: <CategoryAdd />,
-            },
-            {
-                path: "categories/edit/:id",
-                element: <CategoryAdd />,
-            },
-            {
-                path: "sub-categories",
-                element: <SubCategory />,
-            },
-            {
-                path: "sub-categories/add",
-                element: <SubCategoryAdd />,
-            },
-            {
-                path: "sub-categories/edit/:id",
-                element: <SubCategoryAdd />,
-            },
-            {
-                path: "restaurants",
-                element: <Restaurant />,
-            },
-            {
-                path: "restaurants/add",
-                element: <RestaurantAdd />,
-            },
-            {
-                path: "restaurants/edit/:id",
-                element: <RestaurantAdd />,
-            },
-            {
-                path: "restaurants/setting/:id",
-                element: <Setting />,
-            },
-            {
-                path: "restaurants/setting/edit/:id",
-                element: <SettingAdd />,
-            },
-            {
-                path: "addons",
-                element: <Addons />,
-            },
-            {
-                path: "addons/add",
-                element: <AddonsAdd />,
-            },
-            {
-                path: "addons/edit/:id",
-                element: <AddonsAdd />,
-            },
-            {
-                path: "addons-categories",
-                element: <AddonsCat />,
-            },
-            {
-                path: "addons-categories/add",
-                element: <AddonsCatAdd />,
-            },
-            {
-                path: "addons-categories/edit/:id",
-                element: <AddonsCatAdd />,
-            },
-            {
-                path: "delivery-zones",
-                element: <DeliveryZone />,
-            },
-            {
-                path: "delivery-zones/add",
-                element: <DeliveryZoneAdd />,
-            },
-            {
-                path: "delivery-zones/edit/:id",
-                element: <DeliveryZoneAdd />,
-            },
-            {
-                path: "foods",
-                element: <Food />,
-            },
-            {
-                path: "foods/add",
-                element: <FoodAdd />,
-            },
-            {
-                path: "foods/edit/:id",
-                element: <FoodAdd />,
-            },
-            {
-                path: "cuisines",
-                element: <Cuisine />,
-            },
-            {
-                path: "cuisines/add",
-                element: <CuisineAdd />,
-            },
-            {
-                path: "cuisines/edit/:id",
-                element: <CuisineAdd />,
-            },
-            {
-                path: "business-plans",
-                element: <BusinessPlan />,
-            },
-            {
-                path: "restaurants/business-plans/add",
-                element: <BusinessPlanAdd />,
-            },
-            {
-                path: "restaurants/business-plans/edit/:id",
-                element: <BusinessPlanAdd />,
-            },
-            {
-                path:"mykeeto",
-                element:<Mykeeto />
-            },
-            {
-                path: "permissions",
-                element: <Permission />,
-            },
-            {
-                path: "permissions/add",
-                element: <PermissionAdd />,
-            },
-            {
-                path: "permissions/edit/:id",
-                element: <PermissionAdd />,
-            },
-            {
-                path: "payment-methods",
-                element: <PaymentMetod />,
-            },
-            {
-                path: "payment-methods/add",
-                element: <PaymentMetodAdd />,
-            },
-            {
-                path: "payment-methods/edit/:id",
-                element: <PaymentMetodAdd />,
-            },
-            {
-                path: "restaurants/transaction/:restaurantId",
-                element: <Transaction />,
-            },
-            {
-                path: "restaurants/order/:restaurantId",
-                element: <Order />,
-            },
-            {
-                path: "/orders/details/:restaurantId/:internalId",
-                element: <Details />,
-            },
-            {
-                path: "restaurants/wallet/:restaurantId",
-                element: <WalletR />,
-            },
-            {
-                path: "financial-report",
-                element: <FinancialReport />,
-            },
-                        {
-                path: "popup",
-                element: <Popup />,
-            },
-            {
-                path: "popup/add",
-                element: <PopupAdd />,
-            },
-            {
-                path: "popup/edit/:id",
-                element: <PopupAdd />,
-            },
-
-
-
-
-
-
-        ],
-    },
-    {
-        path: "*",
-        element: <NotFound />,
-    },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/",
+    element: (
+      <ProtectedRoute>
+        <Layout /> {/* استخدمي Layout هنا بدلاً من Home لتنظيم الصفحة */}
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true, // ليعرض صفحة Home عند الدخول على "/" مباشرة
+        element: <Home />,
+      },
+      {
+        path: "admins",
+        element: <Admin />,
+      },
+      {
+        path: "admins/add",
+        element: <AdminAdd />,
+      },
+      {
+        path: "admins/edit/:id",
+        element: <AdminAdd />,
+      },
+      {
+        path: "countries",
+        element: <Country />,
+      },
+      {
+        path: "policy",
+        element: <Policy />,
+      },
+      {
+        path: "policy/edit/:id",
+        element: <EditPolicy />,
+      },
+      {
+        path: "countries/add",
+        element: <CountryAdd />,
+      },
+      {
+        path: "restaurants/invoice/:id",
+        element: <Invoice />,
+      },
+      {
+        path: "restaurants/invoice/add",
+        element: <InvoiceAdd />,
+      },
+      {
+        path: "countries/edit/:id",
+        element: <CountryAdd />,
+      },
+      {
+        path: "restaurants/mykeetresturant/:id",
+        element: <Mykeetresturant />,
+      },
+      {
+        path: "cities",
+        element: <City />,
+      },
+      {
+        path: "cities/add",
+        element: <CityAdd />,
+      },
+      {
+        path: "cities/edit/:id",
+        element: <CityAdd />,
+      },
+      {
+        path: "zones",
+        element: <Zone />,
+      },
+      {
+        path: "zones/add",
+        element: <ZoneAdd />,
+      },
+      {
+        path: "zones/edit/:id",
+        element: <ZoneAdd />,
+      },
+      {
+        path: "categories",
+        element: <Category />,
+      },
+      {
+        path: "categories/add",
+        element: <CategoryAdd />,
+      },
+      {
+        path: "categories/edit/:id",
+        element: <CategoryAdd />,
+      },
+      {
+        path: "sub-categories",
+        element: <SubCategory />,
+      },
+      {
+        path: "sub-categories/add",
+        element: <SubCategoryAdd />,
+      },
+      {
+        path: "sub-categories/edit/:id",
+        element: <SubCategoryAdd />,
+      },
+      {
+        path: "restaurants",
+        element: <Restaurant />,
+      },
+      {
+        path: "restaurants/add",
+        element: <RestaurantAdd />,
+      },
+      {
+        path: "restaurants/edit/:id",
+        element: <RestaurantAdd />,
+      },
+      {
+        path: "restaurants/setting/:id",
+        element: <Setting />,
+      },
+      {
+        path: "restaurants/setting/edit/:id",
+        element: <SettingAdd />,
+      },
+      {
+        path: "addons",
+        element: <Addons />,
+      },
+      {
+        path: "addons/add",
+        element: <AddonsAdd />,
+      },
+      {
+        path: "addons/edit/:id",
+        element: <AddonsAdd />,
+      },
+      {
+        path: "addons-categories",
+        element: <AddonsCat />,
+      },
+      {
+        path: "addons-categories/add",
+        element: <AddonsCatAdd />,
+      },
+      {
+        path: "addons-categories/edit/:id",
+        element: <AddonsCatAdd />,
+      },
+      {
+        path: "delivery-zones",
+        element: <DeliveryZone />,
+      },
+      {
+        path: "delivery-zones/add",
+        element: <DeliveryZoneAdd />,
+      },
+      {
+        path: "delivery-zones/edit/:id",
+        element: <DeliveryZoneAdd />,
+      },
+      {
+        path: "foods",
+        element: <Food />,
+      },
+      {
+        path: "foods/add",
+        element: <FoodAdd />,
+      },
+      {
+        path: "foods/edit/:id",
+        element: <FoodAdd />,
+      },
+      {
+        path: "cuisines",
+        element: <Cuisine />,
+      },
+      {
+        path: "cuisines/add",
+        element: <CuisineAdd />,
+      },
+      {
+        path: "cuisines/edit/:id",
+        element: <CuisineAdd />,
+      },
+      {
+        path: "business-plans",
+        element: <BusinessPlan />,
+      },
+      {
+        path: "restaurants/business-plans/add",
+        element: <BusinessPlanAdd />,
+      },
+      {
+        path: "restaurants/business-plans/edit/:id",
+        element: <BusinessPlanAdd />,
+      },
+      {
+        path: "mykeeto",
+        element: <Mykeeto />,
+      },
+      {
+        path: "permissions",
+        element: <Permission />,
+      },
+      {
+        path: "permissions/add",
+        element: <PermissionAdd />,
+      },
+      {
+        path: "permissions/edit/:id",
+        element: <PermissionAdd />,
+      },
+      {
+        path: "payment-methods",
+        element: <PaymentMetod />,
+      },
+      {
+        path: "payment-methods/add",
+        element: <PaymentMetodAdd />,
+      },
+      {
+        path: "payment-methods/edit/:id",
+        element: <PaymentMetodAdd />,
+      },
+      {
+        path: "restaurants/transaction/:restaurantId",
+        element: <Transaction />,
+      },
+      {
+        path: "restaurants/order/:restaurantId",
+        element: <Order />,
+      },
+      {
+        path: "/orders/details/:restaurantId/:internalId",
+        element: <Details />,
+      },
+      {
+        path: "restaurants/wallet/:restaurantId",
+        element: <WalletR />,
+      },
+      {
+        path: "financial-report",
+        element: <FinancialReport />,
+      },
+      {
+        path: "popup",
+        element: <Popup />,
+      },
+      {
+        path: "popup/add",
+        element: <PopupAdd />,
+      },
+      {
+        path: "popup/edit/:id",
+        element: <PopupAdd />,
+      },
+    ],
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
 ]);
 export default router;
