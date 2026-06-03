@@ -8,7 +8,7 @@ export const hasModulePermission = (user, requiredModule) => {
   if (!user) return false;
 
   // If user is superadmin, grant access to everything
-  if (user.type === "superadmin" || user.role?.name?.toLowerCase() === "superadmin") {
+  if (user.type === "super_admin" || user.role?.name?.toLowerCase() === "superadmin") {
     return true;
   }
 
