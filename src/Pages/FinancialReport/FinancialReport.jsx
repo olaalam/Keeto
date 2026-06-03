@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
 import { useParams } from "react-router-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   ShoppingBag,
   CheckCircle2,
@@ -39,7 +41,54 @@ export default function FinancialReport() {
   const macroFinancials = reportData?.macroFinancials || {};
   const collectionBreakdown = reportData?.collectionBreakdown || {};
   const sourceBreakdown = reportData?.sourceBreakdown || [];
+  const exportPDF = () => {
+    const doc = new jsPDF();
 
+    doc.setFontSize(18);
+    doc.text("Financial Macro Report", 14, 20);
+
+    doc.setFontSize(11);
+    doc.text(`Period: ${startDate || "N/A"} - ${endDate || "N/A"}`, 14, 30);
+
+    // Summary
+    autoTable(doc, {
+      startY: 40,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Orders", totalAttempted],
+        ["Valid Orders", totalValid],
+        ["Cancelled Orders", totalCancelled],
+        [
+          "Grand Total Sales",
+          `${Number(macroFinancials.grandTotalSales || 0).toFixed(2)} E£`,
+        ],
+        [
+          "Keeto Commission",
+          `${Number(macroFinancials.keetoTotalCommission || 0).toFixed(2)} E£`,
+        ],
+        [
+          "Cash Collected",
+          `${Number(
+            collectionBreakdown.cashCollectedByRestaurants || 0,
+          ).toFixed(2)} E£`,
+        ],
+      ],
+    });
+
+    // Revenue Breakdown Table
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [["Order Source", "Orders Count", "Revenue", "Keeto Commission"]],
+      body: sourceBreakdown.map((item) => [
+        item.source,
+        item.ordersCount,
+        `${Number(item.revenue).toFixed(2)} E£`,
+        `${Number(item.keetoCommission).toFixed(2)} E£`,
+      ]),
+    });
+
+    doc.save(`Financial_Report_${startDate || ""}_${endDate || ""}.pdf`);
+  };
   // إعداد كروت الإحصائيات العلوية بتنسيق منسق
   const statsCards = [
     {
@@ -232,7 +281,12 @@ export default function FinancialReport() {
           )}
         </div>
       )}
-
+      <button
+        onClick={exportPDF}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+      >
+        Export PDF
+      </button>
       {/* جدول البيانات الرئيسي ممرر له داتا المصادر الصحيحة */}
       <GenericDataTable
         title="Revenue Breakdown By Source"
