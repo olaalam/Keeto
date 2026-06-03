@@ -34,7 +34,15 @@ import { Badge } from "@/components/ui/badge";
 
 import { Button } from "@/components/ui/button";
 import { Controller } from "react-hook-form";
-import { Search, Loader2, ChevronsUpDown, Check, X, Save, Trash2 } from "lucide-react";
+import {
+  Search,
+  Loader2,
+  ChevronsUpDown,
+  Check,
+  X,
+  Save,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePost } from "@/hooks/usePost";
 import { useUpdate } from "@/hooks/useUpdate";
@@ -64,7 +72,9 @@ const BusinessPlanTab = ({ restaurantId }) => {
   const handleDone = () => {
     setShowForm(false);
     setEditingPlan(null);
-    queryClient.invalidateQueries({ queryKey: ["business-plans", restaurantId] });
+    queryClient.invalidateQueries({
+      queryKey: ["business-plans", restaurantId],
+    });
   };
 
   if (!restaurantId)
@@ -83,7 +93,13 @@ const BusinessPlanTab = ({ restaurantId }) => {
         {!showForm && (
           <Button
             size="sm"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingPlan(null); setShowForm(true); }}          >
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setEditingPlan(null);
+              setShowForm(true);
+            }}
+          >
             <Save className="h-4 w-4 mr-1" /> Add Plan
           </Button>
         )}
@@ -112,7 +128,12 @@ const BusinessPlanTab = ({ restaurantId }) => {
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingPlan(plan); setShowForm(true); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditingPlan(plan);
+                      setShowForm(true);
+                    }}
                   >
                     Edit
                   </Button>
@@ -121,7 +142,11 @@ const BusinessPlanTab = ({ restaurantId }) => {
                     size="sm"
                     variant="outline"
                     className="text-red-500 hover:text-red-600 hover:border-red-300"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeletingPlanId(plan.id); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDeletingPlanId(plan.id);
+                    }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -145,7 +170,9 @@ const BusinessPlanTab = ({ restaurantId }) => {
         isOpen={!!deletingPlanId}
         onClose={() => {
           setDeletingPlanId(null);
-          queryClient.invalidateQueries({ queryKey: ["business-plans", restaurantId] });
+          queryClient.invalidateQueries({
+            queryKey: ["business-plans", restaurantId],
+          });
         }}
         apiUrl="/api/superadmin/businessplans"
         id={deletingPlanId}
@@ -303,7 +330,12 @@ const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button type="button" size="sm" disabled={isPending} onClick={handleSubmit(onSubmit)}>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isPending}
+              onClick={handleSubmit(onSubmit)}
+            >
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -311,7 +343,16 @@ const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
               )}
               {isEdit ? "Update" : "Save"}
             </Button>
-            <Button type="button" size="sm" variant="outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDone(); }}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDone();
+              }}
+            >
               Cancel
             </Button>
           </div>
@@ -349,15 +390,19 @@ const RestaurantAdd = () => {
       if (raw.lat && raw.lng)
         setLocation({ lat: parseFloat(raw.lat), lng: parseFloat(raw.lng) });
 
-      const cuisineIds = Array.isArray(raw.cuisines)
-        ? raw.cuisines.map((c) => String(c.id))
-        : raw.cuisineId
-          ? [String(raw.cuisineId)]
-          : [];
+      // ✅ FIXED: Parse dynamic backend cuisine arrays into internal string lists
+      let initialCuisineIds = [];
+      if (Array.isArray(raw.cuisineId)) {
+        initialCuisineIds = raw.cuisineId.map(String);
+      } else if (Array.isArray(raw.cuisines)) {
+        initialCuisineIds = raw.cuisines.map((c) => String(c.id));
+      } else if (raw.cuisineId) {
+        initialCuisineIds = [String(raw.cuisineId)];
+      }
 
       return {
         ...raw,
-        cuisineId: cuisineIds,
+        cuisineIds: initialCuisineIds, // This targets the React Hook Form "cuisineIds" layout
         zoneId: String(raw.zoneId),
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
@@ -416,8 +461,15 @@ const RestaurantAdd = () => {
               : data.tags,
           minDeliveryTime: String(data.minDeliveryTime),
           maxDeliveryTime: String(data.maxDeliveryTime),
-          cuisineId: data.cuisineIds ? data.cuisineIds[0] : null,
+
+          // ✅ FIXED: Map values into strings and assign directly to singular array "cuisineId"
+          cuisineId: Array.isArray(data.cuisineIds)
+            ? data.cuisineIds.map(String)
+            : [],
         };
+
+        // ✅ FIXED: Delete intermediate key so no redundant properties hit your controller
+        delete formattedData.cuisineIds;
 
         if (isEdit) {
           if (!formattedData.password) {
