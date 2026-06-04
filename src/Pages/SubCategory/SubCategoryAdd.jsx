@@ -37,14 +37,23 @@ const SubCategoryAdd = () => {
   const { id } = useParams();
   const { state } = useLocation();
 
-  // جلب قائمة التصنيفات الأساسية لعمل البحث بداخلها
-  const { data: categories = [], isLoading } = useQuery({
-    queryKey: ["categories"],
+  // جلب قائمة التصنيفات والمطاعم من الـ الـ API المحدد
+  const { data: selectData = {}, isLoading } = useQuery({
+    queryKey: ["subcategoriesSelectData"],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/subcategories/select");
-      return Array.isArray(res.data.data.data) ? res.data.data.data : [];
+      // مطابقة كاملة لمسار الـ JSON الراجع: res.data.data.data
+      return res.data?.data?.data || {};
     },
   });
+
+  // استخراج المصفوفات بشكل صحيح بناءً على مفاتيح الـ الـ JSON (categories و restaurants)
+  const categories = Array.isArray(selectData.categories)
+    ? selectData.categories
+    : [];
+  const restaurants = Array.isArray(selectData.restaurants)
+    ? selectData.restaurants
+    : [];
 
   // جلب بيانات التعديل إن وجدت
   const { data: subcategoryData, isLoading: isFetching } = useQuery({
@@ -58,6 +67,7 @@ const SubCategoryAdd = () => {
 
   const rawData = state?.subcategoryData || subcategoryData;
 
+  // تجهيز البيانات الابتدائية وتحويل الـ IDs لنصوص منعاً للمشاكل
   const initialData = React.useMemo(() => {
     if (!rawData) return null;
 
@@ -66,6 +76,7 @@ const SubCategoryAdd = () => {
       categoryId: rawData.categoryId
         ? String(rawData.categoryId)
         : String(rawData.category?.id || ""),
+      restaurantid: rawData.restaurantid ? String(rawData.restaurantid) : "",
     };
   }, [rawData]);
 
@@ -76,11 +87,16 @@ const SubCategoryAdd = () => {
       title="subcategory"
       apiUrl="/api/superadmin/subcategories"
       queryKey="subcategories"
-      fields={[]} // نتركها فارغة لنرسم الحقول يدوياً بالأسفل متضمنة البحث المصغر للقسم الرئيسي
+      fields={[]} // رسم الحقول يدوياً بالأسفل
       initialData={initialData}
       onSuccessAction={() => {
         window.history.back();
       }}
+      beforeSubmit={(data) => ({
+        ...data,
+        categoryId: data.categoryId ? String(data.categoryId) : "",
+        restaurantid: data.restaurantid ? String(data.restaurantid) : "",
+      })}
     >
       {(methods) => {
         const {
@@ -136,7 +152,81 @@ const SubCategoryAdd = () => {
               )}
             </div>
 
-            {/* 4. Category Search Select (Compact Small Size) */}
+            {/* 4. Restaurant Search Select */}
+            <div className="space-y-2 flex flex-col w-full">
+              <Label className="text-xs font-medium">Restaurant *</Label>
+              <Controller
+                name="restaurantid"
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between font-normal text-left h-9 px-3 text-xs rounded-md",
+                          !field.value && "text-muted-foreground",
+                        )}
+                      >
+                        {field.value
+                          ? restaurants.find(
+                              (r) => String(r.id) === field.value,
+                            )?.name
+                          : "Select Restaurant"}
+                        <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] p-0"
+                      align="start"
+                    >
+                      <Command className="text-xs">
+                        <CommandInput
+                          placeholder="Search restaurant..."
+                          className="h-8 text-xs"
+                        />
+                        <CommandList>
+                          <CommandEmpty className="p-2 text-xs text-center text-gray-500">
+                            No restaurants found.
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {restaurants.map((r) => (
+                              <CommandItem
+                                key={r.id}
+                                value={r.name}
+                                className="text-xs py-1.5 px-2 cursor-pointer"
+                                onSelect={() => {
+                                  field.onChange(String(r.id));
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-3.5 w-3.5",
+                                    String(r.id) === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                {r.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              />
+              {errors.restaurantid && (
+                <span className="text-[11px] text-red-500">
+                  Restaurant selection is required
+                </span>
+              )}
+            </div>
+
+            {/* 5. Category Search Select */}
             <div className="space-y-2 flex flex-col w-full">
               <Label className="text-xs font-medium">Category *</Label>
               <Controller
@@ -209,7 +299,7 @@ const SubCategoryAdd = () => {
               )}
             </div>
 
-            {/* 5. Priority Select (Standard select is fine here since it only has 3 fixed values) */}
+            {/* 6. Priority Select */}
             <div className="space-y-2">
               <Label className="text-xs font-medium">Priority *</Label>
               <Controller
