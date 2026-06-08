@@ -71,12 +71,16 @@ const SubCategoryAdd = () => {
   const initialData = React.useMemo(() => {
     if (!rawData) return null;
 
+    // التحقق من كلا الحالتين للاحتياط أثناء التعديل (تحسباً لو كان الـ API القديم يعيد المفتاح القديم)
+    const exactRestaurantId =
+      rawData.restaurantId || rawData.restaurantid || "";
+
     return {
       ...rawData,
       categoryId: rawData.categoryId
         ? String(rawData.categoryId)
         : String(rawData.category?.id || ""),
-      restaurantid: rawData.restaurantid ? String(rawData.restaurantid) : "",
+      restaurantId: exactRestaurantId ? String(exactRestaurantId) : "",
     };
   }, [rawData]);
 
@@ -95,7 +99,7 @@ const SubCategoryAdd = () => {
       beforeSubmit={(data) => ({
         ...data,
         categoryId: data.categoryId ? String(data.categoryId) : "",
-        restaurantid: data.restaurantid ? String(data.restaurantid) : "",
+        restaurantId: data.restaurantId ? String(data.restaurantId) : "",
       })}
     >
       {(methods) => {
@@ -156,7 +160,7 @@ const SubCategoryAdd = () => {
             <div className="space-y-2 flex flex-col w-full">
               <Label className="text-xs font-medium">Restaurant *</Label>
               <Controller
-                name="restaurantid"
+                name="restaurantId"
                 control={control}
                 rules={{ required: true }}
                 render={({ field }) => (
@@ -219,7 +223,7 @@ const SubCategoryAdd = () => {
                   </Popover>
                 )}
               />
-              {errors.restaurantid && (
+              {errors.restaurantId && (
                 <span className="text-[11px] text-red-500">
                   Restaurant selection is required
                 </span>
