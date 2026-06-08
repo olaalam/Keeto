@@ -82,8 +82,8 @@ export default function BusinessPlan() {
                 actions = {false}
                 queryKey="business-plans"
                 deleteApiUrl="/api/superadmin/businessplans"
-                onAdd={() => navigate(`/restaurants/business-plans/add`)}
-                onEdit={(plan) => navigate(`/restaurants/business-plans/edit/${plan.id}`)}
+           /*      onAdd={() => navigate(`/restaurants/business-plans/add`)}
+                onEdit={(plan) => navigate(`/restaurants/business-plans/edit/${plan.id}`)} */
             />
         </div>
     );
