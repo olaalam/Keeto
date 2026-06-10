@@ -41,10 +41,10 @@ export default function Cuisine() {
         );
       },
     },
-  /*   { accessorKey: "description", header: "description" },
+    /*   { accessorKey: "description", header: "description" },
     { accessorKey: "descriptionAr", header: "descriptionAr" },
     { accessorKey: "descriptionFr", header: "descriptionFr" }, */
-   /*  { accessorKey: "meta_description", header: "meta_description" },
+    /*  { accessorKey: "meta_description", header: "meta_description" },
     {
       accessorKey: "meta_image",
       header: "Meta Image",
@@ -64,14 +64,8 @@ export default function Cuisine() {
     }, */
     {
       accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs ${row.original.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-        >
-          {row.original.status}
-        </span>
-      ),
+      header: "status",
+      // 💡 قمنا بحذف الـ cell بالكامل هنا لكي يتولى GenericDataTable توليد الـ Switch تلقائياً
     },
   ];
 
@@ -84,6 +78,7 @@ export default function Cuisine() {
         isLoading={isLoading}
         queryKey="cuisines"
         deleteApiUrl="/api/superadmin/cuisines"
+        editApiUrl="/api/superadmin/cuisines"
         onAdd={() => navigate("/cuisines/add")}
         onEdit={(cuisine) => navigate(`/cuisines/edit/${cuisine.id}`)}
       />

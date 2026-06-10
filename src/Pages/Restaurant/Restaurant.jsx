@@ -30,7 +30,9 @@ export default function Restaurant() {
       header: "Restaurant Name",
       cell: ({ row }) => (
         <button
-          onClick={() => navigate(`/restaurants/mykeetresturant/${row.original.id}`)}
+          onClick={() =>
+            navigate(`/restaurants/mykeetresturant/${row.original.id}`)
+          }
           className="text-blue-600 hover:underline font-medium text-left"
         >
           {row.getValue("name")}
@@ -81,7 +83,7 @@ export default function Restaurant() {
         </button>
       ),
     },
-     {
+    {
       accessorKey: "setting",
       header: "Settings",
       cell: ({ row }) => (
@@ -93,7 +95,7 @@ export default function Restaurant() {
         </button>
       ),
     },
-     {
+    {
       accessorKey: "invoice",
       header: "Invoice",
       cell: ({ row }) => (
@@ -132,14 +134,8 @@ export default function Restaurant() {
 
     {
       accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs ${row.original.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-        >
-          {row.original.status}
-        </span>
-      ),
+      header: "status",
+      // 💡 قمنا بحذف الـ cell بالكامل هنا لكي يتولى GenericDataTable توليد الـ Switch تلقائياً
     },
   ];
 
@@ -152,6 +148,7 @@ export default function Restaurant() {
         isLoading={isLoading}
         queryKey="restaurants"
         deleteApiUrl="/api/superadmin/restaurants"
+        editApiUrl="/api/superadmin/restaurants"
         onAdd={() => navigate("/restaurants/add")}
         onEdit={(restaurant) => navigate(`/restaurants/edit/${restaurant.id}`)}
       />

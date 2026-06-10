@@ -63,14 +63,8 @@ export default function Category() {
     },
     {
       accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs ${row.original.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-        >
-          {row.original.status}
-        </span>
-      ),
+      header: "status",
+      // 💡 قمنا بحذف الـ cell بالكامل هنا لكي يتولى GenericDataTable توليد الـ Switch تلقائياً
     },
   ];
 
@@ -83,6 +77,7 @@ export default function Category() {
         isLoading={isLoading}
         queryKey="categories"
         deleteApiUrl="/api/superadmin/categories"
+        editApiUrl="/api/superadmin/categories"
         onAdd={() => navigate("/categories/add")}
         onEdit={(category) => navigate(`/categories/edit/${category.id}`)}
       />
