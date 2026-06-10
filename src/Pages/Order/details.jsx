@@ -162,11 +162,11 @@ export default function Details() {
           </Card>
 
           <Card>
-            <CardHeader>
+           {/*  <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Store className="w-5 h-5 text-primary" /> Order Details
               </CardTitle>
-            </CardHeader>
+            </CardHeader> */}
             <CardContent className="space-y-3 text-sm">
               {/* <div className="flex justify-between">
                 <span className="text-muted-foreground">Restaurant</span>

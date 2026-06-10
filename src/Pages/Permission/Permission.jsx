@@ -3,6 +3,7 @@ import GenericDataTable from '@/components/GenericDataTable';
 import ViewPermissionsModal from './ViewPermissionsModal';
 import { useQuery } from '@tanstack/react-query'; // افترض أنك تستخدمين React Query
 import { useNavigate } from 'react-router-dom';
+import api from '@/api/axios';
 
 export default function Permission() {
     const navigate = useNavigate();
@@ -11,7 +12,11 @@ export default function Permission() {
     // جلب البيانات (استبدليها بالـ hook الخاص بك)
     const { data: roles = [], isLoading } = useQuery({
         queryKey: ['roles'],
-        queryFn: () => fetch('/api/superadmin/roles').then(res => res.json())
+        queryFn: async () => {
+            const res = await api.get('/api/superadmin/roles');
+            console.log(res.data.data.roles)
+            return res.data.data.roles;
+        }
     });
 
     const columns = [

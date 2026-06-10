@@ -34,7 +34,7 @@ export default function Order() {
       accessorKey: "orderId",
       header: "Order Number",
       cell: ({ row }) => (
-        <span className="text-blue-600 hover:underline font-medium text-left">
+        <span className=" font-medium text-left">
           {row.getValue("orderId")}
         </span>
       ),
@@ -43,14 +43,9 @@ export default function Order() {
       accessorKey: "customerName",
       header: "Customer Name",
       cell: ({ row }) => (
-        <button
-          onClick={() =>
-            navigate(`/restaurants/setting/${row.original.restaurant_id}`)
-          }
-          className="text-blue-600 hover:underline font-medium text-left"
-        >
+        <span className=" font-medium text-left">
           {row.getValue("customerName")}
-        </button>
+        </span>
       ),
     },
     {
@@ -82,7 +77,9 @@ export default function Order() {
           {/* زر عرض الطلب (نفس منطق زر الـ Food) */}
           <button
             onClick={() =>
-              navigate(`/orders/details/${restaurantId}/${row.original.internalId}`)
+              navigate(
+                `/orders/details/${restaurantId}/${row.original.internalId}`,
+              )
             }
             className="flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-600 rounded-md hover:bg-orange-200 transition-colors"
           >

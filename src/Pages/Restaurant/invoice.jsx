@@ -169,7 +169,7 @@ export default function Invoice() {
         isLoading={isLoading}
         queryKey={["invoices", id]}
         actions={false}
-        onAdd={() => navigate("/restaurants/invoice/add")}
+        onAdd={() => navigate("/restaurants/invoice/add/" + id)}
       />
 
       {/* ==================== الـ Premium Invoice PDF Preview Dialog ==================== */}
