@@ -146,7 +146,7 @@ const SettingAdd = () => {
             transformPayload={handleTransformPayload}
             initialData={initialData || defaultInitialData}
             onSuccessAction={() => {
-                navigate("/setting");
+                navigate(`restaurants/setting/${id}`);
             }}
         >
             {(methods) => {
