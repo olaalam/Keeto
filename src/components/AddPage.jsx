@@ -1,9 +1,7 @@
-import React, { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form"; // استيراد Controller
+import React, { useEffect, useState, useRef } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { usePost } from "@/hooks/usePost";
 import { useUpdate } from "@/hooks/useUpdate";
-
-// استيراد مكونات Shadcn
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +12,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Check, ChevronsUpDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -23,19 +21,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
 
 const AddPage = ({
   title,
   apiUrl,
   queryKey,
-  // شيلنا الـ control من الـ props لأنه بيتم تعريفه بالأسفل
+  method,
   fields = [],
   initialData,
   onSuccessAction,
-  beforeSubmit, // دالة اختيارية لتحويل البيانات قبل الإرسال
   children,
+  transformPayload,
+  bypassIdInEdit = false,
 }) => {
-  const isEdit = !!initialData?.id;
+  const isEdit = method === "PUT" || !!initialData?.id;
   const formMethods = useForm({
     defaultValues: initialData || {},
   });
@@ -44,10 +58,19 @@ const AddPage = ({
     handleSubmit,
     register,
     reset,
-    formState: { errors, dirtyFields },
+    formState: { errors },
   } = formMethods;
   const postMutation = usePost(apiUrl, "post", queryKey);
   const updateMutation = useUpdate(apiUrl, queryKey);
+ 
+  const [openCombobox, setOpenCombobox] = useState({});
+
+  // استخدام useRef للاحتفاظ بهوية الـ fields دون التسبب في إعادة تشغيل الـ useEffect
+  const fieldsRef = useRef(fields);
+  useEffect(() => {
+    fieldsRef.current = fields;
+  }, [fields]);
+
   const toBase64 = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -56,112 +79,294 @@ const AddPage = ({
       reader.onerror = (error) => reject(error);
     });
 
+  // تحويل initialData إلى نص JSON لمراقبة التغيير الحقيقي في البيانات فقط وليس الـ Reference
+  const initialDataString = JSON.stringify(initialData);
+
   useEffect(() => {
     if (initialData) {
-      // تنسيق البيانات قبل وضعها في الفورم
       const formattedData = { ...initialData };
 
-      fields.forEach((field) => {
+      // استخدام fieldsRef.current لتجنب وضع fields في التبعيات
+      fieldsRef.current.forEach((field) => {
         if (field.type === "date" && initialData[field.name]) {
-          // تحويل التاريخ من ISO String إلى YYYY-MM-DD
-          formattedData[field.name] = new Date(initialData[field.name])
-            .toISOString()
-            .split("T")[0];
+          try {
+            formattedData[field.name] = new Date(initialData[field.name])
+              .toISOString()
+              .split("T")[0];
+          } catch (e) {
+            console.error("Error formatting date:", e);
+          }
         }
       });
 
-      // keepDirtyValues: true → يخلي القيم اللي المستخدم غيرها (مثل lat/lng من الخريطة)
-      // محمية ومش بترجع للقيم القديمة عند أي re-render
+      // عمل reset فقط عندما تتغير البيانات القادمة فعلياً من الـ API
       reset(formattedData, { keepDirtyValues: true });
     }
-  }, [initialData, reset, fields]);
-  const onSubmit = (data) => {
-    fields.forEach((field) => {
-      if (field.type === "switch") {
-        const trueVal = field.trueValue ?? 1;
-        const falseVal = field.falseValue ?? 0;
-        data[field.name] = data[field.name] ? trueVal : falseVal;
-      }
-    });
-    // التحقق من وجود دالة تحويل البيانات قبل الإرسال
-    const finalData = beforeSubmit ? beforeSubmit(data) : data;
+  }, [initialDataString, reset]); // ✅ الآن التبعية مستقرة تماماً ولن تسبب Loop
 
-    // 1. لو إحنا في حالة تعديل
+  const onSubmit = (data) => {
+    const payloadToSend = transformPayload ? transformPayload(data) : data;
+
     if (isEdit) {
-      // ابعت الـ data اللي جاية من البرامتر فوراً
+      // 💡 إذا كانت الخاصية true نرسل الرابط الأصلي صافي، وإلا نتركه null ليقوم الهوك بدمج الـ id تلقائياً
+      const customUrl = bypassIdInEdit ? apiUrl : null;
+
       updateMutation.mutate(
-        { id: initialData.id, payload: finalData },
-        { onSuccess: () => onSuccessAction?.() },
+        {
+          id: initialData?.id || data?.id,
+          payload: payloadToSend,
+          customUrl: customUrl, // 👈 نمرر الرابط المخصص هنا للهوك
+        },
+        {
+          onSuccess: (res) => {
+            onSuccessAction?.(res);
+          },
+        },
       );
     } else {
-      postMutation.mutate(finalData, {
-        onSuccess: () => onSuccessAction?.(),
+      postMutation.mutate(payloadToSend, {
+        onSuccess: (res) => {
+          onSuccessAction?.(res);
+        },
       });
     }
   };
-
   const isLoading = postMutation.isPending || updateMutation.isPending;
 
   return (
     <Card className="mx-auto shadow-lg border-none">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold tracking-tight text-capitalize">
-          {isEdit ? `Edit ${title}` : `Add ${title}`}
+          {isEdit ? `${"Edit"} ${title}` : `${"Add"} ${title}`}
         </CardTitle>
-        <CardDescription>
-          Please fill the following data, the marked fields are required.
-        </CardDescription>
+        <CardDescription>{"fillRequired"}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {fields.map((field) => (
-              <div key={field.name} className="space-y-2">
-                <Label htmlFor={field.name}>
-                  {field.label}{" "}
-                  {field.required && (
+            {fields.map((fieldItem) => (
+              <div key={fieldItem.name} className="space-y-2">
+                <Label htmlFor={fieldItem.name}>
+                  {fieldItem.label}{" "}
+                  {fieldItem.required && (
                     <span className="text-destructive">*</span>
                   )}
                 </Label>
 
-                {field.type === "select" ? (
+                {fieldItem.type === "select" ||
+                fieldItem.type === "combobox" ? (
                   <Controller
-                    name={field.name}
-                    control={control} // 2. سيستخدم الـ control المُعرف في السطر 31
-                    defaultValue={initialData?.[field.name] || ""}
-                    rules={{ required: field.required }}
-                    render={({ field: { onChange, value } }) => (
-                      <Select
-                        onValueChange={onChange}
-                        // تأكدي من تحويل القيمة لنص لأن Shadcn Select لا يقبل الأرقام كقيم
-                        value={value ? String(value) : ""}
-                      >
-                        <SelectTrigger
-                          className={
-                            errors[field.name] ? "border-destructive" : ""
-                          }
-                        >
-                          <SelectValue placeholder={`Select ${field.label}`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {field.options?.map((option) => (
-                            <SelectItem
-                              key={option.value}
-                              value={String(option.value)}
-                            >
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                ) : field.type === "file" ? (
-                  <Controller
-                    name={field.name}
+                    name={fieldItem.name}
                     control={control}
-                    rules={{ required: isEdit ? false : field.required }} // في التعديل غالباً الصورة ليست إجبارية
-                    render={({ field: { onChange, value } }) => (
+                    defaultValue={initialData?.[fieldItem.name] || ""}
+                    rules={{ required: fieldItem.required }}
+                    render={({ field: { onChange: formOnChange, value } }) => {
+                      const stringVal = value != null ? String(value) : "";
+                      const [searchVal, setSearchVal] = React.useState("");
+                      const filteredOptions = searchVal.trim()
+                        ? fieldItem.options?.filter((o) =>
+                            o.label
+                              .toLowerCase()
+                              .includes(searchVal.toLowerCase()),
+                          )
+                        : fieldItem.options;
+                      return (
+                        <Popover
+                          open={openCombobox[fieldItem.name] || false}
+                          onOpenChange={(isOpen) => {
+                            setOpenCombobox((prev) => ({
+                              ...prev,
+                              [fieldItem.name]: isOpen,
+                            }));
+                            if (!isOpen) setSearchVal("");
+                          }}
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between font-normal text-left h-10 bg-white border-input",
+                                errors[fieldItem.name]
+                                  ? "border-destructive text-destructive"
+                                  : "",
+                              )}
+                            >
+                              {stringVal
+                                ? fieldItem.options?.find(
+                                    (option) =>
+                                      String(option.value) === stringVal,
+                                  )?.label
+                                : `${"selectField"} ${fieldItem.label}...`}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-[var(--radix-popover-trigger-width)] p-0 PopoverContent"
+                            align="start"
+                          >
+                            <Command shouldFilter={false}>
+                              <CommandInput
+                                placeholder={`${"searchField"} ${fieldItem.label}...`}
+                                value={searchVal}
+                                onValueChange={setSearchVal}
+                              />
+                              <CommandList>
+                                <CommandEmpty>
+                                  {"noResultsFound"}
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {filteredOptions?.map((option) => (
+                                    <CommandItem
+                                      key={option.value}
+                                      value={String(option.value)}
+                                      onSelect={() => {
+                                        const selectedValue = String(
+                                          option.value,
+                                        );
+                                        formOnChange(selectedValue);
+                                        if (fieldItem.onChange) {
+                                          fieldItem.onChange(selectedValue);
+                                        }
+                                        setOpenCombobox((prev) => ({
+                                          ...prev,
+                                          [fieldItem.name]: false,
+                                        }));
+                                        setSearchVal("");
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          stringVal === String(option.value)
+                                            ? "opacity-100"
+                                            : "opacity-0",
+                                        )}
+                                      />
+                                      {option.label}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }}
+                  />
+                ) : fieldItem.type === "multi-select" ? (
+                  <Controller
+                    name={fieldItem.name}
+                    control={control}
+                    defaultValue={initialData?.[fieldItem.name] || []}
+                    rules={{ required: fieldItem.required }}
+                    render={({
+                      field: { onChange: formOnChange, value = [] },
+                    }) => {
+                      const safeValue = Array.isArray(value) ? value : [];
+                      const handleToggleOption = (optionValue) => {
+                        const stringValue = String(optionValue);
+                        let updatedValue = [];
+
+                        if (safeValue.includes(stringValue)) {
+                          updatedValue = safeValue.filter(
+                            (v) => v !== stringValue,
+                          );
+                        } else {
+                          updatedValue = [...safeValue, stringValue];
+                        }
+
+                        formOnChange(updatedValue);
+                        if (fieldItem.onChange) {
+                          fieldItem.onChange(updatedValue);
+                        }
+                      };
+
+                      return (
+                        <div className="space-y-2">
+                          <Select onValueChange={handleToggleOption} value="">
+                            <SelectTrigger
+                              className={
+                                errors[fieldItem.name]
+                                  ? "border-destructive w-full"
+                                  : "w-full"
+                              }
+                            >
+                              <SelectValue
+                                placeholder={`${"selectField"} ${fieldItem.label}...`}
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {fieldItem.options?.map((option) => {
+                                const isSelected = safeValue.includes(
+                                  String(option.value),
+                                );
+                                return (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={String(option.value)}
+                                    className={
+                                      isSelected
+                                        ? "bg-accent text-accent-foreground font-medium"
+                                        : ""
+                                    }
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        readOnly
+                                        className="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3"
+                                      />
+                                      {option.label}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+
+                          {safeValue.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 p-2 border rounded-md bg-muted/30">
+                              {safeValue.map((val) => {
+                                const option = fieldItem.options?.find(
+                                  (o) => String(o.value) === String(val),
+                                );
+                                return (
+                                  <span
+                                    key={val}
+                                    className="inline-flex items-center gap-1 bg-primary text-primary-foreground text-xs font-medium px-2 py-1 rounded-sm shadow-sm"
+                                  >
+                                    {option ? option.label : val}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const filtered = safeValue.filter(
+                                          (v) => v !== val,
+                                        );
+                                        formOnChange(filtered);
+                                        if (fieldItem.onChange)
+                                          fieldItem.onChange(filtered);
+                                      }}
+                                      className="hover:bg-primary-foreground/20 rounded-full w-3 h-3 inline-flex items-center justify-center text-[10px] font-bold"
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+                ) : fieldItem.type === "file" ? (
+                  <Controller
+                    name={fieldItem.name}
+                    control={control}
+                    rules={{ required: isEdit ? false : fieldItem.required }}
+                    render={({ field: { onChange: formOnChange, value } }) => (
                       <div className="space-y-3">
                         <Input
                           type="file"
@@ -170,63 +375,66 @@ const AddPage = ({
                             const file = e.target.files[0];
                             if (file) {
                               const base64 = await toBase64(file);
-                              onChange(base64); // تحديث القيمة بـ Base64 الجديد
+                              formOnChange(base64);
+                              if (fieldItem.onChange)
+                                fieldItem.onChange(base64);
                             }
                           }}
                           className={
-                            errors[field.name] ? "border-destructive" : ""
+                            errors[fieldItem.name] ? "border-destructive" : ""
                           }
                         />
-
-                        {/* الجزء الخاص بعرض الصورة */}
                         {value && (
                           <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50">
                             <img
-                              src={value} // هنا سيقرأ الـ Base64 المباشر سواء قديم أو جديد
+                              src={value}
                               alt="Preview"
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute top-0 right-0 bg-primary text-white text-[10px] px-2 py-1">
-                              Current
+                              {"currentImage"}
                             </div>
                           </div>
                         )}
                       </div>
                     )}
                   />
-                ) : field.type === "switch" ? (
+                ) : fieldItem.type === "switch" ? (
                   <Controller
-                    name={field.name}
+                    name={fieldItem.name}
                     control={control}
-                    defaultValue={initialData?.[field.name] ?? false}
-                    render={({ field: { onChange, value } }) => (
+                    defaultValue={false}
+                    render={({ field: { onChange: formOnChange, value } }) => (
                       <Switch
-                        checked={value}
+                        checked={!!value}
                         onCheckedChange={(checked) => {
-                          onChange(checked); // ✅ always update RHF state
-
-                          // ✅ if a custom onChange exists (e.g. patchStatus), call it with the real value
-                          if (field.onChange) {
-                            const newValue = checked
-                              ? (field.trueValue ?? true)
-                              : (field.falseValue ?? false);
-                            field.onChange(newValue);
-                          }
+                          formOnChange(checked);
+                          if (fieldItem.onChange) fieldItem.onChange(checked);
                         }}
                       />
                     )}
                   />
                 ) : (
                   <Input
-                    id={field.name}
-                    type={field.type || "text"}
-                    {...register(field.name, { required: field.required })}
-                    className={errors[field.name] ? "border-destructive" : ""}
+                    id={fieldItem.name}
+                    type={fieldItem.type || "text"}
+                    {...register(fieldItem.name, {
+                      required: fieldItem.required,
+                      valueAsNumber: fieldItem.type === "number",
+                      onChange: (e) => {
+                        if (fieldItem.onChange) {
+                          fieldItem.onChange(e.target.value);
+                        }
+                      },
+                    })}
+                    className={
+                      errors[fieldItem.name] ? "border-destructive" : ""
+                    }
                   />
                 )}
 
-                {errors[field.name] && (
-                  <p className="text-destructive text-xs">Required</p>
+                {errors[fieldItem.name] && (
+                  <p className="text-destructive text-xs">{"required"}</p>
                 )}
               </div>
             ))}
@@ -247,11 +455,13 @@ const AddPage = ({
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> saving...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                  {"saving"}
                 </>
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" /> {isEdit ? "update" : "save"}
+                  <Save className="mr-2 h-4 w-4" />{" "}
+                  {isEdit ? "update" : "save"}
                 </>
               )}
             </Button>
