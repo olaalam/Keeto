@@ -215,7 +215,16 @@ const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
   });
 
   const onSubmit = (data) => {
-    const payload = { ...data, restaurantId };
+    // 1. Destructure platformType out so it doesn't clutter the backend payload
+    const { platformType, ...restOfData } = data;
+
+    // 2. Build the exact shape the backend endpoint is looking for
+    const payload = {
+      ...restOfData,
+      restaurantId: restaurantId, // Change to restaurant_id if your backend expects snake_case here
+      platforms: platformType ? [platformType] : [],
+    };
+
     if (isEdit) {
       updateMutation.mutate({ id: plan.id, payload }, { onSuccess: onDone });
     } else {
