@@ -30,6 +30,18 @@ export function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader className="flex justify-center py-5">
+        <Button
+          onClick={() => navigate("/")}
+          variant="outline"
+          className={`w-full justify-start gap-3 transition-all duration-200 ${
+            !open ? "px-0 justify-center" : "px-3"
+          }`}
+          title="Back to home"
+        >
+          <Home size={18} className="shrink-0" />
+          {open && <span className="text-sm font-medium">Back to home</span>}
+        </Button>
+
         <h2 className="text-2xl font-black text-primary">
           {/* عرض الاسم كاملاً أو الحرف الأول بناءً على حالة الفتح[cite: 1] */}
           {open ? activeModule.name : activeModule.name?.[0] || ""}
@@ -86,7 +98,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
+            {/*  <SidebarMenuButton
               asChild
               tooltip="Home"
               className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -101,7 +113,7 @@ export function AppSidebar() {
                   {open && <span className="ml-2">Back to home</span>}
                 </Button>
               </div>
-            </SidebarMenuButton>
+            </SidebarMenuButton> */}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

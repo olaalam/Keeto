@@ -50,6 +50,7 @@ import EditPolicy from "./Pages/Policy/EditPolicy";
 import Mykeetresturant from "./Pages/Restaurant/mykeetresturant";
 import Invoice from "./Pages/Restaurant/invoice";
 import InvoiceAdd from "./Pages/Restaurant/InvoiceAdd";
+import Users from "./Pages/Users/useres";
 
 const router = createBrowserRouter([
   {
@@ -312,6 +313,18 @@ const router = createBrowserRouter([
         path: "popup/edit/:id",
         element: <PopupAdd />,
       },
+      {
+        path: "users",
+        element: <Users />,
+      },
+    /*   {
+        path: "users/add",
+        element: <UsersAdd />,
+      },
+      {
+        path: "users/edit/:id",
+        element: <UsersAdd />,
+      } */
     ],
   },
   {

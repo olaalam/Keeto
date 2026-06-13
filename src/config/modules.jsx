@@ -41,6 +41,7 @@ export const modules = [
     items: [
       { title: "Admins", url: "/admins", icon: UserCog },
       { title: "Permissions", url: "/permissions", icon: ShieldCheck },
+      { title: "Keeto Users", url: "/users", icon: KeetoIcon },
     ],
   },
   {
