@@ -215,13 +215,11 @@ const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
   });
 
   const onSubmit = (data) => {
-    // 1. Destructure platformType out so it doesn't clutter the backend payload
     const { platformType, ...restOfData } = data;
 
-    // 2. Build the exact shape the backend endpoint is looking for
     const payload = {
       ...restOfData,
-      restaurantId: restaurantId, // Change to restaurant_id if your backend expects snake_case here
+      restaurantId: restaurantId,
       platforms: platformType ? [platformType] : [],
     };
 
@@ -377,7 +375,6 @@ const RestaurantAdd = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
   const isEdit = !!id;
-  const [location, setLocation] = useState({ lat: 31.2001, lng: 29.9187 });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -396,8 +393,6 @@ const RestaurantAdd = () => {
     queryFn: async () => {
       const { data } = await api.get(`/api/superadmin/restaurants/${id}`);
       const raw = data.data.data;
-      if (raw.lat && raw.lng)
-        setLocation({ lat: parseFloat(raw.lat), lng: parseFloat(raw.lng) });
 
       // ✅ FIXED: Parse dynamic backend cuisine arrays into internal string lists
       let initialCuisineIds = [];
@@ -411,42 +406,17 @@ const RestaurantAdd = () => {
 
       return {
         ...raw,
-        cuisineIds: initialCuisineIds, // This targets the React Hook Form "cuisineIds" layout
+        cuisineIds: initialCuisineIds,
         zoneId: String(raw.zoneId),
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
         status: raw.status || "active",
-        lat: String(raw.lat || ""),
-        lng: String(raw.lng || ""),
       };
     },
     enabled: !!id && !state?.restaurantData,
   });
 
   const initialData = state?.restaurantData || fetchedData;
-
-  const handleMapSearch = async (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-
-    if (value.trim().length < 3) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5`,
-      );
-      const data = await response.json();
-      setSearchResults(data);
-    } catch (error) {
-      console.error("Error fetching location:", error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   if (id && (isFetching || isLoadingSelect)) return <LoadingSpinner />;
 
@@ -470,14 +440,11 @@ const RestaurantAdd = () => {
               : data.tags,
           minDeliveryTime: String(data.minDeliveryTime),
           maxDeliveryTime: String(data.maxDeliveryTime),
-
-          // ✅ FIXED: Map values into strings and assign directly to singular array "cuisineId"
           cuisineId: Array.isArray(data.cuisineIds)
             ? data.cuisineIds.map(String)
             : [],
         };
 
-        // ✅ FIXED: Delete intermediate key so no redundant properties hit your controller
         delete formattedData.cuisineIds;
 
         if (isEdit) {
@@ -516,7 +483,7 @@ const RestaurantAdd = () => {
           <Tabs defaultValue="basic" className="w-full mt-4">
             <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="basic">General Info</TabsTrigger>
-              <TabsTrigger value="location">Location & Map</TabsTrigger>
+             {/*  <TabsTrigger value="location">Location & Map</TabsTrigger> */}
               <TabsTrigger value="business">Business Details</TabsTrigger>
               <TabsTrigger value="images">Identity & Media</TabsTrigger>
               <TabsTrigger value="business-plan">Business Plan</TabsTrigger>
@@ -683,193 +650,6 @@ const RestaurantAdd = () => {
             </TabsContent>
 
             {/* 2. Location & Map */}
-            <TabsContent value="location" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
-                <div className="space-y-2">
-                  <Label>Address (EN) *</Label>
-                  <Input
-                    {...register("address", { required: true })}
-                    placeholder="Address in English"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Address (AR) *</Label>
-                  <Input
-                    {...register("addressAr", { required: true })}
-                    placeholder="العنوان بالعربي"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Latitude</Label>
-                  <Input
-                    {...register("lat")}
-                    placeholder="Type or pick from map"
-                    className="font-mono text-xs"
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setValue("lat", val);
-                      if (!isNaN(Number(val))) {
-                        setLocation((prev) => ({ ...prev, lat: Number(val) }));
-                      }
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Longitude</Label>
-                  <Input
-                    {...register("lng")}
-                    placeholder="Type or pick from map"
-                    className="font-mono text-xs"
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setValue("lng", val);
-                      if (!isNaN(Number(val))) {
-                        setLocation((prev) => ({ ...prev, lng: Number(val) }));
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Zone Selector */}
-                <div className="space-y-2 md:col-span-2 lg:col-span-4 flex flex-col">
-                  <Label>Zone *</Label>
-                  <Controller
-                    name="zoneId"
-                    control={control}
-                    rules={{ required: true }}
-                    render={({ field }) => (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between font-normal text-left h-10 px-3 text-sm rounded-md",
-                              !field.value && "text-muted-foreground",
-                            )}
-                          >
-                            {field.value
-                              ? selectData?.allZones?.find(
-                                  (z) => String(z.id) === field.value,
-                                )?.name
-                              : "Select Zone"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className="w-[var(--radix-popover-trigger-width)] p-0"
-                          align="start"
-                        >
-                          <Command>
-                            <CommandInput
-                              placeholder="Search zone..."
-                              className="h-9 text-xs"
-                            />
-                            <CommandList>
-                              <CommandEmpty className="p-2 text-xs text-center text-gray-500">
-                                No zones found.
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {selectData?.allZones?.map((z) => (
-                                  <CommandItem
-                                    key={z.id}
-                                    value={z.name}
-                                    className="text-xs py-1.5 px-2 cursor-pointer"
-                                    onSelect={() => {
-                                      field.onChange(String(z.id));
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-3.5 w-3.5",
-                                        String(z.id) === field.value
-                                          ? "opacity-100"
-                                          : "opacity-0",
-                                      )}
-                                    />
-                                    {z.name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  />
-                  {errors.zoneId && (
-                    <span className="text-xs text-red-500">
-                      Zone field is required
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Search */}
-              <div className="relative z-50 w-full max-w-md">
-                <Label className="mb-1 block text-sm font-medium">
-                  Search Location on Map
-                </Label>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="Type city, street, or restaurant name..."
-                    value={searchQuery}
-                    onChange={handleMapSearch}
-                    className="pl-10"
-                  />
-                  <div className="absolute left-3 top-2.5 text-gray-400">
-                    {isSearching ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Search className="w-4 h-4" />
-                    )}
-                  </div>
-                </div>
-                {searchResults.length > 0 && (
-                  <ul className="absolute left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto z-[9999]">
-                    {searchResults.map((result, index) => (
-                      <li
-                        key={index}
-                        onClick={() => {
-                          const lat = parseFloat(result.lat);
-                          const lng = parseFloat(result.lon);
-                          setLocation({ lat, lng });
-                          setValue("lat", String(lat), { shouldDirty: true });
-                          setValue("lng", String(lng), { shouldDirty: true });
-                          setSearchQuery(result.display_name);
-                          setSearchResults([]);
-                        }}
-                        className="px-4 py-2 hover:bg-gray-100 text-sm cursor-pointer border-b last:border-none truncate text-gray-700"
-                      >
-                        {result.display_name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* Map */}
-              <div className="border rounded-xl p-1 relative h-[350px] overflow-hidden z-10">
-                <MapComponent
-                  form={methods}
-                  selectedLocation={location}
-                  isMapClickEnabled={true}
-                  handleMapClick={(e) => {
-                    const { lat, lng } = e.latlng;
-                    setLocation({ lat, lng });
-                    setValue("lat", String(lat), { shouldDirty: true });
-                    setValue("lng", String(lng), { shouldDirty: true });
-                  }}
-                  onMarkerDragEnd={(e) => {
-                    const { lat, lng } = e.target.getLatLng();
-                    setLocation({ lat, lng });
-                    setValue("lat", String(lat), { shouldDirty: true });
-                    setValue("lng", String(lng), { shouldDirty: true });
-                  }}
-                />
-              </div>
-            </TabsContent>
 
             {/* 3. Business Details */}
             <TabsContent value="business" className="space-y-4">
