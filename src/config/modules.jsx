@@ -1,4 +1,4 @@
-import { popup } from "leaflet";
+import { icon, popup } from "leaflet";
 import {
   LayoutDashboard,
   UserCog,
@@ -17,16 +17,18 @@ import {
   Settings2,
   Briefcase,
   FileBarChart,
-  BellRing,
   TicketPercent,
   BadgePercent,
+  FileText,
+  HelpCircle,
 } from "lucide-react";
 import keetoImage from "../../public/WhatsApp Image 2026-05-18 at 11.27.30 AM.jpeg";
+
 const KeetoIcon = (props) => (
-  <img 
-    src={keetoImage} 
-    alt="Keeto" 
-    className={`object-contain rounded-sm ${props.className || 'w-5 h-5'}`} 
+  <img
+    src={keetoImage}
+    alt="Keeto"
+    className={`object-contain rounded-sm ${props.className || "w-5 h-5"}`}
   />
 );
 export const modules = [
@@ -42,6 +44,8 @@ export const modules = [
       { title: "Admins", url: "/admins", icon: UserCog },
       { title: "Permissions", url: "/permissions", icon: ShieldCheck },
       { title: "Keeto Users", url: "/users", icon: KeetoIcon },
+      { title: "Policy", url: "/policy", icon: FileText },
+      { title: "Reasons", url: "/reasons", icon:HelpCircle },
     ],
   },
   {
@@ -69,12 +73,10 @@ export const modules = [
         url: "/addons-categories",
         icon: PlusSquare,
       },
-      { title: "Popup", url: "/popup", icon: Layers },
-      {title: "Policy", url: "/policy", icon: BellRing},
     ],
   },
   {
-    name: "Business",
+    name: "Reports",
     key: "business",
     items: [
       { title: "Business Plans", url: "/business-plans", icon: Briefcase },
@@ -93,6 +95,7 @@ export const modules = [
     items: [
       { title: "Discounts", url: "/discounts", icon: BadgePercent },
       { title: "Coupons", url: "/coupons", icon: TicketPercent },
+      { title: "Popup", url: "/popup", icon: Layers },
     ],
   },
 ];

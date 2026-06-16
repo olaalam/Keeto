@@ -51,6 +51,14 @@ import { useForm, Controller as RHFController } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DeleteDialog from "@/components/DeleteDialog";
 
+// ─── Platform type label helper ──────────────────────────────────────────────
+const PLATFORM_LABELS = {
+  online_order: "Online Order",
+  food_aggregator: "Food Aggregator",
+  mykeeto: "Mykeeto",
+  pos: "POS",
+};
+
 // ─── Inline Business Plan Tab ────────────────────────────────────────────────
 const BusinessPlanTab = ({ restaurantId }) => {
   const queryClient = useQueryClient();
@@ -61,7 +69,21 @@ const BusinessPlanTab = ({ restaurantId }) => {
       const res = await api.get("/api/superadmin/businessplans");
       const all = res.data?.data?.data || res.data?.data || [];
       const arr = Array.isArray(all) ? all : [all];
-      return arr.filter((p) => p.restaurantId === restaurantId);
+      const filtered = arr.filter((p) => p.restaurantId === restaurantId);
+      // Deduplicate by platformType — keep the most recent per type
+      const deduped = Object.values(
+        filtered.reduce((acc, p) => {
+          const existing = acc[p.platformType];
+          if (
+            !existing ||
+            new Date(p.createdAt) > new Date(existing.createdAt)
+          ) {
+            acc[p.platformType] = p;
+          }
+          return acc;
+        }, {}),
+      );
+      return deduped;
     },
   });
 
@@ -90,22 +112,32 @@ const BusinessPlanTab = ({ restaurantId }) => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold text-gray-700">Business Plans</h3>
-        {!showForm && (
-          <Button
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setEditingPlan(null);
-              setShowForm(true);
-            }}
-          >
-            <Save className="h-4 w-4 mr-1" /> Add Plan
-          </Button>
-        )}
+        {!showForm &&
+          (() => {
+            const existingTypes = plans.map((p) => p.platformType);
+            const allAdded = [
+              "online_order",
+              "food_aggregator",
+              "mykeeto",
+            ].every((t) => existingTypes.includes(t));
+            if (allAdded) return null;
+            return (
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setEditingPlan(null);
+                  setShowForm(true);
+                }}
+              >
+                <Save className="h-4 w-4 mr-1" /> Add Plan
+              </Button>
+            );
+          })()}
       </div>
 
-      {/* Existing plans list */}
+      {/* existing plans list */}
       {!showForm && (
         <div className="space-y-2">
           {plans.length === 0 && (
@@ -113,55 +145,86 @@ const BusinessPlanTab = ({ restaurantId }) => {
               No business plans yet.
             </p>
           )}
-          {plans.map((plan) => (
-            <Card key={plan.id} className="border shadow-none">
-              <CardContent className="p-4 flex justify-between items-center">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium">{plan.platformType}</p>
-                  <p className="text-xs text-gray-500">
-                    Commission: {plan.commissionRate}% · Service Fee:{" "}
-                    {plan.serviceFee}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setEditingPlan(plan);
-                      setShowForm(true);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="text-red-500 hover:text-red-600 hover:border-red-300"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setDeletingPlanId(plan.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {plans.map((plan) => {
+            const isPOS = plan.platformType === "pos";
+            // Skip pos records and any unknown platform types from the list
+            if (
+              !PLATFORM_LABELS[plan.platformType] ||
+              plan.platformType === "pos"
+            )
+              return null;
+            return (
+              <Card key={plan.id} className="border shadow-none">
+                <CardContent className="p-4 flex justify-between items-center">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">
+                      {PLATFORM_LABELS[plan.platformType] || plan.platformType}
+                    </p>
+                    {!isPOS && (
+                      <p className="text-xs text-gray-500">
+                        Commission: {plan.commissionRate}% · Service Fee:{" "}
+                        {plan.serviceFee}
+                      </p>
+                    )}
+                    {(plan.isMonthlyActive ||
+                      plan.isQuarterlyActive ||
+                      plan.isAnnuallyActive) && (
+                      <p className="text-xs text-gray-400">
+                        {plan.isMonthlyActive &&
+                          `Monthly: ${plan.monthlyAmount}`}
+                        {plan.isMonthlyActive &&
+                          (plan.isQuarterlyActive || plan.isAnnuallyActive) &&
+                          " · "}
+                        {plan.isQuarterlyActive &&
+                          `Quarterly: ${plan.quarterlyAmount}`}
+                        {plan.isQuarterlyActive &&
+                          plan.isAnnuallyActive &&
+                          " · "}
+                        {plan.isAnnuallyActive &&
+                          `Annually: ${plan.annuallyAmount}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setEditingPlan(plan);
+                        setShowForm(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="text-red-500 hover:text-red-600 hover:border-red-300"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDeletingPlanId(plan.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* Add / Edit form */}
       {showForm && (
         <BusinessPlanForm
           restaurantId={restaurantId}
           plan={editingPlan}
+          existingPlans={plans}
           onDone={handleDone}
         />
       )}
@@ -182,194 +245,455 @@ const BusinessPlanTab = ({ restaurantId }) => {
   );
 };
 
-const BusinessPlanForm = ({ restaurantId, plan, onDone }) => {
+const BusinessPlanForm = ({
+  restaurantId,
+  plan,
+  existingPlans = [],
+  onDone,
+}) => {
   const isEdit = !!plan?.id;
+  // Platforms already saved — hide their columns in add mode
+  const existingTypes = existingPlans.map((p) => p.platformType);
+  const showOnline = isEdit || !existingTypes.includes("online_order");
+  const showAggregator = isEdit || !existingTypes.includes("food_aggregator");
+  const showMykeeto = isEdit || !existingTypes.includes("mykeeto");
   const postMutation = usePost("/api/superadmin/businessplans", "post");
   const updateMutation = useUpdate(`/api/superadmin/businessplans`);
+
+  // In edit mode, we only edit the single platform record
+  // In add mode, we collect all platforms in one form and send 4 separate requests
+  const getInitialValues = () => {
+    if (isEdit) {
+      return {
+        online_commissionRate:
+          plan.platformType === "online_order" ? plan.commissionRate || "" : "",
+        online_serviceFee:
+          plan.platformType === "online_order" ? plan.serviceFee || "" : "",
+        aggregator_commissionRate:
+          plan.platformType === "food_aggregator"
+            ? plan.commissionRate || ""
+            : "",
+        aggregator_serviceFee:
+          plan.platformType === "food_aggregator" ? plan.serviceFee || "" : "",
+        mykeeto_commissionRate:
+          plan.platformType === "mykeeto" ? plan.commissionRate || "" : "",
+        mykeeto_serviceFee:
+          plan.platformType === "mykeeto" ? plan.serviceFee || "" : "",
+        // These exist on every plan record regardless of platformType
+        isMonthlyActive: plan.isMonthlyActive || false,
+        monthlyAmount: plan.monthlyAmount || "",
+        isQuarterlyActive: plan.isQuarterlyActive || false,
+        quarterlyAmount: plan.quarterlyAmount || "",
+        isAnnuallyActive: plan.isAnnuallyActive || false,
+        annuallyAmount: plan.annuallyAmount || "",
+        pos_isOn: plan.isOn !== undefined ? plan.isOn : true,
+      };
+    }
+    return {
+      online_commissionRate: "",
+      online_serviceFee: "",
+      aggregator_commissionRate: "",
+      aggregator_serviceFee: "",
+      mykeeto_commissionRate: "",
+      mykeeto_serviceFee: "",
+      isMonthlyActive: false,
+      monthlyAmount: "",
+      isQuarterlyActive: false,
+      quarterlyAmount: "",
+      isAnnuallyActive: false,
+      annuallyAmount: "",
+      pos_isOn: true,
+    };
+  };
 
   const {
     register,
     control,
     handleSubmit,
+    watch,
     formState: { errors },
-  } = useForm({
-    defaultValues: plan
-      ? {
-          platformType: plan.platformType || "",
-          commissionRate: plan.commissionRate || "",
-          serviceFee: plan.serviceFee || "",
-          isMonthlyActive: plan.isMonthlyActive || false,
-          monthlyAmount: plan.monthlyAmount || "",
-          isQuarterlyActive: plan.isQuarterlyActive || false,
-          isAnnuallyActive: plan.isAnnuallyActive || false,
-        }
-      : {
-          platformType: "",
-          commissionRate: "",
-          serviceFee: "",
-          isMonthlyActive: false,
-          monthlyAmount: "",
-          isQuarterlyActive: false,
-          isAnnuallyActive: false,
-        },
-  });
+  } = useForm({ defaultValues: getInitialValues() });
 
-  const onSubmit = (data) => {
-    const { platformType, ...restOfData } = data;
+  const watchMonthly = watch("isMonthlyActive");
+  const watchQuarterly = watch("isQuarterlyActive");
+  const watchAnnually = watch("isAnnuallyActive");
 
-    const payload = {
-      ...restOfData,
-      restaurantId: restaurantId,
-      platforms: platformType ? [platformType] : [],
-    };
-
+  const onSubmit = async (data) => {
     if (isEdit) {
-      updateMutation.mutate({ id: plan.id, payload }, { onSuccess: onDone });
+      // Update the single platform record — always include subscription fields
+      const fieldPrefix =
+        plan.platformType === "online_order"
+          ? "online"
+          : plan.platformType === "food_aggregator"
+            ? "aggregator"
+            : plan.platformType === "mykeeto"
+              ? "mykeeto"
+              : null;
+
+      const platformEntry = {
+        platformType: plan.platformType,
+        // commission/fee fields only for non-pos platforms
+        ...(fieldPrefix && {
+          commissionRate: String(
+            data[`${fieldPrefix}_commissionRate`] || "0.00",
+          ),
+          serviceFee: String(data[`${fieldPrefix}_serviceFee`] || "0.00"),
+        }),
+        // subscription fields exist on every plan record
+        isMonthlyActive: data.isMonthlyActive,
+        monthlyAmount: data.isMonthlyActive
+          ? String(data.monthlyAmount || "0.00")
+          : "0.00",
+        isQuarterlyActive: data.isQuarterlyActive,
+        quarterlyAmount: data.isQuarterlyActive
+          ? String(data.quarterlyAmount || "0.00")
+          : "0.00",
+        isAnnuallyActive: data.isAnnuallyActive,
+        annuallyAmount: data.isAnnuallyActive
+          ? String(data.annuallyAmount || "0.00")
+          : "0.00",
+        ...(plan.platformType === "pos" && { isOn: data.pos_isOn }),
+      };
+
+      // PUT expects a flat object — no platforms wrapper
+      updateMutation.mutate(
+        { id: plan.id, payload: { restaurantId, ...platformEntry } },
+        { onSuccess: onDone },
+      );
     } else {
-      postMutation.mutate(payload, { onSuccess: onDone });
+      // Add mode: send all 4 platforms as separate requests
+      // Subscription fields are shared across all platform records
+      const subscriptionFields = {
+        isMonthlyActive: data.isMonthlyActive,
+        monthlyAmount: data.isMonthlyActive
+          ? String(data.monthlyAmount || "0.00")
+          : "0.00",
+        isQuarterlyActive: data.isQuarterlyActive,
+        quarterlyAmount: data.isQuarterlyActive
+          ? String(data.quarterlyAmount || "0.00")
+          : "0.00",
+        isAnnuallyActive: data.isAnnuallyActive,
+        annuallyAmount: data.isAnnuallyActive
+          ? String(data.annuallyAmount || "0.00")
+          : "0.00",
+      };
+
+      const requests = [
+        showOnline && {
+          platformType: "online_order",
+          commissionRate: String(data.online_commissionRate || "0.00"),
+          serviceFee: String(data.online_serviceFee || "0.00"),
+          ...subscriptionFields,
+        },
+        showAggregator && {
+          platformType: "food_aggregator",
+          commissionRate: String(data.aggregator_commissionRate || "0.00"),
+          serviceFee: String(data.aggregator_serviceFee || "0.00"),
+          ...subscriptionFields,
+        },
+        showMykeeto && {
+          platformType: "mykeeto",
+          commissionRate: String(data.mykeeto_commissionRate || "0.00"),
+          serviceFee: String(data.mykeeto_serviceFee || "0.00"),
+          ...subscriptionFields,
+        },
+        showFixedFees &&
+          !existingTypes.includes("pos") && {
+            platformType: "pos",
+            isOn: data.pos_isOn,
+            ...subscriptionFields,
+          },
+      ].filter(Boolean);
+
+      try {
+        for (const platformEntry of requests) {
+          await postMutation.mutateAsync({
+            restaurantId,
+            platforms: [platformEntry],
+          });
+        }
+        onDone();
+      } catch (e) {
+        console.error("Failed to save business plan", e);
+      }
     }
   };
 
   const isPending = postMutation.isPending || updateMutation.isPending;
+  const editingPlatformType = isEdit ? plan.platformType : null;
+  const [showFixedFees, setShowFixedFees] = React.useState(false);
+
   return (
     <Card className="border shadow-none">
       <CardHeader className="pb-2 pt-4 px-4">
         <CardTitle className="text-sm font-semibold">
-          {isEdit ? "Edit Plan" : "New Business Plan"}
+          {isEdit
+            ? `Edit — ${PLATFORM_LABELS[plan.platformType] || plan.platformType}`
+            : "New Business Plan"}
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Platform Type */}
-            <div className="space-y-1">
-              <Label className="text-xs">Platform Type *</Label>
-              <RHFController
-                name="platformType"
-                control={control}
-                rules={{ required: true }}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger
-                      className={errors.platformType ? "border-red-500" : ""}
-                    >
-                      <SelectValue placeholder="Select platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="food_aggregator">
-                        Food Aggregator
-                      </SelectItem>
-                      <SelectItem value="online_order">Online Order</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
-            {/* Commission Rate */}
-            <div className="space-y-1">
-              <Label className="text-xs">Commission Rate (%) *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                {...register("commissionRate", { required: true })}
-                className={errors.commissionRate ? "border-red-500" : ""}
-              />
-            </div>
-
-            {/* Service Fee */}
-            <div className="space-y-1">
-              <Label className="text-xs">Service Fee *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                {...register("serviceFee", { required: true })}
-                className={errors.serviceFee ? "border-red-500" : ""}
-              />
-            </div>
-
-            {/* Monthly Amount */}
-            <div className="space-y-1">
-              <Label className="text-xs">Monthly Amount</Label>
-              <Input type="number" step="0.01" {...register("monthlyAmount")} />
-            </div>
-
-            {/* Switches */}
-            <div className="flex items-center gap-3">
-              <RHFController
-                name="isMonthlyActive"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label className="text-xs">Monthly Active</Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <RHFController
-                name="isQuarterlyActive"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label className="text-xs">Quarterly Active</Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <RHFController
-                name="isAnnuallyActive"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label className="text-xs">Annually Active</Label>
-            </div>
+      <CardContent className="px-4 pb-4 space-y-6">
+        {/* ── Variable Commission Table (online_order / food_aggregator / mykeeto) ── */}
+        {(showOnline || showAggregator || showMykeeto) && (
+          <div className="border rounded-lg overflow-hidden bg-white">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="p-3 font-semibold text-gray-600 w-1/4"></th>
+                  {showOnline && (
+                    <th className="p-3 font-semibold text-gray-700 text-center border-l">
+                      Online Order
+                    </th>
+                  )}
+                  {showAggregator && (
+                    <th className="p-3 font-semibold text-gray-700 text-center border-l">
+                      Aggregator
+                    </th>
+                  )}
+                  {showMykeeto && (
+                    <th className="p-3 font-semibold text-gray-700 text-center border-l">
+                      Mykeeto
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {/* Fees Order row */}
+                <tr className="border-b">
+                  <td className="p-3 font-medium text-gray-600 bg-gray-50/50">
+                    Fees Order (%)
+                  </td>
+                  {showOnline && (
+                    <td className="p-2 border-l">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...register("online_commissionRate")}
+                        className="h-8 text-center"
+                        placeholder="0.00"
+                      />
+                    </td>
+                  )}
+                  {showAggregator && (
+                    <td className="p-2 border-l">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...register("aggregator_commissionRate")}
+                        className="h-8 text-center"
+                        placeholder="0.00"
+                      />
+                    </td>
+                  )}
+                  {showMykeeto && (
+                    <td className="p-2 border-l">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...register("mykeeto_commissionRate")}
+                        className="h-8 text-center"
+                        placeholder="0.00"
+                      />
+                    </td>
+                  )}
+                </tr>
+                {/* Commission row */}
+                <tr>
+                  <td className="p-3 font-medium text-gray-600 bg-gray-50/50">
+                    Service Fee
+                  </td>
+                  {showOnline && (
+                    <td className="p-2 border-l">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...register("online_serviceFee")}
+                        className="h-8 text-center"
+                        placeholder="0.00"
+                      />
+                    </td>
+                  )}
+                  {showAggregator && (
+                    <td className="p-2 border-l">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...register("aggregator_serviceFee")}
+                        className="h-8 text-center"
+                        placeholder="0.00"
+                      />
+                    </td>
+                  )}
+                  {showMykeeto && (
+                    <td className="p-2 border-l">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...register("mykeeto_serviceFee")}
+                        className="h-8 text-center"
+                        placeholder="0.00"
+                      />
+                    </td>
+                  )}
+                </tr>
+              </tbody>
+            </table>
           </div>
+        )}
 
-          <div className="flex gap-2 pt-2">
-            <Button
-              type="button"
-              size="sm"
-              disabled={isPending}
-              onClick={handleSubmit(onSubmit)}
-            >
-              {isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-1" />
-              )}
-              {isEdit ? "Update" : "Save"}
-            </Button>
+        {/* ── Fixed Fees / POS Subscriptions ── */}
+        {!isEdit && (
+          <div>
             <Button
               type="button"
               size="sm"
               variant="outline"
+              className="w-full text-xs"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onDone();
+                setShowFixedFees((v) => !v);
               }}
             >
-              Cancel
+              {showFixedFees ? "Hide" : "Show"} Fixed Fees & Subscriptions (POS)
             </Button>
           </div>
+        )}
+        {(isEdit || showFixedFees) && (
+          <div className="border rounded-lg p-4 bg-gray-50/30 space-y-4">
+            <div className="text-xs font-bold text-gray-700 border-b pb-2 uppercase tracking-wider">
+              Fixed Fees & Subscriptions (POS)
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Monthly */}
+              <div className="bg-white p-3 border rounded-md flex flex-col justify-between space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-700">
+                    Monthly
+                  </Label>
+                  <RHFController
+                    name="isMonthlyActive"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                </div>
+                <div
+                  className={`space-y-1 transition-opacity ${watchMonthly ? "opacity-100" : "opacity-40"}`}
+                >
+                  <Label className="text-[11px] text-gray-500">Amount</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    disabled={!watchMonthly}
+                    {...register("monthlyAmount")}
+                    className="h-8"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              {/* Quarterly */}
+              <div className="bg-white p-3 border rounded-md flex flex-col justify-between space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-700">
+                    Quarterly
+                  </Label>
+                  <RHFController
+                    name="isQuarterlyActive"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                </div>
+                <div
+                  className={`space-y-1 transition-opacity ${watchQuarterly ? "opacity-100" : "opacity-40"}`}
+                >
+                  <Label className="text-[11px] text-gray-500">Amount</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    disabled={!watchQuarterly}
+                    {...register("quarterlyAmount")}
+                    className="h-8"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              {/* Annually */}
+              <div className="bg-white p-3 border rounded-md flex flex-col justify-between space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-700">
+                    Annually
+                  </Label>
+                  <RHFController
+                    name="isAnnuallyActive"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                </div>
+                <div
+                  className={`space-y-1 transition-opacity ${watchAnnually ? "opacity-100" : "opacity-40"}`}
+                >
+                  <Label className="text-[11px] text-gray-500">Amount</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    disabled={!watchAnnually}
+                    {...register("annuallyAmount")}
+                    className="h-8"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex gap-2 pt-2 justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDone();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={isPending}
+            onClick={handleSubmit(onSubmit)}
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-1" />
+            )}
+            {isEdit ? "Update Plan" : "Save Plan"}
+          </Button>
         </div>
       </CardContent>
     </Card>
   );
 };
-// ─────────────────────────────────────────────────────────────────────────────
-
 const RestaurantAdd = () => {
   const { id } = useParams();
   const { state } = useLocation();
@@ -406,7 +730,7 @@ const RestaurantAdd = () => {
 
       return {
         ...raw,
-        cuisineIds: initialCuisineIds,
+        cuisineId: initialCuisineIds, // توحيد الكي هنا ليكون cuisineId متوافق مع الفورم والباكيند
         zoneId: String(raw.zoneId),
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
@@ -440,12 +764,10 @@ const RestaurantAdd = () => {
               : data.tags,
           minDeliveryTime: String(data.minDeliveryTime),
           maxDeliveryTime: String(data.maxDeliveryTime),
-          cuisineId: Array.isArray(data.cuisineIds)
-            ? data.cuisineIds.map(String)
+          cuisineId: Array.isArray(data.cuisineId)
+            ? data.cuisineId.map(String)
             : [],
         };
-
-        delete formattedData.cuisineIds;
 
         if (isEdit) {
           if (!formattedData.password) {
@@ -467,7 +789,7 @@ const RestaurantAdd = () => {
           formState: { errors },
         } = methods;
 
-        const selectedCuisines = watch("cuisineIds") || [];
+        const selectedCuisines = watch("cuisineId") || [];
 
         const handleFileToBase64 = (e, fieldName) => {
           const file = e.target.files[0];
@@ -483,7 +805,7 @@ const RestaurantAdd = () => {
           <Tabs defaultValue="basic" className="w-full mt-4">
             <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="basic">General Info</TabsTrigger>
-             {/*  <TabsTrigger value="location">Location & Map</TabsTrigger> */}
+              {/*  <TabsTrigger value="location">Location & Map</TabsTrigger> */}
               <TabsTrigger value="business">Business Details</TabsTrigger>
               <TabsTrigger value="images">Identity & Media</TabsTrigger>
               <TabsTrigger value="business-plan">Business Plan</TabsTrigger>
@@ -535,7 +857,7 @@ const RestaurantAdd = () => {
                 <div className="space-y-2 flex flex-col justify-end">
                   <Label>Cuisine Types *</Label>
                   <Controller
-                    name="cuisineIds"
+                    name="cuisineId"
                     control={control}
                     rules={{ required: true }}
                     defaultValue={[]}
@@ -632,7 +954,7 @@ const RestaurantAdd = () => {
                       );
                     }}
                   />
-                  {errors.cuisineIds && (
+                  {errors.cuisineId && (
                     <span className="text-xs text-red-500">
                       This field is required
                     </span>

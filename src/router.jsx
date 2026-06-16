@@ -51,6 +51,8 @@ import Mykeetresturant from "./Pages/Restaurant/mykeetresturant";
 import Invoice from "./Pages/Restaurant/invoice";
 import InvoiceAdd from "./Pages/Restaurant/InvoiceAdd";
 import Users from "./Pages/Users/useres";
+import Reasons from "./Pages/Reasons/reasons";
+import ReasonAdd from "./Pages/Reasons/reasonsadd";
 
 const router = createBrowserRouter([
   {
@@ -317,7 +319,19 @@ const router = createBrowserRouter([
         path: "users",
         element: <Users />,
       },
-    /*   {
+      {
+        path: "reasons",
+        element: <Reasons />,
+      },
+      {
+        path: "reasons/add",
+        element: <ReasonAdd />,
+      },
+      {
+        path: "reasons/edit/:id",
+        element: <ReasonAdd />,
+      },
+      /*   {
         path: "users/add",
         element: <UsersAdd />,
       },
