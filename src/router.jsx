@@ -53,6 +53,10 @@ import InvoiceAdd from "./Pages/Restaurant/InvoiceAdd";
 import Users from "./Pages/Users/useres";
 import Reasons from "./Pages/Reasons/reasons";
 import ReasonAdd from "./Pages/Reasons/reasonsadd";
+import Discount from "./Pages/Discount/discount";
+import DiscountAdd from "./Pages/Discount/discountAdd";
+import Cuppon from "./Pages/Cuppon/cuppon";
+import CupponAdd from "./Pages/Cuppon/cupponAdd";
 
 const router = createBrowserRouter([
   {
@@ -296,7 +300,7 @@ const router = createBrowserRouter([
         element: <Details />,
       },
       {
-        path: "restaurants/wallet/:restaurantId",
+        path: "restaurants/wallet/:id",
         element: <WalletR />,
       },
       {
@@ -331,6 +335,31 @@ const router = createBrowserRouter([
         path: "reasons/edit/:id",
         element: <ReasonAdd />,
       },
+      {
+        path: "discounts",
+        element: <Discount />,
+      },
+      {
+        path: "discounts/add",
+        element: <DiscountAdd />,
+      },
+      {
+        path: "discounts/edit/:id",
+        element: <DiscountAdd />,
+      },
+      {
+        path: "coupons",
+        element: <Cuppon />,
+      },
+      {
+        path: "coupons/add",
+        element: <CupponAdd />,
+      },
+      {
+        path: "coupons/edit/:id",
+        element: <CupponAdd />,
+      },
+
       /*   {
         path: "users/add",
         element: <UsersAdd />,
