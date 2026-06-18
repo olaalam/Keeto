@@ -1,5 +1,7 @@
 import { modules } from "@/config/modules";
 import useSidebarStore from "@/store/useSidebarStore";
+import useAuthStore from "@/store/useAuthStore";
+import { hasModulePermission } from "@/lib/permissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight, LayoutGrid, Circle, Search } from "lucide-react"; // استيراد Search
 import { Input } from "@/components/ui/input"; // استيراد Input
@@ -7,10 +9,21 @@ import { useState } from "react";
 
 export default function Home() {
   const setActiveModule = useSidebarStore((s) => s.setActiveModule);
+  const user = useAuthStore((s) => s.user);
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // منطق الفلترة: نبحث في اسم الموديول أو أسماء العناصر الداخلية
-  const filteredModules = modules.filter((module) => {
+  // 1. فلترة الـ items بناءً على الـ permissions أولاً
+  const permittedModules = modules
+    .map((module) => ({
+      ...module,
+      items: module.items.filter((item) =>
+        hasModulePermission(user, item.module)
+      ),
+    }))
+    .filter((module) => module.items.length > 0); // إخفاء الكارت لو مفيش items مسموح بيها
+
+  // 2. فلترة بالبحث النصي على النتيجة المفلترة بالـ permissions
+  const filteredModules = permittedModules.filter((module) => {
     const searchTerm = globalFilter.toLowerCase();
     const matchesModuleName = module.name.toLowerCase().includes(searchTerm);
     const matchesItems = module.items.some((item) =>
@@ -62,9 +75,15 @@ export default function Home() {
                   />
                 </div>
 
-                {/* شبكة العناصر */}
+                {/* شبكة العناصر (مفلترة بالـ permissions وبالسيرش) */}
                 <div className="flex flex-wrap gap-1.2 mt-2">
-                  {module.items.map((item) => (
+                  {module.items
+                    .filter((item) =>
+                      globalFilter
+                        ? item.title.toLowerCase().includes(globalFilter.toLowerCase())
+                        : true
+                    )
+                    .map((item) => (
                     <div
                       key={item.title}
                       className="flex items-center gap-1.5 py-1 px-2 w-fit rounded-md bg-muted/40 border border-transparent hover:border-border hover:bg-background transition-all group/item"

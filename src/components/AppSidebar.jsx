@@ -13,6 +13,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import useSidebarStore from "@/store/useSidebarStore";
 import useAuthStore from "@/store/useAuthStore";
+import { hasModulePermission } from "@/lib/permissions";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut, HelpCircle, Home } from "lucide-react"; // استيراد الأيقونات الأساسية فقط
@@ -21,8 +22,14 @@ export function AppSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
   const activeModule = useSidebarStore((s) => s.activeModule);
+  const user = useAuthStore((s) => s.user);
   //const setLogout = useAuthStore((state) => state.setLogout);
   const navigate = useNavigate();
+
+  // فلترة items بناءً على permissions اليوزر
+  const permittedItems = activeModule?.items?.filter((item) =>
+    hasModulePermission(user, item.module)
+  ) || [];
 
   // إذا لم يكن هناك موديول نشط، لا تظهر الـ Sidebar
   if (!activeModule) return null;
@@ -52,7 +59,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1 px-2">
-              {activeModule.items.map((item) => {
+              {permittedItems.map((item) => {
                 const active = location.pathname === item.url;
 
                 // هنا نتعامل مع item.icon كـ Component مباشرة وليس كـ string[cite: 1]
