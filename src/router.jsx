@@ -1,7 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./components/Login";
-// import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashborad/dashboard";
 import NotFound from "./Pages/NotFound";
 import Home from "./Pages/Home";
 import AdminAdd from "./Pages/Admins/AdminAdd";
@@ -75,6 +75,10 @@ const router = createBrowserRouter([
       {
         index: true, // ليعرض صفحة Home عند الدخول على "/" مباشرة
         element: <Home />,
+      },
+      {
+        path:"dashboard",
+        element:<Dashboard/>
       },
       {
         path: "admins",

@@ -718,7 +718,6 @@ const RestaurantAdd = () => {
       const { data } = await api.get(`/api/superadmin/restaurants/${id}`);
       const raw = data.data.data;
 
-      // ✅ FIXED: Parse dynamic backend cuisine arrays into internal string lists
       let initialCuisineIds = [];
       if (Array.isArray(raw.cuisineId)) {
         initialCuisineIds = raw.cuisineId.map(String);
@@ -730,11 +729,12 @@ const RestaurantAdd = () => {
 
       return {
         ...raw,
-        cuisineId: initialCuisineIds, // توحيد الكي هنا ليكون cuisineId متوافق مع الفورم والباكيند
+        cuisineId: initialCuisineIds,
         zoneId: String(raw.zoneId),
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
         status: raw.status || "active",
+        restauranttype: raw.restauranttype || "", // تم التعديل إلى حروف صغيرة بالكامل هنا
       };
     },
     enabled: !!id && !state?.restaurantData,
@@ -767,6 +767,7 @@ const RestaurantAdd = () => {
           cuisineId: Array.isArray(data.cuisineId)
             ? data.cuisineId.map(String)
             : [],
+          restauranttype: data.restauranttype, // تم التعديل إلى حروف صغيرة بالكامل هنا للإرسال الصحيح للباكيند
         };
 
         if (isEdit) {
@@ -805,7 +806,7 @@ const RestaurantAdd = () => {
           <Tabs defaultValue="basic" className="w-full mt-4">
             <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="basic">General Info</TabsTrigger>
-              {/*  <TabsTrigger value="location">Location & Map</TabsTrigger> */}
+              {/* <TabsTrigger value="location">Location & Map</TabsTrigger> */}
               <TabsTrigger value="business">Business Details</TabsTrigger>
               <TabsTrigger value="images">Identity & Media</TabsTrigger>
               <TabsTrigger value="business-plan">Business Plan</TabsTrigger>
@@ -852,6 +853,39 @@ const RestaurantAdd = () => {
                     />
                   </div>
                 )}
+
+                {/* الحقل الجديد مع الـ key الصحيح بحروف صغيرة: restauranttype */}
+                <div className="space-y-2">
+                  <Label>Restaurant Type *</Label>
+                  <Controller
+                    name="restauranttype"
+                    control={control}
+                    rules={{ required: true }}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mega">Mega</SelectItem>
+                          <SelectItem value="super">Super</SelectItem>
+                          <SelectItem value="A">A</SelectItem>
+                          <SelectItem value="B">B</SelectItem>
+                          <SelectItem value="C">C</SelectItem>
+                          <SelectItem value="C-">C-</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.restauranttype && (
+                    <span className="text-xs text-red-500">
+                      This field is required
+                    </span>
+                  )}
+                </div>
 
                 {/* Cuisine Types */}
                 <div className="space-y-2 flex flex-col justify-end">
