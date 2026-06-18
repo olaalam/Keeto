@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
-import GenericDataTable from "@/components/GenericDataTable";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import {
   DollarSign,
@@ -15,21 +14,37 @@ import {
   ArrowDownCircle,
   BadgeCheck,
   HandCoins,
+  CheckCircle2,
 } from "lucide-react";
 
 const WalletR = () => {
-  const { id } = useParams();
+  // الـ ID القادم من الـ URL هو الخاص بالمطعم
+  const { id: restaurantId } = useParams();
 
-  // 1. جلب بيانات المحفظة
+  // 1. جلب بيانات المحفظة باستخدام ID المطعم
   const { data: walletData, isLoading } = useGet(
-    ["wallet", id],
-    `/api/superadmin/wallets/restaurant/${id}`,
+    ["wallet", restaurantId],
+    `/api/superadmin/wallets/restaurant/${restaurantId}`,
   );
+
+  const wallet = walletData?.data?.data || {};
+
+  // تنظيف وتحويل القيمة المعلقة للتأكد من جاهزيتها للاستخدام في التصميم والـ API
+  const rawValue = wallet.pendingWithdraw;
+  const cleanValue =
+    typeof rawValue === "string" ? rawValue.replace(/[^\d.]/g, "") : rawValue;
+  const pendingAmount = Number(cleanValue) || 0;
 
   // 2. إعداد الـ Update Mutation للتحصيل
   const collectMutation = useUpdate(`/api/superadmin/wallets/collect`, [
     "wallet",
-    id,
+    restaurantId,
+  ]);
+
+  // 3. إعداد الـ Update Mutation للموافقة
+  const approveMutation = useUpdate(`/api/superadmin/wallets/approve`, [
+    "wallet",
+    restaurantId,
   ]);
 
   const {
@@ -39,11 +54,16 @@ const WalletR = () => {
     formState: { errors },
   } = useForm();
 
+  // تنفيذ عملية التحصيل باستخدام Wallet ID المباشر
   const onCollect = (data) => {
+    if (!wallet.id) return;
+
     collectMutation.mutate(
       {
-        id: id,
-        payload: { amount: Number(data.amount) },
+        id: wallet.id,
+        payload: {
+          amount: Number(data.amount),
+        },
       },
       {
         onSuccess: () => reset(),
@@ -51,34 +71,53 @@ const WalletR = () => {
     );
   };
 
+  // تنفيذ عملية الموافقة باستخدام Restaurant ID وإرسال القيمة الدقيقة
+  const handleApprove = () => {
+    if (!restaurantId || pendingAmount <= 0) return;
+
+    approveMutation.mutate({
+      id: restaurantId,
+      payload: {
+        amount: pendingAmount,
+      },
+    });
+  };
+
   if (isLoading) return <LoadingSpinner />;
 
-  // استخراج البيانات بناءً على الـ JSON الفعلي (walletData.data.data)
-  const wallet = walletData?.data?.data || {};
-
-  // تعريف أعمدة جدول المعاملات
-  const transactionColumns = [
-    { accessorKey: "id", header: "Transaction ID" },
-    { accessorKey: "amount", header: "Amount" },
-    {
-      accessorKey: "createdAt",
-      header: "Date",
-      cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
-    },
-    { accessorKey: "method", header: "Method" },
-  ];
-
-  // دالة مساعدة لتنسيق الأرقام بشكل نظيف
   const formatCurrency = (val) => {
     const num = Number(val);
     return isNaN(num) ? "0.00 E£" : `${num.toFixed(2)} E£`;
   };
 
+  // التحقق من صلاحية الضغط على زر الموافقة
+  const isApproveDisabled = approveMutation.isPending || pendingAmount <= 0;
+
   return (
     <div className="p-6 space-y-8">
-      <h1 className="text-2xl font-bold">Restaurant Wallet</h1>
+      {/* الهيدر مع زر الموافقة */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold">Restaurant Wallet</h1>
 
-      {/* أولاً: كروت الإحصائيات بعد تعديل الكيهات لتطابق الـ API */}
+        <Button
+          onClick={handleApprove}
+          disabled={isApproveDisabled}
+          className={`flex items-center gap-2 shadow-sm text-white transition-all ${
+            isApproveDisabled
+              ? "bg-slate-300 cursor-not-allowed text-slate-500"
+              : "bg-emerald-600 hover:bg-emerald-700"
+          }`}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          {approveMutation.isPending
+            ? "Approving..."
+            : pendingAmount <= 0
+              ? "No Pending Amount"
+              : "Approve Wallet Status"}
+        </Button>
+      </div>
+
+      {/* كروت الإحصائيات */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Balance"
@@ -113,7 +152,7 @@ const WalletR = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ثانياً: فورم التحصيل */}
+        {/* فورم التحصيل */}
         <Card className="lg:col-span-1 shadow-md">
           <CardHeader>
             <CardTitle className="text-lg">
@@ -147,16 +186,6 @@ const WalletR = () => {
             </form>
           </CardContent>
         </Card>
-
-        {/* ثالثاً: جدول المعاملات */}
-        <div className="lg:col-span-2">
-          <GenericDataTable
-            title="Transactions History"
-            data={wallet.transactions || []}
-            columns={transactionColumns}
-            isLoading={isLoading}
-          />
-        </div>
       </div>
     </div>
   );
@@ -167,7 +196,7 @@ const StatCard = ({ title, value, icon, bgColor }) => (
     <CardContent className="p-6 flex items-center justify-between">
       <div>
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <h3 className="text-2xl font-bold mt-1 white-space-nowrap">{value}</h3>
+        <h3 className="text-2xl font-bold mt-1 whitespace-nowrap">{value}</h3>
       </div>
       <div className="p-3 bg-white rounded-full shadow-sm flex-shrink-0">
         {icon}

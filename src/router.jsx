@@ -57,7 +57,8 @@ import Discount from "./Pages/Discount/discount";
 import DiscountAdd from "./Pages/Discount/discountAdd";
 import Cuppon from "./Pages/Cuppon/cuppon";
 import CupponAdd from "./Pages/Cuppon/cupponAdd";
-
+import Sales from "./Pages/Sales/sales";
+import SalesAdd from "./Pages/Sales/salesAdd";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -359,7 +360,18 @@ const router = createBrowserRouter([
         path: "coupons/edit/:id",
         element: <CupponAdd />,
       },
-
+      {
+        path: "sales",
+        element: <Sales />,
+      },
+      {
+        path: "sales/add",
+        element: <SalesAdd />,
+      },
+      {
+        path: "sales/edit/:id",
+        element: <SalesAdd />,
+      },
       /*   {
         path: "users/add",
         element: <UsersAdd />,

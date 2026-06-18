@@ -21,6 +21,7 @@ import {
   BadgePercent,
   FileText,
   HelpCircle,
+  TrendingUp,
 } from "lucide-react";
 import keetoImage from "../../public/WhatsApp Image 2026-05-18 at 11.27.30 AM.jpeg";
 
@@ -46,6 +47,7 @@ export const modules = [
       { title: "Keeto Users", url: "/users", icon: KeetoIcon },
       { title: "Policy", url: "/policy", icon: FileText },
       { title: "Reasons", url: "/reasons", icon:HelpCircle },
+      {title:"Sales",url:"/sales",icon:TrendingUp}
     ],
   },
   {

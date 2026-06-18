@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
 import { useParams } from "react-router-dom";
-import { ShoppingBag, Utensils } from "lucide-react";
+import { ShoppingBag, Utensils, BadgeDollarSign, Wallet, ArrowUpRight, CheckCircle2 } from "lucide-react";
 
 export default function DetailedFinancialReport() {
   // 1. Extract date filters from URL if available
@@ -23,138 +23,138 @@ export default function DetailedFinancialReport() {
     },
   });
 
-  // Extract summaries and restaurant lists safely
+  // Safe extraction based on new API shape
   const summary = responseData?.summary;
   const restaurantsList = responseData?.restaurants || [];
 
-  // 3. Prepare top stats cards using the new summary keys
+  // 3. Updated Stats Cards with 3 metrics to fill the layout beautifully
   const statsCards = [
     {
-      title: "Grand Total Platform Sales",
-      value: `${summary?.grandTotalSales ?? "0.00"} E£`,
+      title: "Grand Total System Sales",
+      value: `${Number(summary?.grandTotalSystemSales ?? 0).toLocaleString()} EGP`,
       icon: ShoppingBag,
-      bgIcon: "bg-orange-100 text-orange-600",
+      bgIcon: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+    },
+    {
+      title: "Total Keeto Commission",
+      value: `${Number(summary?.grandTotalKeetoCommission ?? 0).toLocaleString()} EGP`,
+      icon: BadgeDollarSign,
+      bgIcon: "bg-amber-50 text-amber-600 border border-amber-100",
     },
     {
       title: "Total Active Restaurants",
-      value: summary?.totalRestaurants ?? 0,
+      value: summary?.totalRestaurantsActive ?? 0,
       icon: Utensils,
-      bgIcon: "bg-blue-100 text-blue-600",
+      bgIcon: "bg-blue-50 text-blue-600 border border-blue-100",
     },
   ];
 
-  // 4. Define table columns with explicit styling and matching alignments
+  // 4. Refactored Columns to match exactly the incoming API structure
   const columns = [
     {
       accessorKey: "restaurantName",
-      header: () => (
-        <div className="text-left font-bold min-w-[120px]">Restaurant</div>
-      ),
+      header: () => <div className="text-left font-bold min-w-[140px]">Restaurant</div>,
       cell: ({ row }) => (
-        <div className="text-left font-bold text-slate-800">
+        <div className="text-left font-semibold text-slate-900">
           {row.getValue("restaurantName")}
         </div>
       ),
     },
     {
-      accessorKey: "orders.total",
-      header: () => (
-        <div className="text-center font-bold min-w-[100px]">Total Orders</div>
-      ),
-      cell: ({ row }) => (
-        <div className="text-center font-medium font-mono">
-          {row.original?.orders?.total ?? 0}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "financials.totalSales",
-      header: () => (
-        <div className="text-right font-bold min-w-[110px]">Revenue</div>
-      ),
-      cell: ({ row }) => (
-        <div className="text-right font-semibold text-slate-700 font-mono">
-          {row.original?.financials?.totalSales ?? "0.00"} E£
-        </div>
-      ),
-    },
-    {
-      accessorKey: "financials.cashOrders",
-      header: () => (
-        <div className="text-right font-bold min-w-[100px]">Cash</div>
-      ),
-      cell: ({ row }) => (
-        <div className="text-right font-semibold text-green-600 font-mono">
-          {row.original?.financials?.cashOrders ?? "0.00"} E£
-        </div>
-      ),
-    },
-    {
-      accessorKey: "financials.digitalOrders",
-      header: () => (
-        <div className="text-right font-bold min-w-[120px]">Visa / Digital</div>
-      ),
-      cell: ({ row }) => (
-        <div className="text-right font-semibold text-blue-600 font-mono">
-          {row.original?.financials?.digitalOrders ?? "0.00"} E£
-        </div>
-      ),
-    },
-    {
-      accessorKey: "financials.calculatedCommission",
-      header: () => (
-        <div className="text-right font-bold min-w-[160px]">
-          Calculated Commission
-        </div>
-      ),
+      accessorKey: "ordersCount.total",
+      header: () => <div className="text-center font-bold">Orders (C / D)</div>,
       cell: ({ row }) => {
-        const rate = row.original?.financials?.commissionRate ?? "0.00%";
+        const total = row.original?.ordersCount?.total ?? 0;
+        const cash = row.original?.ordersCount?.cash ?? 0;
+        const digital = row.original?.ordersCount?.digital ?? 0;
         return (
-          <div className="text-right flex flex-col items-end min-w-[160px]">
-            <span className="font-bold text-amber-600 font-mono">
-              {row.original?.financials?.calculatedCommission ?? "0.00"} E£
+          <div className="text-center flex flex-col justify-center items-center">
+            <span className="font-bold text-slate-800 font-mono text-base">{total}</span>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {cash} Cash | {digital} Dig
             </span>
-            <span className="text-xs text-slate-400 font-mono">({rate})</span>
           </div>
         );
       },
     },
     {
-      accessorKey: "financials.platformCommission",
-      header: () => (
-        <div className="text-right font-bold min-w-[160px]">
-          App Commission (Keeto)
-        </div>
-      ),
+      accessorKey: "sales.totalRevenue",
+      header: () => <div className="text-right font-bold">Total Revenue</div>,
       cell: ({ row }) => (
-        <div className="text-right font-bold text-rose-600 font-mono">
-          {row.original?.financials?.platformCommission ?? "0.00"} E£
+        <div className="text-right font-bold text-slate-800 font-mono">
+          {Number(row.original?.sales?.totalRevenue ?? 0).toFixed(2)} EGP
         </div>
       ),
     },
     {
-      accessorKey: "businessPlan",
-      header: () => (
-        <div className="text-left font-bold min-w-[240px] pl-2">
-          Business Plan & Fees
+      accessorKey: "sales.cashInRestaurantDrawer",
+      header: () => <div className="text-right font-bold">Cash (In-Drawer)</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-medium text-emerald-600 font-mono">
+          {Number(row.original?.sales?.cashInRestaurantDrawer ?? 0).toFixed(2)} EGP
         </div>
       ),
+    },
+    {
+      accessorKey: "sales.digitalInPlatformBank",
+      header: () => <div className="text-right font-bold">Digital (In-Bank)</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-medium text-blue-600 font-mono">
+          {Number(row.original?.sales?.digitalInPlatformBank ?? 0).toFixed(2)} EGP
+        </div>
+      ),
+    },
+    {
+      accessorKey: "platformDues.totalAppCommission",
+      header: () => <div className="text-right font-bold">App Commission</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-bold text-rose-600 font-mono">
+          {Number(row.original?.platformDues?.totalAppCommission ?? 0).toFixed(2)} EGP
+        </div>
+      ),
+    },
+    {
+      accessorKey: "settlement.netBalance",
+      header: () => <div className="text-right font-bold min-w-[130px]">Net Balance</div>,
       cell: ({ row }) => {
-        const plans = row.getValue("businessPlan") || [];
+        const net = Number(row.original?.settlement?.netBalance ?? 0);
+        const owesPlatform = Number(row.original?.settlement?.restaurantOwesPlatform ?? 0);
+        
+        if (net === 0 && owesPlatform === 0) {
+          return (
+            <div className="text-right text-slate-400 font-medium font-mono">
+              0.00 EGP
+            </div>
+          );
+        }
+        
+        // لو المنصة اللي هتحول للمطعم بيكون netBalance موجب، لو المطعم عليه فلوس بيظهر في owesPlatform
         return (
-          <div className="flex flex-col gap-1 w-[240px] text-left pl-2">
-            {plans.map((plan, idx) => (
-              <div
-                key={idx}
-                className="text-xs bg-slate-50 border p-1.5 rounded text-slate-600 shadow-sm"
-              >
-                <span className="font-medium">
-                  {plan.platformType === "food_aggregator" ? "App" : "Web"}:
-                </span>{" "}
-                <span className="font-mono">{plan.commissionRate}%</span> |{" "}
-                Service: <span className="font-mono">{plan.serviceFee}</span>
-              </div>
-            ))}
+          <div className={`text-right font-bold font-mono ${owesPlatform > 0 ? "text-red-600" : "text-emerald-600"}`}>
+            {owesPlatform > 0 ? `-${owesPlatform.toFixed(2)}` : `+${net.toFixed(2)}`} EGP
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "settlement.actionRequired",
+      header: () => <div className="text-left font-bold min-w-[280px] pl-4">Status & Action Required</div>,
+      cell: ({ row }) => {
+        const action = row.original?.settlement?.actionRequired ?? "";
+        const isSettled = action.includes("✅");
+        
+        return (
+          <div className="pl-4 text-left">
+            {isSettled ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Settled
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 shadow-sm whitespace-normal max-w-[320px]">
+                <ArrowUpRight className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                {action.replace("⚠️", "").trim()}
+              </span>
+            )}
           </div>
         );
       },
@@ -162,44 +162,44 @@ export default function DetailedFinancialReport() {
   ];
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
-      {/* 5. Render Top Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="container mx-auto py-8 space-y-8 px-4">
+      {/* 5. Enhanced Top Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {statsCards.map((card) => {
           const Icon = card.icon;
 
           return (
             <div
               key={card.title}
-              className="bg-white border rounded-2xl shadow-sm p-5 flex items-center justify-between"
+              className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex items-center justify-between transition-all hover:shadow-md"
             >
-              <div>
-                <p className="text-sm text-gray-500">{card.title}</p>
-                <h2 className="text-3xl font-black mt-1 text-slate-800">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{card.title}</p>
+                <h2 className="text-2xl font-black text-slate-800 font-mono">
                   {card.value}
                 </h2>
               </div>
 
-              <div
-                className={`w-14 h-14 rounded-xl flex items-center justify-center ${card.bgIcon}`}
-              >
-                <Icon className="w-7 h-7" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${card.bgIcon}`}>
+                <Icon className="w-6 h-6" />
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* 6. Comprehensive Financial Data Table */}
-      <GenericDataTable
-        title="Detailed Financial Report"
-        columns={columns}
-        data={restaurantsList}
-        isLoading={isLoading}
-        queryKey="detailedFinancialReport"
-        onEdit={false}
-        actions={false}
-      />
+      {/* 6. Main Table View wrapped in a styled container */}
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <GenericDataTable
+          title="Detailed Financial Report"
+          columns={columns}
+          data={restaurantsList}
+          isLoading={isLoading}
+          queryKey="detailedFinancialReport"
+          onEdit={false}
+          actions={false}
+        />
+      </div>
     </div>
   );
 }
