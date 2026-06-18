@@ -1,7 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./components/Login";
-import Dashboard from "./pages/Dashborad/dashboard";
+import Dashboard from "./Pages/Dashborad/dashboard";
 import NotFound from "./Pages/NotFound";
 import Home from "./Pages/Home";
 import AdminAdd from "./Pages/Admins/AdminAdd";
