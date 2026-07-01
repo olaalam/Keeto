@@ -209,13 +209,16 @@ export default function KeetoDashboard() {
 
   // 2. أعلى 5 مطاعم يتم استخراجها ديناميكياً من الـ ranking القادم في الـ Response
   const top5RestaurantsData = useMemo(() => {
-    const ranking = charts.restaurantsRanking || [];
-    return ranking.slice(0, 5).map((item) => ({
-      name: item.name,
-      revenue: item.revenue,
-    }));
-  }, [charts.restaurantsRanking]);
+    const matrix = charts.performanceMatrix || [];
 
+    return [...matrix]
+      .sort((a, b) => (b.orders || 0) - (a.orders || 0))
+      .slice(0, 5)
+      .map((item) => ({
+        name: item.restaurantName,
+        orders: item.orders,
+      }));
+  }, [charts.performanceMatrix]);
   // 2.2 أعلى 5 مطاعم من حيث الاستحواذ على المستخدمين (التعديل الجديد)
   const top5AcquisitionData = useMemo(() => {
     const matrix = charts.performanceMatrix || [];
@@ -240,7 +243,7 @@ export default function KeetoDashboard() {
       { name: "High Revenue", value: seg.high || 0, color: "#facc15" },
       { name: "Medium Revenue", value: seg.medium || 0, color: "#f97316" },
       { name: "Low Revenue", value: seg.low || 0, color: "#cbd5e1" },
-      { name: "Inactive", value: seg.inactive || 0, color: "#e2e8f0" },
+      { name: "Inactive", value: seg.inactive || 0, color: "#94a3b8" },
     ];
     return rawData.map((item) => ({
       ...item,
@@ -256,13 +259,9 @@ export default function KeetoDashboard() {
       (cancel.user || 0) + (cancel.restaurant || 0) + (cancel.system || 0);
     const rawData = [
       { name: "Cancelled by User", value: cancel.user || 0, color: "#facc15" },
+
       {
         name: "Cancelled by Restaurant",
-        value: cancel.restaurant || 0,
-        color: "#f97316",
-      },
-      {
-        name: "Cancelled by System",
         value: cancel.system || 0,
         color: "#cbd5e1",
       },
@@ -589,10 +588,11 @@ export default function KeetoDashboard() {
         {/* التشارت السابق: TOP 5 RESTAURANTS BY REVENUE */}
         <div className="lg:col-span-12 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800">
-            Top Restaurants Tier Performance
+            Top Restaurants by Orders
           </h3>
+
           <p className="text-xs text-slate-400 mb-6">
-            Highest earning brands generated from rankings
+            Restaurants ranked by completed orders
           </p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
@@ -611,9 +611,9 @@ export default function KeetoDashboard() {
                 fontSize={12}
               />
               <YAxis stroke="#94a3b8" tickLine={false} fontSize={11} />
-              <Tooltip formatter={(value) => [`${value} EGP`, "Revenue"]} />
+              <Tooltip formatter={(value) => [value, "Orders"]} />
               <Bar
-                dataKey="revenue"
+                dataKey="orders"
                 fill="#facc15"
                 radius={[6, 6, 0, 0]}
                 barSize={45}
@@ -897,33 +897,6 @@ export default function KeetoDashboard() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* 6. Platform Health Score Gauge */}
-        <div className="lg:col-span-6 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800">
-              Platform Health Score
-            </h3>
-            <p className="text-xs text-slate-400 mb-6">
-              Current performance matrix score
-            </p>
-          </div>
-          <div className="flex flex-col items-center justify-center pb-6">
-            <div className="relative w-32 h-16 overflow-hidden">
-              <div className="w-32 h-32 rounded-full border-[10px] border-slate-100 absolute top-0 left-0"></div>
-              <div
-                className="w-32 h-32 rounded-full border-[10px] absolute top-0 left-0 border-b-transparent border-r-transparent"
-                style={{
-                  transform: `rotate(${parseFloat(charts.platformHealthScore || 0) * 1.8 - 45}deg)`,
-                  borderColor: "#facc15",
-                }}
-              ></div>
-            </div>
-            <h4 className="text-3xl font-extrabold text-slate-800 mt-2">
-              {charts.platformHealthScore || 0}%
-            </h4>
           </div>
         </div>
 
