@@ -37,6 +37,7 @@ const SettingAdd = () => {
     instantOrder: false,
     halalTagStatus: true,
     dineIn: true,
+    isTemporarilyClosed:true,
     vegType: "BOTH",
     canEditOrder: true,
     minOrderAmount: 50,
@@ -109,6 +110,7 @@ const SettingAdd = () => {
       instantOrder: rawData.settings?.instantOrder ?? false,
       halalTagStatus: rawData.settings?.halalTagStatus ?? true,
       dineIn: rawData.settings?.dineIn ?? true,
+      isTemporarilyClosed:rawData.settings?.isTemporarilyClosed?? true,
       vegType: rawData.settings?.vegType || "BOTH",
       canEditOrder: rawData.settings?.canEditOrder ?? true,
       minOrderAmount: rawData.settings?.minOrderAmount ?? 50,
@@ -154,6 +156,7 @@ const SettingAdd = () => {
         minDeliveryTime: Number(data.minDeliveryTime) || 15,
         maxDeliveryTime: Number(data.maxDeliveryTime) || 45,
         isAlwaysOpen: data.isAlwaysOpen ?? false,
+        isTemporarilyClosed:data.isTemporarilyClosed ?? true,
         isSameTimeEveryDay: data.isSameTimeEveryDay ?? false,
       },
       schedules: (data.schedules || []).map((schedule) => ({
@@ -213,6 +216,7 @@ const SettingAdd = () => {
                   { name: "canEditOrder", label: "Can Edit Order" },
                   { name: "isAlwaysOpen", label: "Is Always Open" },
                   { name: "isSameTimeEveryDay", label: "Same Time Every Day" },
+                  {name:"isTemporarilyClosed",label:"is Temporarily Closed"}
                 ].map((sw) => (
                   <div
                     key={sw.name}

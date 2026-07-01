@@ -70,12 +70,14 @@ export const modules = [
       { title: "Foods", url: "/foods", icon: Beef, module: "Food" },
       { title: "Cuisines", url: "/cuisines", icon: ChefHat, module: "cuisines" },
       { title: "Modifier", url: "/addons", icon: Settings2, module: "Adones" },
+      
       {
         title: "Addon Categories",
         url: "/addons-categories",
         icon: PlusSquare,
         module: "AdonesCategories",
       },
+      {title:"Branches,",url:"/branches",icon:PlusSquare}
     ],
   },
   {

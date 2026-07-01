@@ -59,6 +59,8 @@ import Cuppon from "./Pages/Cuppon/cuppon";
 import CupponAdd from "./Pages/Cuppon/cupponAdd";
 import Sales from "./Pages/Sales/sales";
 import SalesAdd from "./Pages/Sales/salesAdd";
+import Branches from "./Pages/Branches/branches";
+import BranchesAdd from "./Pages/Branches/branchesAdd";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -77,8 +79,8 @@ const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path:"dashboard",
-        element:<Dashboard/>
+        path: "dashboard",
+        element: <Dashboard />,
       },
       {
         path: "admins",
@@ -375,6 +377,18 @@ const router = createBrowserRouter([
       {
         path: "sales/edit/:id",
         element: <SalesAdd />,
+      },
+      {
+        path: "branches",
+        element: <Branches />,
+      },
+      {
+        path: "branches/add",
+        element: <BranchesAdd />,
+      },
+      {
+        path: "branches/edit/:id",
+        element: <BranchesAdd />,
       },
       /*   {
         path: "users/add",

@@ -89,7 +89,7 @@ const RestaurantAdd = () => {
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
         status: raw.status || "active",
-        restauranttype: raw.restauranttype || "",
+        type: raw.type || raw.restauranttype || "",
 
         // ربط قيم الـ Business Plan بالـ inputs المؤقتة بالفورم لتعمل في الـ Edit تلقائياً
         online_commissionRate: onlinePlan.commissionRate || "",
@@ -203,7 +203,7 @@ const RestaurantAdd = () => {
           cuisineId: Array.isArray(data.cuisineId)
             ? data.cuisineId.map(String)
             : [],
-          restauranttype: data.restauranttype,
+          type: data.type,
           businessPlans: businessPlans, // الـ Array مفرودة هنا وجاهزة للإرسال في الـ Create والـ Edit
         };
 
@@ -314,7 +314,7 @@ const RestaurantAdd = () => {
                 <div className="space-y-2">
                   <Label>Restaurant Type *</Label>
                   <Controller
-                    name="restauranttype"
+                    name="type"
                     control={control}
                     rules={{ required: true }}
                     render={({ field }) => (
@@ -336,7 +336,7 @@ const RestaurantAdd = () => {
                       </Select>
                     )}
                   />
-                  {errors.restauranttype && (
+                  {errors.type && (
                     <span className="text-xs text-red-500">
                       This field is required
                     </span>
