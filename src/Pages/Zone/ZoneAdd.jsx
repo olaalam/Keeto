@@ -9,7 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -122,14 +126,58 @@ const ZoneAdd = () => {
           register,
           control,
           setValue,
-          formState: { errors },
+          formState: { errors, submitCount },
         } = methods;
 
+        const [activeTab, setActiveTab] = useState("basic");
+
+        // خريطة تربط كل حقل بالتاب الخاص به لمعرفة أين يوجد الخطأ
+        const fieldsByTab = {
+          basic: [
+            "name",
+            "nameAr",
+            "nameFr",
+            "displayName",
+            "displayNameAr",
+            "displayNameFr",
+            "cityId",
+          ],
+          location: [],
+        };
+
+        const tabHasError = (tabKey) =>
+          fieldsByTab[tabKey]?.some((fieldName) => errors[fieldName]);
+
+        // عند فشل الحفظ بسبب حقل مطلوب فاضي في تاب آخر، ننتقل تلقائياً لأول تاب فيه خطأ
+        useEffect(() => {
+          if (submitCount > 0) {
+            const erroredTab = Object.keys(fieldsByTab).find((key) =>
+              tabHasError(key),
+            );
+            if (erroredTab) setActiveTab(erroredTab);
+          }
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [submitCount, errors]);
+
         return (
-          <Tabs defaultValue="basic" className="w-full mt-4">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full mt-4"
+          >
             <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="basic">General Info</TabsTrigger>
-              <TabsTrigger value="location">Zone Location & Map</TabsTrigger>
+              <TabsTrigger value="basic" className="relative">
+                General Info
+                {tabHasError("basic") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="location" className="relative">
+                Zone Location & Map
+                {tabHasError("location") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
             </TabsList>
 
             {/* 1. المعلومات الأساسية */}
@@ -197,16 +245,20 @@ const ZoneAdd = () => {
                           role="combobox"
                           className={cn(
                             "w-full justify-between font-normal text-left",
-                            !field.value && "text-muted-foreground"
+                            !field.value && "text-muted-foreground",
                           )}
                         >
                           {field.value
-                            ? cities.find((c) => String(c.id) === field.value)?.name
+                            ? cities.find((c) => String(c.id) === field.value)
+                                ?.name
                             : "Select City"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <PopoverContent
+                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        align="start"
+                      >
                         <Command>
                           <CommandInput placeholder="Search city..." />
                           <CommandList>
@@ -223,7 +275,9 @@ const ZoneAdd = () => {
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      String(c.id) === field.value ? "opacity-100" : "opacity-0"
+                                      String(c.id) === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0",
                                     )}
                                   />
                                   {c.name}

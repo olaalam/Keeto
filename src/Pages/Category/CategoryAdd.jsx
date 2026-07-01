@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import AddPage from "@/components/AddPage";
 import { useQuery } from "@tanstack/react-query";
@@ -45,7 +45,43 @@ const CategoryAdd = () => {
       onSuccessAction={() => navigate(-1)}
     >
       {(methods) => {
-        const { register, control, setValue } = methods;
+        const {
+          register,
+          control,
+          setValue,
+          formState: { errors, submitCount },
+        } = methods;
+
+        const [activeTab, setActiveTab] = useState("basic");
+
+        // خريطة تربط كل حقل بالتاب الخاص به لمعرفة أين يوجد الخطأ
+        const fieldsByTab = {
+          basic: [
+            "name",
+            "nameAr",
+            "nameFr",
+            "title",
+            "titleAr",
+            "titleFr",
+            "priority",
+          ],
+          seo: ["meta_title", "meta_titleAr", "meta_titleFr"],
+          media: [],
+        };
+
+        const tabHasError = (tabKey) =>
+          fieldsByTab[tabKey]?.some((fieldName) => errors[fieldName]);
+
+        // عند فشل الحفظ بسبب حقل مطلوب فاضي في تاب آخر، ننتقل تلقائياً لأول تاب فيه خطأ
+        useEffect(() => {
+          if (submitCount > 0) {
+            const erroredTab = Object.keys(fieldsByTab).find((key) =>
+              tabHasError(key),
+            );
+            if (erroredTab) setActiveTab(erroredTab);
+          }
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [submitCount, errors]);
 
         // ✅ Same as RestaurantAdd — stores base64 string
         const handleFileToBase64 = (e, fieldName) => {
@@ -60,11 +96,26 @@ const CategoryAdd = () => {
         };
 
         return (
-          <Tabs defaultValue="basic" className="w-full mt-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4">
             <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="basic">General Information</TabsTrigger>
-              <TabsTrigger value="seo">SEO & Meta</TabsTrigger>
-              <TabsTrigger value="media">Media & Status</TabsTrigger>
+              <TabsTrigger value="basic" className="relative">
+                General Information
+                {tabHasError("basic") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="seo" className="relative">
+                SEO & Meta
+                {tabHasError("seo") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="media" className="relative">
+                Media & Status
+                {tabHasError("media") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
             </TabsList>
 
             {/* 1. المعلومات الأساسية */}

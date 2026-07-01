@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
@@ -60,15 +60,64 @@ const CuisineAdd = () => {
           register,
           control,
           setValue,
-          formState: { errors },
+          formState: { errors, submitCount },
         } = methods;
 
+        const [activeTab, setActiveTab] = useState("basic");
+
+        // خريطة تربط كل حقل بالتاب الخاص به لمعرفة أين يوجد الخطأ
+        const fieldsByTab = {
+          basic: [
+            "name",
+            "nameAr",
+            "nameFr",
+            "description",
+            "descriptionAr",
+            "descriptionFr",
+          ],
+          seo: ["meta_description", "meta_descriptionAr", "meta_descriptionFr"],
+          media: ["status"],
+        };
+
+        const tabHasError = (tabKey) =>
+          fieldsByTab[tabKey]?.some((fieldName) => errors[fieldName]);
+
+        // عند فشل الحفظ بسبب حقل مطلوب فاضي في تاب آخر، ننتقل تلقائياً لأول تاب فيه خطأ
+        useEffect(() => {
+          if (submitCount > 0) {
+            const erroredTab = Object.keys(fieldsByTab).find((key) =>
+              tabHasError(key),
+            );
+            if (erroredTab) setActiveTab(erroredTab);
+          }
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [submitCount, errors]);
+
         return (
-          <Tabs defaultValue="basic" className="w-full mt-4">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full mt-4"
+          >
             <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="basic">General Info</TabsTrigger>
-              <TabsTrigger value="seo">SEO & Meta Data</TabsTrigger>
-              <TabsTrigger value="media">Media & Status</TabsTrigger>
+              <TabsTrigger value="basic" className="relative">
+                General Info
+                {tabHasError("basic") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="seo" className="relative">
+                SEO & Meta Data
+                {tabHasError("seo") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="media" className="relative">
+                Media & Status
+                {tabHasError("media") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
             </TabsList>
 
             {/* 1. الأسماء والأوصاف (General Info) */}

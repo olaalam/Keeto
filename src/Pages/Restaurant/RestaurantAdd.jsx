@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
@@ -242,13 +242,71 @@ const RestaurantAdd = () => {
           setValue,
           watch,
           getValues,
-          formState: { errors },
+          formState: { errors, submitCount },
         } = methods;
 
         const selectedCuisines = watch("cuisineId") || [];
         const watchMonthly = watch("isMonthlyActive");
         const watchQuarterly = watch("isQuarterlyActive");
         const watchAnnually = watch("isAnnuallyActive");
+
+        const [activeTab, setActiveTab] = useState("basic");
+
+        // خريطة تربط كل حقل بالتاب الخاص به لمعرفة أين يوجد الخطأ
+        const fieldsByTab = {
+          basic: [
+            "name",
+            "nameAr",
+            "nameFr",
+            "email",
+            "password",
+            "type",
+            "cuisineId",
+            "tags",
+          ],
+          business: [
+            "ownerFirstName",
+            "ownerLastName",
+            "ownerPhone",
+            "confirmPassword",
+            "minDeliveryTime",
+            "maxDeliveryTime",
+            "deliveryTimeUnit",
+            "taxNumber",
+            "taxExpireDate",
+            "status",
+          ],
+          images: ["logo", "cover", "taxCertificate"],
+          "business-plan": [
+            "online_commissionRate",
+            "online_serviceFee",
+            "aggregator_commissionRate",
+            "aggregator_serviceFee",
+            "mykeeto_commissionRate",
+            "mykeeto_serviceFee",
+            "isMonthlyActive",
+            "monthlyAmount",
+            "isQuarterlyActive",
+            "quarterlyAmount",
+            "isAnnuallyActive",
+            "annuallyAmount",
+            "pos_isOn",
+          ],
+        };
+
+        const tabHasError = (tabKey) =>
+          fieldsByTab[tabKey]?.some((fieldName) => errors[fieldName]);
+
+        // عند فشل الحفظ بسبب حقل مطلوب فاضي في تاب آخر، ننتقل تلقائياً لأول تاب فيه خطأ
+        useEffect(() => {
+          if (submitCount > 0) {
+            const erroredTab = Object.keys(fieldsByTab).find((key) =>
+              tabHasError(key),
+            );
+            if (erroredTab) setActiveTab(erroredTab);
+          }
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [submitCount, errors]);
 
         const handleFileToBase64 = (e, fieldName) => {
           const file = e.target.files[0];
@@ -261,16 +319,48 @@ const RestaurantAdd = () => {
         };
 
         return (
-          <Tabs defaultValue="basic" className="w-full mt-4">
-            <TabsList className="grid w-full grid-cols-5 mb-8">
-              <TabsTrigger value="basic">General Info</TabsTrigger>
-              <TabsTrigger value="business">Business Details</TabsTrigger>
-              <TabsTrigger value="images">Identity & Media</TabsTrigger>
-              <TabsTrigger value="business-plan">Business Plan</TabsTrigger>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full mt-4"
+          >
+            <TabsList className="grid w-full grid-cols-4 mb-8">
+              <TabsTrigger type="button" value="basic" className="relative">
+                General Info
+                {tabHasError("basic") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger type="button" value="business" className="relative">
+                Business Details
+                {tabHasError("business") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger type="button" value="images" className="relative">
+                Identity & Media
+                {tabHasError("images") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                type="button"
+                value="business-plan"
+                className="relative"
+              >
+                Business Plan
+                {tabHasError("business-plan") && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
             </TabsList>
 
             {/* 1. General Info */}
-            <TabsContent value="basic" className="space-y-4">
+            <TabsContent
+              value="basic"
+              forceMount
+              className="space-y-4 data-[state=inactive]:hidden"
+            >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Name (EN) *</Label>
@@ -462,7 +552,11 @@ const RestaurantAdd = () => {
             </TabsContent>
 
             {/* 2. Business Details */}
-            <TabsContent value="business" className="space-y-4">
+            <TabsContent
+              value="business"
+              forceMount
+              className="space-y-4 data-[state=inactive]:hidden"
+            >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Owner First Name *</Label>
@@ -579,7 +673,11 @@ const RestaurantAdd = () => {
             </TabsContent>
 
             {/* 3. Identity & Media */}
-            <TabsContent value="images" className="space-y-6">
+            <TabsContent
+              value="images"
+              forceMount
+              className="space-y-6 data-[state=inactive]:hidden"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-4 border rounded-lg space-y-2">
                   <Label className="text-blue-600 font-bold">
@@ -645,7 +743,11 @@ const RestaurantAdd = () => {
             </TabsContent>
 
             {/* 4. Business Plan Tab المدمجة كلياً وبدون استدعاء أي APIs منفصلة */}
-            <TabsContent value="business-plan" className="space-y-6">
+            <TabsContent
+              value="business-plan"
+              forceMount
+              className="space-y-6 data-[state=inactive]:hidden"
+            >
               <div className="border rounded-lg overflow-hidden bg-white text-xs">
                 <table className="w-full text-left border-collapse">
                   <thead>
