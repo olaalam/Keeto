@@ -146,12 +146,11 @@ const BranhesAdd = () => {
         restaurantId: data.restaurantId ? String(data.restaurantId) : "",
         zoneId: data.zoneId ? String(data.zoneId) : "",
         deliveryRadiusKm: data.deliveryRadiusKm
-          ? Number(data.deliveryRadiusKm)
+          ? String(data.deliveryRadiusKm)
           : 0,
-        lat: data.lat ? Number(data.lat) : null,
-        lng: data.lng ? Number(data.lng) : null,
+        lat: data.lat ? String(data.lat) : null,
+        lng: data.lng ? String(data.lng) : null,
         phoneNumber: data.phoneNumber ? String(data.phoneNumber) : "",
-      
       })}
     >
       {(methods) => {
@@ -262,8 +261,30 @@ const BranhesAdd = () => {
               />
             </div>
 
-         
-            {/* 10. Zone Search Select */}
+            {/* 9. Latitude */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Latitude</Label>
+              <Input
+                {...register("lat")}
+                type="number"
+                step="0.0000000000000001"
+                placeholder="0.0000"
+                className="h-9 text-xs rounded-md"
+              />
+            </div>
+            {/* 10. Longitude */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Longitude</Label>
+              <Input
+                {...register("lng")}
+                type="number"
+                step="0.0000000000000001"
+                placeholder="0.0000"
+                className="h-9 text-xs rounded-md"
+              />
+            </div>
+
+            {/* 11. Zone Search Select */}
             <div className="space-y-2 flex flex-col w-full">
               <Label className="text-xs font-medium">Zone</Label>
               <Controller
@@ -330,7 +351,7 @@ const BranhesAdd = () => {
               />
             </div>
 
-            {/* 11. Restaurant Search Select */}
+            {/* 12. Restaurant Search Select */}
             <div className="space-y-2 flex flex-col w-full">
               <Label className="text-xs font-medium">Restaurant *</Label>
               <Controller

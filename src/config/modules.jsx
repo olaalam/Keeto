@@ -58,6 +58,7 @@ export const modules = [
       { title: "Cities", url: "/cities", icon: MapPin, module: "Cities" },
       { title: "Zones", url: "/zones", icon: Map, module: "Zones" },
       { title: "Delivery Zones", url: "/delivery-zones", icon: Truck, module: "ZoneDeliveryFees" },
+      {title:"Branches",url:"/branches",icon:PlusSquare},
     ],
   },
   {
@@ -77,7 +78,6 @@ export const modules = [
         icon: PlusSquare,
         module: "AdonesCategories",
       },
-      {title:"Branches,",url:"/branches",icon:PlusSquare}
     ],
   },
   {
