@@ -203,7 +203,10 @@ export default function DetailedFinancialReport() {
           `${Number(item?.sales?.cashRevenue ?? 0).toFixed(2)} EGP`,
           `${Number(item?.sales?.digitalRevenue ?? 0).toFixed(2)} EGP`,
           `${(serviceFees + deliveryFees).toFixed(2)} EGP`,
-          `${Number(item?.keetoDues?.appCommission ?? 0).toFixed(2)} EGP`,
+          item.source === "pos" &&
+          Number(item?.keetoDues?.appCommission ?? 0) === 0
+            ? "-"
+            : `${Number(item?.keetoDues?.appCommission ?? 0).toFixed(2)} EGP`,
           owes > 0 ? `-${owes.toFixed(2)} EGP` : `+${net.toFixed(2)} EGP`,
         ];
       }),
@@ -304,11 +307,18 @@ export default function DetailedFinancialReport() {
     {
       accessorKey: "keetoDues.appCommission",
       header: () => <div className="text-right font-bold">App Commission</div>,
-      cell: ({ row }) => (
-        <div className="text-right font-bold text-rose-600 font-mono">
-          {Number(row.original?.keetoDues?.appCommission ?? 0).toFixed(2)} EGP
-        </div>
-      ),
+      cell: ({ row }) => {
+        const commission = Number(row.original?.keetoDues?.appCommission ?? 0);
+        const source = row.original?.source;
+
+        return (
+          <div className="text-right font-bold text-rose-600 font-mono">
+            {source === "pos" && commission === 0
+              ? "-"
+              : `${commission.toFixed(2)} EGP`}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "settlement.netBalance",

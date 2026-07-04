@@ -36,7 +36,7 @@ export default function Branches() {
         isLoading={isLoading}
         queryKey="Branches"
         deleteApiUrl="/api/superadmin/branches"
-        editApiUrl="/api/superadmin/branches"
+      
         onAdd={() => navigate("/branches/add")}
         onEdit={(branche) => navigate(`/branches/edit/${branche.id}`)}
       />
