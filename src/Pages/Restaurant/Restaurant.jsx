@@ -4,6 +4,8 @@ import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
 import { useNavigate } from "react-router-dom";
 import { Eye } from "lucide-react";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import FoodListDialog from "./FoodListDialog";
 
 export default function Restaurant() {
@@ -57,6 +59,7 @@ export default function Restaurant() {
 
     // { accessorKey: "ownerPhone", header: "Phone" },
     { accessorKey: "zone.name", header: "Zone" },
+    { accessorKey: "type", header: "Type" },
     {
       accessorKey: "view_food",
       header: "Food Menu",
@@ -138,9 +141,50 @@ export default function Restaurant() {
       // 💡 قمنا بحذف الـ cell بالكامل هنا لكي يتولى GenericDataTable توليد الـ Switch تلقائياً
     },
   ];
+  const exportToExcel = () => {
+    const exportData = restaurants.map((restaurant) => ({
+      "Restaurant Name": restaurant.name || "",
+      Type: restaurant.type || "",
+      "Facebook Page Likes": "",
+      "Start Orders": "",
+      "Number of Orders": "",
+    }));
 
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // عرض الأعمدة
+    worksheet["!cols"] = [
+      { wch: 20 }, // Type
+      { wch: 35 }, // Restaurant Name
+      { wch: 50 }, // Facebook Page Likes
+      { wch: 20 }, // Start Orders
+      { wch: 20 }, // Number of Orders
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Restaurants");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const file = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+    });
+
+    saveAs(file, "Restaurants.xlsx");
+  };
   return (
     <div className="container mx-auto py-10">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={exportToExcel}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          Export Excel
+        </button>
+      </div>
       <GenericDataTable
         title="restaurants"
         columns={columns}
