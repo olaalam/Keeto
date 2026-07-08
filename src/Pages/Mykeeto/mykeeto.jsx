@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
-import { useParams } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -16,17 +15,15 @@ import {
 
 export default function DetailedFinancialReport() {
   // 1. Extract date filters from URL if available
-  const { startDate, endDate } = useParams();
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // 2. Fetch the detailed report data using useQuery
   const { data: responseData, isLoading } = useQuery({
     queryKey: ["detailedFinancialReport", startDate, endDate],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/report/detailed", {
-        params: {
-          startDate,
-          endDate,
-        },
+        params: { startDate, endDate },
       });
       return res.data?.data?.data || res.data?.data;
     },
@@ -146,14 +143,21 @@ export default function DetailedFinancialReport() {
           restaurant?.settlement?.restaurantOwesPlatform ?? 0,
         );
 
-        let action = restaurant?.settlement?.actionRequired || "";
+        const owesPlatform = Number(
+          restaurant?.settlement?.restaurantOwesPlatform ?? 0,
+        );
 
-        // تنظيف النص
-        action = action
-          .replace("⚠️", "")
-          .replace("✅", "")
-          .replace(/\s+/g, " ")
-          .trim();
+        const platformOwesRestaurant = Number(
+          restaurant?.settlement?.platformOwesRestaurant ?? 0,
+        );
+
+        let action = "Settled";
+
+        if (owesPlatform > 0) {
+          action = `${restaurant.restaurantName} → ${owesPlatform.toFixed(2)} EGP`;
+        } else if (platformOwesRestaurant > 0) {
+          action = `Keeto → ${platformOwesRestaurant.toFixed(2)} EGP`;
+        }
 
         return [
           restaurant.restaurantName,
@@ -161,13 +165,36 @@ export default function DetailedFinancialReport() {
           restaurant.ordersCount?.cash ?? 0,
           restaurant.ordersCount?.digital ?? 0,
           `${Number(restaurant.sales?.totalRevenue ?? 0).toFixed(2)} EGP`,
-          `${Number(restaurant.platformDues?.totalAppCommission ?? 0).toFixed(
-            2,
-          )} EGP`,
-          owes > 0 ? `-${owes.toFixed(2)} EGP` : `+${net.toFixed(2)} EGP`,
+          `${Number(restaurant.platformDues?.totalAppCommission ?? 0).toFixed(2)} EGP`,
+          owesPlatform > 0
+            ? `-${owesPlatform.toFixed(2)} EGP`
+            : `+${Number(restaurant.settlement?.netBalance ?? 0).toFixed(2)} EGP`,
           action,
         ];
       }),
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 7) {
+          const restaurant = restaurantsList[data.row.index];
+
+          const owesPlatform = Number(
+            restaurant?.settlement?.restaurantOwesPlatform ?? 0,
+          );
+
+          const platformOwesRestaurant = Number(
+            restaurant?.settlement?.platformOwesRestaurant ?? 0,
+          );
+
+          if (owesPlatform > 0) {
+            data.cell.styles.textColor = [220, 38, 38]; // أحمر
+            data.cell.styles.fontStyle = "bold";
+          } else if (platformOwesRestaurant > 0) {
+            data.cell.styles.textColor = [22, 163, 74]; // أخضر
+            data.cell.styles.fontStyle = "bold";
+          } else {
+            data.cell.styles.textColor = [100, 100, 100];
+          }
+        }
+      },
     });
 
     // Footer
@@ -324,29 +351,72 @@ export default function DetailedFinancialReport() {
         </div>
       ),
       cell: ({ row }) => {
-        const action = row.original?.settlement?.actionRequired ?? "";
-        const isSettled = action.includes("✅");
+        const restaurantName = row.original.restaurantName;
 
-        return (
-          <div className="pl-4 text-left">
-            {isSettled ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Settled
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 shadow-sm whitespace-normal max-w-[320px]">
-                <ArrowUpRight className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                {action.replace("⚠️", "").trim()}
-              </span>
-            )}
-          </div>
+        const owesPlatform = Number(
+          row.original?.settlement?.restaurantOwesPlatform ?? 0,
         );
+
+        const platformOwesRestaurant = Number(
+          row.original?.settlement?.platformOwesRestaurant ?? 0,
+        );
+
+        if (owesPlatform > 0) {
+          return (
+            <span className="font-bold text-red-600">
+              {restaurantName} → {owesPlatform.toFixed(2)} EGP
+            </span>
+          );
+        }
+
+        if (platformOwesRestaurant > 0) {
+          return (
+            <span className="font-bold text-emerald-600">
+              Keeto → {platformOwesRestaurant.toFixed(2)} EGP
+            </span>
+          );
+        }
+
+        return <span className="text-slate-500">Settled</span>;
       },
     },
   ];
 
   return (
     <div className="container mx-auto py-8 space-y-8 px-4">
+      <div className="flex gap-4 items-end bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-6">
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+            Start Date
+          </label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+            End Date
+          </label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+        </div>
+        <button
+          onClick={() => {
+            setStartDate("");
+            setEndDate("");
+          }}
+          className="px-4 py-2 text-sm text-slate-500 hover:text-red-600 font-medium"
+        >
+          Clear
+        </button>
+      </div>
       {/* 5. Enhanced Top Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {statsCards.map((card) => {

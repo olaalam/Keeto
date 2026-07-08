@@ -416,12 +416,59 @@ const RestaurantAdd = () => {
                           <SelectValue placeholder="Select Type" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="mega">Mega</SelectItem>
-                          <SelectItem value="super">Super</SelectItem>
-                          <SelectItem value="A">A</SelectItem>
-                          <SelectItem value="B">B</SelectItem>
-                          <SelectItem value="C">C</SelectItem>
-                          <SelectItem value="C-">C-</SelectItem>
+                          <SelectItem value="mega">
+                            <div className="flex justify-between items-center w-full min-w-[180px]">
+                              <span>Mega</span>
+                              <span className="text-emerald-600 font-semibold">
+                                +1M
+                              </span>
+                            </div>
+                          </SelectItem>
+
+                          <SelectItem value="super">
+                            <div className="flex justify-between items-center w-full min-w-[180px]">
+                              <span>Super</span>
+                              <span className="text-emerald-600 font-semibold">
+                                +250K
+                              </span>
+                            </div>
+                          </SelectItem>
+
+                          <SelectItem value="A">
+                            <div className="flex justify-between items-center w-full min-w-[180px]">
+                              <span>A</span>
+                              <span className="text-emerald-600 font-semibold">
+                                +100K
+                              </span>
+                            </div>
+                          </SelectItem>
+
+                          <SelectItem value="B">
+                            <div className="flex justify-between items-center w-full min-w-[180px]">
+                              <span>B</span>
+                              <span className="text-emerald-600 font-semibold">
+                                +25K
+                              </span>
+                            </div>
+                          </SelectItem>
+
+                          <SelectItem value="C">
+                            <div className="flex justify-between items-center w-full min-w-[180px]">
+                              <span>C</span>
+                              <span className="text-emerald-600 font-semibold">
+                                +1K
+                              </span>
+                            </div>
+                          </SelectItem>
+
+                          <SelectItem value="C-">
+                            <div className="flex justify-between items-center w-full min-w-[180px]">
+                              <span>C-</span>
+                              <span className="text-red-600 font-semibold">
+                                -1K
+                              </span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     )}
