@@ -33,7 +33,7 @@ export default function ResReport() {
   // "total" means no type param is sent (server returns every type); any other value
   // is sent to the API as the `type` param, same pattern as startDate/endDate.
   const [activeFilter, setActiveFilter] = useState("total");
-
+  const [showTable, setShowTable] = useState(false);
   // Holds the full restaurant row (restaurantDetails + ordersCount) whose details popup is open
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
 
@@ -261,40 +261,47 @@ export default function ResReport() {
       </div>
 
       {/* كروت الإحصائيات: قابلة للنقر للفلترة */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {statsCards.map((card) => {
-          const Icon = card.icon;
-          const isActive = activeFilter === card.key;
-          return (
-            <button
-              key={card.key}
-              type="button"
-              disabled={!card.clickable}
-              onClick={() => card.clickable && setActiveFilter(card.key)}
-              className={`text-left bg-white border rounded-2xl shadow-sm p-5 flex items-center justify-between transition ${
-                card.clickable
-                  ? "cursor-pointer hover:shadow-md"
-                  : "cursor-default"
-              } ${isActive ? "ring-2 ring-blue-500 border-blue-200" : ""}`}
-            >
-              <div>
-                <p className="text-sm font-medium text-slate-400">
-                  {card.title}
-                </p>
-                <h2 className="text-2xl font-black mt-1 text-slate-800 font-mono tracking-tight">
-                  {card.value}
-                </h2>
-              </div>
+      {!showTable && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {statsCards.map((card) => {
+            const Icon = card.icon;
+            const isActive = activeFilter === card.key;
+            return (
+              <button
+                key={card.key}
+                type="button"
+                disabled={!card.clickable}
+                onClick={() => {
+                  if (!card.clickable) return;
 
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center ${card.bgColor}`}
+                  setActiveFilter(card.key);
+                  setShowTable(true);
+                }}
+                className={`text-left bg-white border rounded-2xl shadow-sm p-5 flex items-center justify-between transition ${
+                  card.clickable
+                    ? "cursor-pointer hover:shadow-md"
+                    : "cursor-default"
+                } ${isActive ? "ring-2 ring-blue-500 border-blue-200" : ""}`}
               >
-                <Icon className="w-6 h-6" />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-400">
+                    {card.title}
+                  </p>
+                  <h2 className="text-2xl font-black mt-1 text-slate-800 font-mono tracking-tight">
+                    {card.value}
+                  </h2>
+                </div>
+
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center ${card.bgColor}`}
+                >
+                  <Icon className="w-6 h-6" />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <button
         onClick={exportPDF}
@@ -302,21 +309,41 @@ export default function ResReport() {
       >
         Export PDF
       </button>
+      {showTable && (
+        <div className="flex items-center justify-between mb-5">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowTable(false);
+              setActiveFilter("total");
+            }}
+          >
+            ← Back
+          </Button>
 
+          {/*  <h2 className="text-xl font-bold">
+            {activeFilter === "total"
+              ? "All Restaurants"
+              : `Restaurants - ${activeFilter}`}
+          </h2> */}
+        </div>
+      )}
       {/* جدول المطاعم: يعكس الكارت المختار (الكل أو نوع محدد) */}
-      <GenericDataTable
-        title={
-          activeFilter === "total"
-            ? "All Restaurants"
-            : `Restaurants — Type "${activeFilter}"`
-        }
-        columns={columns}
-        data={filteredRestaurants}
-        isLoading={isLoading}
-        queryKey="restaurantOrdersReport"
-        onEdit={false}
-        actions={false}
-      />
+      {showTable && (
+        <GenericDataTable
+          title={
+            activeFilter === "total"
+              ? "All Restaurants"
+              : `Restaurants — Type "${activeFilter}"`
+          }
+          columns={columns}
+          data={filteredRestaurants}
+          isLoading={isLoading}
+          queryKey="restaurantOrdersReport"
+          onEdit={false}
+          actions={false}
+        />
+      )}
 
       {/* Popup showing full restaurant details when a name is clicked */}
       <Dialog
