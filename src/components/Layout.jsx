@@ -1,18 +1,11 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
-import {
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "./AppSidebar";
 import useSidebarStore from "@/store/useSidebarStore";
 import useAuthStore from "@/store/useAuthStore";
-import {
-  LogOut,
-  ChevronLeft,
-  UserCircle2,
-} from "lucide-react";
+import { LogOut, ChevronLeft, UserCircle2 } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -22,27 +15,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function Layout() {
-  const activeModule = useSidebarStore(
-    (state) => state.activeModule
-  );
+  const activeModule = useSidebarStore((state) => state.activeModule);
 
-  const setActiveModule = useSidebarStore(
-    (state) => state.setActiveModule
-  );
+  const setActiveModule = useSidebarStore((state) => state.setActiveModule);
 
-  const { setLogout } = useAuthStore(
-    (state) => state
-  );
+  const { setLogout } = useAuthStore((state) => state);
 
   const location = useLocation();
   const navigate = useNavigate();
 
   // وظيفة الرجوع للخلف
   const handleBack = () => {
-    if (
-      window.history.state &&
-      window.history.state.idx === 0
-    ) {
+    if (window.history.state && window.history.state.idx === 0) {
       navigate("/");
       setActiveModule(null);
     } else {
@@ -69,9 +53,7 @@ export default function Layout() {
             <div className="flex items-center justify-between p-4 h-16">
               {/* Left Section */}
               <div className="flex items-center gap-4 overflow-hidden">
-                {activeModule && (
-                  <SidebarTrigger className="shrink-0" />
-                )}
+                {activeModule && <SidebarTrigger className="shrink-0" />}
 
                 <div className="flex items-center gap-3 truncate">
                   {!activeModule && (
@@ -108,13 +90,12 @@ export default function Layout() {
               {/* Logo */}
               <div>
                 <button
-                  onClick={() => navigate("/")}
+                  onClick={() => {
+                    setActiveModule(null);
+                    navigate("/");
+                  }}
                 >
-                  <img
-                    className="w-30 h-15"
-                    src="/logo.webp"
-                    alt="Logo"
-                  />
+                  <img className="w-30 h-15" src="/logo.webp" alt="Logo" />
                 </button>
               </div>
 
@@ -129,14 +110,9 @@ export default function Layout() {
                   </button>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent
-                  align="end"
-                  className="w-52 rounded-xl"
-                >
+                <DropdownMenuContent align="end" className="w-52 rounded-xl">
                   <DropdownMenuItem
-                    onClick={() =>
-                      navigate("/profile")
-                    }
+                    onClick={() => navigate("/profile")}
                     className="cursor-pointer flex items-center gap-2"
                   >
                     <UserCircle2 size={16} />

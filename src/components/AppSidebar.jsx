@@ -19,17 +19,19 @@ import { Button } from "@/components/ui/button";
 import { LogOut, HelpCircle, Home } from "lucide-react"; // استيراد الأيقونات الأساسية فقط
 
 export function AppSidebar() {
-  const { open } = useSidebar();
+  const { open, setOpen } = useSidebar();
   const location = useLocation();
   const activeModule = useSidebarStore((s) => s.activeModule);
+  const setActiveModule = useSidebarStore((s) => s.setActiveModule);
   const user = useAuthStore((s) => s.user);
   //const setLogout = useAuthStore((state) => state.setLogout);
   const navigate = useNavigate();
 
   // فلترة items بناءً على permissions اليوزر
-  const permittedItems = activeModule?.items?.filter((item) =>
-    hasModulePermission(user, item.module)
-  ) || [];
+  const permittedItems =
+    activeModule?.items?.filter((item) =>
+      hasModulePermission(user, item.module),
+    ) || [];
 
   // إذا لم يكن هناك موديول نشط، لا تظهر الـ Sidebar
   if (!activeModule) return null;
@@ -38,7 +40,10 @@ export function AppSidebar() {
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader className="flex justify-center py-5">
         <Button
-          onClick={() => navigate("/")}
+          onClick={() => {
+            setActiveModule(null);
+            navigate("/");
+          }}
           variant="outline"
           className={`w-full justify-start gap-3 transition-all duration-200 ${
             !open ? "px-0 justify-center" : "px-3"

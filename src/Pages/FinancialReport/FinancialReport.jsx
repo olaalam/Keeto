@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
 import { useParams } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   ShoppingBag,
   CheckCircle2,
@@ -12,10 +14,24 @@ import {
   DollarSign,
   Percent,
   Coins,
+  CalendarRange,
 } from "lucide-react";
 
 export default function FinancialReport() {
-  const { restaurantId, startDate, endDate } = useParams();
+  const {
+    restaurantId,
+    startDate: startDateParam,
+    endDate: endDateParam,
+  } = useParams();
+
+  // نطاق التاريخ الفعلي بيتحكم فيه المستخدم من الفلتر، ولو مفيش حاجة في الـ URL بنبدأ فاضي
+  const [startDate, setStartDate] = useState(startDateParam || "");
+  const [endDate, setEndDate] = useState(endDateParam || "");
+
+  const resetDateFilter = () => {
+    setStartDate("");
+    setEndDate("");
+  };
 
   // جلب البيانات من الـ API لتقرير الماكرو المالي
   const { data: reportData, isLoading } = useQuery({
@@ -196,6 +212,44 @@ export default function FinancialReport() {
           Overview of platform totals, commission statistics, and collection
           methods.
         </p>
+      </div>
+
+      {/* فلتر التاريخ */}
+      <div className="bg-white border rounded-2xl shadow-sm p-4 flex flex-wrap items-end gap-4">
+        <div className="flex items-center gap-2 text-slate-500 pr-2">
+          <CalendarRange className="w-4 h-4" />
+          <span className="text-sm font-semibold">Filter by date</span>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-slate-400">From</label>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="h-9 w-[160px]"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-slate-400">To</label>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="h-9 w-[160px]"
+          />
+        </div>
+
+        {(startDate || endDate) && (
+          <Button
+            variant="ghost"
+            className="h-9 text-slate-500 hover:text-slate-700"
+            onClick={resetDateFilter}
+          >
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* عرض الكروت العلوية في شبكة متجاوبة */}

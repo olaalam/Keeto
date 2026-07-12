@@ -3,21 +3,32 @@ import useSidebarStore from "@/store/useSidebarStore";
 import useAuthStore from "@/store/useAuthStore";
 import { hasModulePermission } from "@/lib/permissions";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, LayoutGrid, Circle, Search } from "lucide-react"; // استيراد Search
+import { LayoutGrid, Search } from "lucide-react"; // استيراد Search
 import { Input } from "@/components/ui/input"; // استيراد Input
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const setActiveModule = useSidebarStore((s) => s.setActiveModule);
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
   const [globalFilter, setGlobalFilter] = useState("");
+
+  // فتح الموديول + الانتقال المباشر لأول عنصر مسموح بيه جواه
+  const openModule = (module) => {
+    setActiveModule(module);
+    const firstItem = module.items[0];
+    if (firstItem?.url) {
+      navigate(firstItem.url);
+    }
+  };
 
   // 1. فلترة الـ items بناءً على الـ permissions أولاً
   const permittedModules = modules
     .map((module) => ({
       ...module,
       items: module.items.filter((item) =>
-        hasModulePermission(user, item.module)
+        hasModulePermission(user, item.module),
       ),
     }))
     .filter((module) => module.items.length > 0); // إخفاء الكارت لو مفيش items مسموح بيها
@@ -33,11 +44,20 @@ export default function Home() {
   });
 
   return (
-    <div className="p-6 space-y-6">
-      {/* 1. مكان السيرش المثالي: في الأعلى خارج الشبكة */}
-      <div className="flex items-center justify-center pb-4">
+    <div className="p-6 md:p-8 space-y-8 max-w-6xl mx-auto">
+      {/* الترويسة + السيرش */}
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">
+            Modules
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Everything you can manage, in one place
+          </p>
+        </div>
+
         <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search modules..."
             value={globalFilter}
@@ -47,56 +67,42 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. شبكة الكروت المفلترة */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {/* شبكة الكروت */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {filteredModules.map((module) => {
           const Icon = module.icon || LayoutGrid;
+          const visibleItems = module.items.filter((item) =>
+            globalFilter
+              ? item.title.toLowerCase().includes(globalFilter.toLowerCase())
+              : true,
+          );
+          // وصف الكارت = أسماء كل الأقسام اللي جواه، كاملة من غير قص
+          const description =
+            module.description || visibleItems.map((i) => i.title).join(", ");
 
           return (
             <Card
               key={module.key}
-              onClick={() => setActiveModule(module)}
-              className="group cursor-pointer border border-border/50 hover:border-primary/40 transition-all duration-300 bg-card hover:shadow-md overflow-hidden"
+              onClick={() => openModule(module)}
+              className="group relative cursor-pointer border border-border/50 bg-card hover:border-primary/50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
             >
-              <CardContent className="p-3">
-                {/* الرأس - Header */}
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                      <Icon size={16} />
-                    </div>
-                    <h2 className="text-sm font-bold tracking-tight text-foreground/80">
-                      {module.name}
-                    </h2>
-                  </div>
-                  <ChevronRight
-                    size={14}
-                    className="text-muted-foreground group-hover:translate-x-1 transition-transform"
-                  />
+              {/* شريط علوي دقيق يظهر عند الـ hover كتوقيع بصري للكارت */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
+
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <Icon size={22} />
                 </div>
 
-                {/* شبكة العناصر (مفلترة بالـ permissions وبالسيرش) */}
-                <div className="flex flex-wrap gap-1.2 mt-2">
-                  {module.items
-                    .filter((item) =>
-                      globalFilter
-                        ? item.title.toLowerCase().includes(globalFilter.toLowerCase())
-                        : true
-                    )
-                    .map((item) => (
-                    <div
-                      key={item.title}
-                      className="flex items-center gap-1.5 py-1 px-2 w-fit rounded-md bg-muted/40 border border-transparent hover:border-border hover:bg-background transition-all group/item"
-                    >
-                      <Circle
-                        size={4}
-                        className="fill-primary/40 text-primary/40 group-hover/item:fill-primary"
-                      />
-                      <span className="text-[10px] font-medium text-muted-foreground group-hover/item:text-foreground whitespace-nowrap">
-                        {item.title}
-                      </span>
-                    </div>
-                  ))}
+                <div className="space-y-1.5">
+                  <h2 className="text-lg font-bold text-foreground">
+                    {module.name}
+                  </h2>
+                  {description && (
+                    <p className="text-sm text-foreground/70 font-medium leading-relaxed">
+                      {description}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -106,8 +112,16 @@ export default function Home() {
 
       {/* حالة عدم وجود نتائج */}
       {filteredModules.length === 0 && (
-        <div className="text-center py-20 text-muted-foreground">
-          <p>No results found</p>
+        <div className="text-center py-24">
+          <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+            <Search size={16} className="text-muted-foreground" />
+          </div>
+          <p className="text-sm font-medium text-foreground">
+            No results found
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Try a different keyword
+          </p>
         </div>
       )}
     </div>
