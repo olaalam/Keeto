@@ -13,7 +13,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ShoppingBag, Store, Tag, CalendarRange } from "lucide-react";
+import {
+  ShoppingBag,
+  Store,
+  Tag,
+  CalendarRange,
+  CheckCircle2,
+  XCircle,
+  Wallet,
+} from "lucide-react";
 
 // Consistent color rotation for the dynamic "type" cards
 const TYPE_COLORS = [
@@ -25,10 +33,12 @@ const TYPE_COLORS = [
   "bg-cyan-50 text-cyan-600",
   "bg-orange-50 text-orange-600",
 ];
+const TYPE_ORDER = ["mega", "super", "A", "B", "C", "C-", "test"];
 
 export default function ResReport() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedType, setSelectedType] = useState("");
 
   // "total" means no type param is sent (server returns every type); any other value
   // is sent to the API as the `type` param, same pattern as startDate/endDate.
@@ -43,23 +53,42 @@ export default function ResReport() {
   };
 
   const { data: reportData, isLoading } = useQuery({
-    queryKey: ["restaurantOrdersReport", startDate, endDate, activeFilter],
+    queryKey: [
+      "restaurantOrdersReport",
+      startDate,
+      endDate,
+      activeFilter,
+      selectedType,
+    ],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/report/restaurant-orders", {
         params: {
           startDate,
           endDate,
-          type: activeFilter !== "total" ? activeFilter : undefined,
+          type:
+            activeFilter !== "total"
+              ? activeFilter
+              : selectedType && selectedType !== "all"
+                ? selectedType
+                : undefined,
         },
       });
       return res.data?.data?.data || res.data?.data;
     },
   });
-
   const summary = reportData?.summary || {};
   const restaurants = reportData?.restaurants || [];
   const restaurantsByType = summary.restaurantsByType || {};
-
+  const orderedTypes = TYPE_ORDER.filter(
+    (type) => restaurantsByType[type] !== undefined,
+  ).map((type, idx) => ({
+    key: type,
+    title: `Type: ${type}`,
+    value: restaurantsByType[type],
+    icon: Tag,
+    bgColor: TYPE_COLORS[idx % TYPE_COLORS.length],
+    clickable: true,
+  }));
   // Inactive restaurants are never shown to the user — filtered out from the start,
   // no toggle needed. Type filtering itself already happened server-side via the API param.
   const filteredRestaurants = useMemo(() => {
@@ -67,6 +96,23 @@ export default function ResReport() {
       (r) => (r.restaurantDetails?.status || "inactive") === "active",
     );
   }, [restaurants]);
+  const displayedRestaurants = useMemo(() => {
+    let data = [...filteredRestaurants];
+
+    // The type-filter buttons only apply while in "All Restaurants" mode.
+    // Once a stat card is selected (activeFilter !== "total"), the card's
+    // own type already scoped the data via the API call above, so
+    // selectedType must not filter it again.
+    if (activeFilter === "total" && selectedType && selectedType !== "all") {
+      data = data.filter(
+        (r) =>
+          r.restaurantDetails?.type?.toLowerCase() ===
+          selectedType.toLowerCase(),
+      );
+    }
+
+    return data;
+  }, [filteredRestaurants, selectedType, activeFilter]);
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -84,6 +130,10 @@ export default function ResReport() {
       body: [
         ["Total Orders", summary.totalOrders ?? 0],
         ["Total Restaurants", summary.totalRestaurants ?? 0],
+        ["Valid Orders", summary.validOrders ?? 0],
+        ["Canceled Orders", summary.canceledOrders ?? 0],
+        
+        ["Total Commission", (summary.total_commission ?? 0).toFixed(2)],
         ...Object.entries(restaurantsByType).map(([type, count]) => [
           `Type: ${type}`,
           count,
@@ -129,14 +179,36 @@ export default function ResReport() {
       bgColor: "bg-emerald-50 text-emerald-600",
       clickable: false,
     },
-    ...Object.entries(restaurantsByType).map(([type, count], idx) => ({
-      key: type,
-      title: `Type: ${type}`,
-      value: count,
-      icon: Tag,
-      bgColor: TYPE_COLORS[idx % TYPE_COLORS.length],
-      clickable: true,
-    })),
+    {
+      key: "valid-orders",
+      title: "Valid Orders",
+      value: summary.validOrders ?? 0,
+      icon: CheckCircle2,
+      bgColor: "bg-emerald-50 text-emerald-600",
+      clickable: false,
+    },
+    {
+      key: "canceled-orders",
+      title: "Canceled Orders",
+      value: summary.canceledOrders ?? 0,
+   
+      icon: XCircle,
+      bgColor: "bg-rose-50 text-rose-600",
+      clickable: false,
+    },
+    {
+      key: "total-commission",
+      title: "Total Commission",
+      value: `${(summary.total_commission ?? 0).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} EGP`,
+      icon: Wallet,
+      bgColor: "bg-amber-50 text-amber-600",
+      clickable: false,
+    },
+
+    ...orderedTypes,
   ];
 
   // Table columns for the restaurants list (nested restaurantDetails object)
@@ -259,6 +331,38 @@ export default function ResReport() {
           </Button>
         )}
       </div>
+      {/* Type filter buttons only make sense in "All Restaurants" mode.
+          Once a stat card is picked, its own type takes over, so these
+          are hidden to avoid the two filters conflicting. */}
+      {activeFilter === "total" && (
+        <div className="flex flex-wrap gap-2">
+          {["all", "mega", "super", "A", "B", "C", "C-", "test"].map((type) => (
+            <Button
+              key={type}
+              variant={(selectedType || "all") === type ? "default" : "outline"}
+              onClick={() => setSelectedType(type)}
+            >
+              {type === "all"
+                ? "All"
+                : type === "mega"
+                  ? "Mega"
+                  : type === "super"
+                    ? "Super"
+                    : type === "A"
+                      ? " A"
+                      : type === "B"
+                        ? " B"
+                        : type === "C"
+                          ? " C"
+                          : type === "C-"
+                            ? " C-"
+                            : type === "test"
+                              ? " Test"
+                              : type}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* كروت الإحصائيات: قابلة للنقر للفلترة */}
       {!showTable && (
@@ -290,6 +394,11 @@ export default function ResReport() {
                   <h2 className="text-2xl font-black mt-1 text-slate-800 font-mono tracking-tight">
                     {card.value}
                   </h2>
+                  {card.subtitle && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      {card.subtitle}
+                    </p>
+                  )}
                 </div>
 
                 <div
@@ -337,7 +446,7 @@ export default function ResReport() {
               : `Restaurants — Type "${activeFilter}"`
           }
           columns={columns}
-          data={filteredRestaurants}
+          data={displayedRestaurants}
           isLoading={isLoading}
           queryKey="restaurantOrdersReport"
           onEdit={false}

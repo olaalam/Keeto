@@ -42,7 +42,7 @@ export const modules = [
         title: "Dashboard",
         url: "/dashboard",
         icon: LayoutDashboard,
-        module: null,
+        module: "basiccampaign",
       },
     ],
   },
@@ -88,7 +88,7 @@ export const modules = [
         icon: Truck,
         module: "ZoneDeliveryFees",
       },
-      { title: "Branches", url: "/branches", icon: PlusSquare },
+      { title: "Branches", url: "/branches", icon: PlusSquare, module: "RestaurantBranches" },
     ],
   },
   {

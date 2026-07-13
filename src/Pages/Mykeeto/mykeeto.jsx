@@ -185,10 +185,11 @@ export default function DetailedFinancialReport() {
           );
 
           if (owesPlatform > 0) {
-            data.cell.styles.textColor = [220, 38, 38]; // أحمر
+           
+            data.cell.styles.fillColor = [220, 38, 38]; // أحمر
             data.cell.styles.fontStyle = "bold";
           } else if (platformOwesRestaurant > 0) {
-            data.cell.styles.textColor = [22, 163, 74]; // أخضر
+            data.cell.styles.fillColor = [22, 163, 74]; // أخضر
             data.cell.styles.fontStyle = "bold";
           } else {
             data.cell.styles.textColor = [100, 100, 100];
@@ -363,7 +364,7 @@ export default function DetailedFinancialReport() {
 
         if (owesPlatform > 0) {
           return (
-            <span className="font-bold text-red-600">
+            <span className="font-bold bg-red-600 text-white px-2 py-1 rounded-lg">
               {restaurantName} → {owesPlatform.toFixed(2)} EGP
             </span>
           );
@@ -371,7 +372,7 @@ export default function DetailedFinancialReport() {
 
         if (platformOwesRestaurant > 0) {
           return (
-            <span className="font-bold text-emerald-600">
+            <span className="font-bold bg-emerald-600 text-white px-2 py-1 rounded-lg">
               Keeto → {platformOwesRestaurant.toFixed(2)} EGP
             </span>
           );

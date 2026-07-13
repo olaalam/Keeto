@@ -469,6 +469,11 @@ const RestaurantAdd = () => {
                               </span>
                             </div>
                           </SelectItem>
+                          <SelectItem value="test">
+                            <div className="flex justify-between items-center w-full min-w-[180px]">
+                              <span>Test</span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     )}
