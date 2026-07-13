@@ -88,7 +88,12 @@ export const modules = [
         icon: Truck,
         module: "ZoneDeliveryFees",
       },
-      { title: "Branches", url: "/branches", icon: PlusSquare, module: "RestaurantBranches" },
+      {
+        title: "Branches",
+        url: "/branches",
+        icon: PlusSquare,
+        module: "RestaurantBranches",
+      },
     ],
   },
   {
@@ -137,16 +142,16 @@ export const modules = [
     icon: FileBarChart,
     items: [
       {
-        title: "Business Plans",
-        url: "/business-plans",
-        icon: Briefcase,
-        module: "BusninessPlan",
-      },
-      {
         title: "Restaurants Report",
         url: "/restaurants-report",
         icon: FileBarChart,
         module: "reports",
+      },
+      {
+        title: "Business Plans",
+        url: "/business-plans",
+        icon: Briefcase,
+        module: "BusninessPlan",
       },
       {
         title: "Financial report",

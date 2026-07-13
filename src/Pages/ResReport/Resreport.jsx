@@ -21,6 +21,9 @@ import {
   CheckCircle2,
   XCircle,
   Wallet,
+  Filter,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 // Consistent color rotation for the dynamic "type" cards
@@ -39,6 +42,10 @@ export default function ResReport() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedType, setSelectedType] = useState("");
+  const [minOrders, setMinOrders] = useState("");
+  const [maxOrders, setMaxOrders] = useState("");
+  // "" = no sort, "asc" = fewest orders first, "desc" = most orders first
+  const [orderSort, setOrderSort] = useState("");
 
   // "total" means no type param is sent (server returns every type); any other value
   // is sent to the API as the `type` param, same pattern as startDate/endDate.
@@ -111,8 +118,32 @@ export default function ResReport() {
       );
     }
 
+    // Filter by order count range (inclusive). Blank = no bound on that side.
+    if (minOrders !== "") {
+      const min = Number(minOrders);
+      data = data.filter((r) => (r.ordersCount ?? 0) >= min);
+    }
+    if (maxOrders !== "") {
+      const max = Number(maxOrders);
+      data = data.filter((r) => (r.ordersCount ?? 0) <= max);
+    }
+
+    // Sort by order count, if requested.
+    if (orderSort === "asc") {
+      data.sort((a, b) => (a.ordersCount ?? 0) - (b.ordersCount ?? 0));
+    } else if (orderSort === "desc") {
+      data.sort((a, b) => (b.ordersCount ?? 0) - (a.ordersCount ?? 0));
+    }
+
     return data;
-  }, [filteredRestaurants, selectedType, activeFilter]);
+  }, [
+    filteredRestaurants,
+    selectedType,
+    activeFilter,
+    minOrders,
+    maxOrders,
+    orderSort,
+  ]);
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -132,7 +163,7 @@ export default function ResReport() {
         ["Total Restaurants", summary.totalRestaurants ?? 0],
         ["Valid Orders", summary.validOrders ?? 0],
         ["Canceled Orders", summary.canceledOrders ?? 0],
-        
+
         ["Total Commission", (summary.total_commission ?? 0).toFixed(2)],
         ...Object.entries(restaurantsByType).map(([type, count]) => [
           `Type: ${type}`,
@@ -191,7 +222,7 @@ export default function ResReport() {
       key: "canceled-orders",
       title: "Canceled Orders",
       value: summary.canceledOrders ?? 0,
-   
+
       icon: XCircle,
       bgColor: "bg-rose-50 text-rose-600",
       clickable: false,
@@ -295,41 +326,111 @@ export default function ResReport() {
       </div>
 
       {/* فلتر التاريخ */}
-      <div className="bg-white border rounded-2xl shadow-sm p-4 flex flex-wrap items-end gap-4">
-        <div className="flex items-center gap-2 text-slate-500 pr-2">
-          <CalendarRange className="w-4 h-4" />
+      <div className="bg-white border rounded-2xl shadow-sm p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4">
+        <div className="flex items-center gap-2 text-slate-500">
+          <CalendarRange className="w-4 h-4 shrink-0" />
           <span className="text-sm font-semibold">Filter by date</span>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-400">From</label>
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="h-9 w-[160px]"
-          />
-        </div>
+        <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:w-auto sm:gap-4">
+          <div className="flex flex-col gap-1 w-full sm:w-[160px]">
+            <label className="text-xs font-medium text-slate-400">From</label>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="h-9 w-full"
+            />
+          </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-400">To</label>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="h-9 w-[160px]"
-          />
+          <div className="flex flex-col gap-1 w-full sm:w-[160px]">
+            <label className="text-xs font-medium text-slate-400">To</label>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="h-9 w-full"
+            />
+          </div>
         </div>
 
         {(startDate || endDate) && (
           <Button
             variant="ghost"
-            className="h-9 text-slate-500 hover:text-slate-700"
+            className="h-9 w-full sm:w-auto text-slate-500 hover:text-slate-700"
             onClick={resetDateFilter}
           >
             Clear
           </Button>
         )}
+      </div>
+
+      {/* فلتر عدد الطلبات (نطاق) + الترتيب تصاعدي/تنازلي */}
+      <div className="bg-white border rounded-2xl shadow-sm p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Filter className="w-4 h-4 shrink-0" />
+          <span className="text-sm font-semibold">Filter by order count</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:w-auto sm:gap-4">
+          <div className="flex flex-col gap-1 w-full sm:w-[140px]">
+            <label className="text-xs font-medium text-slate-400">Min</label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="0"
+              value={minOrders}
+              onChange={(e) => setMinOrders(e.target.value)}
+              className="h-9 w-full"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1 w-full sm:w-[140px]">
+            <label className="text-xs font-medium text-slate-400">Max</label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="Any"
+              value={maxOrders}
+              onChange={(e) => setMaxOrders(e.target.value)}
+              className="h-9 w-full"
+            />
+          </div>
+        </div>
+
+        {(minOrders !== "" || maxOrders !== "") && (
+          <Button
+            variant="ghost"
+            className="h-9 w-full sm:w-auto text-slate-500 hover:text-slate-700"
+            onClick={() => {
+              setMinOrders("");
+              setMaxOrders("");
+            }}
+          >
+            Clear
+          </Button>
+        )}
+
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+          <Button
+            type="button"
+            variant={orderSort === "asc" ? "default" : "outline"}
+            className="h-9 flex-1 sm:flex-none"
+            onClick={() => setOrderSort(orderSort === "asc" ? "" : "asc")}
+          >
+            <ArrowUp className="w-4 h-4 mr-1" />
+            Orders
+          </Button>
+          <Button
+            type="button"
+            variant={orderSort === "desc" ? "default" : "outline"}
+            className="h-9 flex-1 sm:flex-none"
+            onClick={() => setOrderSort(orderSort === "desc" ? "" : "desc")}
+          >
+            <ArrowDown className="w-4 h-4 mr-1" />
+            Orders
+          </Button>
+        </div>
       </div>
       {/* Type filter buttons only make sense in "All Restaurants" mode.
           Once a stat card is picked, its own type takes over, so these
