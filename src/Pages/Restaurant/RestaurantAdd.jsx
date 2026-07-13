@@ -90,7 +90,8 @@ const RestaurantAdd = () => {
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
         status: raw.status || "active",
         type: raw.type || raw.restauranttype || "",
-
+        likes: raw.likes || 0,
+        ownerposition: raw.ownerposition || "",
         // ربط قيم الـ Business Plan بالـ inputs المؤقتة بالفورم لتعمل في الـ Edit تلقائياً
         online_commissionRate: onlinePlan.commissionRate || "",
         online_serviceFee: onlinePlan.serviceFee || "",
@@ -263,11 +264,13 @@ const RestaurantAdd = () => {
             "type",
             "cuisineId",
             "tags",
+            "likes",
           ],
           business: [
             "ownerFirstName",
             "ownerLastName",
             "ownerPhone",
+            "ownerposition",
             "confirmPassword",
             "minDeliveryTime",
             "maxDeliveryTime",
@@ -388,6 +391,13 @@ const RestaurantAdd = () => {
                   <Input
                     type="email"
                     {...register("email", { required: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Likes *</Label>
+                  <Input
+                    type="number"
+                    {...register("likes", { required: true })}
                   />
                 </div>
 
@@ -611,16 +621,20 @@ const RestaurantAdd = () => {
             >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Owner First Name *</Label>
+                  <Label>Responsible person Name *</Label>
                   <Input {...register("ownerFirstName", { required: true })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Owner Last Name *</Label>
+                  <Label>Responsible person Name *</Label>
                   <Input {...register("ownerLastName", { required: true })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Owner Phone *</Label>
+                  <Label>Responsible person Phone *</Label>
                   <Input {...register("ownerPhone", { required: true })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Responsible person Position *</Label>
+                  <Input {...register("ownerposition", { required: true })} />
                 </div>
 
                 {isEdit && (

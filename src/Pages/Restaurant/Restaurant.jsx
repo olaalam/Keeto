@@ -58,7 +58,7 @@ export default function Restaurant() {
     },
 
     // { accessorKey: "ownerPhone", header: "Phone" },
-    { accessorKey: "zone.name", header: "Zone" },
+     { accessorKey: "likes", header: "Likes" },
     { accessorKey: "type", header: "Type" },
     {
       accessorKey: "view_food",

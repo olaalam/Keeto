@@ -41,7 +41,7 @@ const TYPE_ORDER = ["mega", "super", "A", "B", "C", "C-", "test"];
 export default function ResReport() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedType, setSelectedType] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState([]);
   const [minOrders, setMinOrders] = useState("");
   const [maxOrders, setMaxOrders] = useState("");
   // "" = no sort, "asc" = fewest orders first, "desc" = most orders first
@@ -58,26 +58,30 @@ export default function ResReport() {
     setStartDate("");
     setEndDate("");
   };
+  const toggleType = (type) => {
+    if (type === "all") {
+      setSelectedTypes([]);
+      return;
+    }
 
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+  };
   const { data: reportData, isLoading } = useQuery({
     queryKey: [
       "restaurantOrdersReport",
       startDate,
       endDate,
       activeFilter,
-      selectedType,
+      selectedTypes,
     ],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/report/restaurant-orders", {
         params: {
           startDate,
           endDate,
-          type:
-            activeFilter !== "total"
-              ? activeFilter
-              : selectedType && selectedType !== "all"
-                ? selectedType
-                : undefined,
+          type: activeFilter !== "total" ? activeFilter : undefined,
         },
       });
       return res.data?.data?.data || res.data?.data;
@@ -110,11 +114,13 @@ export default function ResReport() {
     // Once a stat card is selected (activeFilter !== "total"), the card's
     // own type already scoped the data via the API call above, so
     // selectedType must not filter it again.
-    if (activeFilter === "total" && selectedType && selectedType !== "all") {
-      data = data.filter(
-        (r) =>
-          r.restaurantDetails?.type?.toLowerCase() ===
-          selectedType.toLowerCase(),
+    if (activeFilter === "total" && selectedTypes.length > 0) {
+      data = data.filter((r) =>
+        selectedTypes.some(
+          (type) =>
+            type.toLowerCase() ===
+            (r.restaurantDetails?.type || "").toLowerCase(),
+        ),
       );
     }
 
@@ -138,7 +144,7 @@ export default function ResReport() {
     return data;
   }, [
     filteredRestaurants,
-    selectedType,
+    selectedTypes,
     activeFilter,
     minOrders,
     maxOrders,
@@ -313,7 +319,12 @@ export default function ResReport() {
       },
     },
   ];
-
+  const filteredTotalOrders = useMemo(() => {
+    return displayedRestaurants.reduce(
+      (sum, restaurant) => sum + (restaurant.ordersCount || 0),
+      0,
+    );
+  }, [displayedRestaurants]);
   return (
     <div className="container mx-auto py-10 space-y-8">
       <div>
@@ -440,8 +451,16 @@ export default function ResReport() {
           {["all", "mega", "super", "A", "B", "C", "C-", "test"].map((type) => (
             <Button
               key={type}
-              variant={(selectedType || "all") === type ? "default" : "outline"}
-              onClick={() => setSelectedType(type)}
+              variant={
+                type === "all"
+                  ? selectedTypes.length === 0
+                    ? "default"
+                    : "outline"
+                  : selectedTypes.includes(type)
+                    ? "default"
+                    : "outline"
+              }
+              onClick={() => toggleType(type)}
             >
               {type === "all"
                 ? "All"
@@ -539,20 +558,34 @@ export default function ResReport() {
         </div>
       )}
       {/* جدول المطاعم: يعكس الكارت المختار (الكل أو نوع محدد) */}
+
       {showTable && (
-        <GenericDataTable
-          title={
-            activeFilter === "total"
-              ? "All Restaurants"
-              : `Restaurants — Type "${activeFilter}"`
-          }
-          columns={columns}
-          data={displayedRestaurants}
-          isLoading={isLoading}
-          queryKey="restaurantOrdersReport"
-          onEdit={false}
-          actions={false}
-        />
+        <>
+          <div className="flex justify-end mb-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-3">
+              <p className="text-xs text-slate-500">
+                Total Orders (Current Filter)
+              </p>
+              <p className="text-2xl font-bold text-blue-600">
+                {filteredTotalOrders.toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          <GenericDataTable
+            title={
+              activeFilter === "total"
+                ? "All Restaurants"
+                : `Restaurants — Type "${activeFilter}"`
+            }
+            columns={columns}
+            data={displayedRestaurants}
+            isLoading={isLoading}
+            queryKey="restaurantOrdersReport"
+            onEdit={false}
+            actions={false}
+          />
+        </>
       )}
 
       {/* Popup showing full restaurant details when a name is clicked */}
@@ -626,10 +659,16 @@ export default function ResReport() {
 
                     <div>
                       <p className="text-xs font-medium text-slate-400">
-                        Owner
+                        Responsible Person
                       </p>
                       <p className="font-semibold text-slate-700">
                         {owner || "-"}
+                      </p>
+                       <p className="text-xs font-medium text-slate-400">
+                        Responsible Person position
+                      </p>
+                        <p className="font-semibold text-slate-700">
+                        {d.ownerposition || "-"}
                       </p>
                       <p className="text-slate-500">{d.ownerPhone || "-"}</p>
                     </div>
