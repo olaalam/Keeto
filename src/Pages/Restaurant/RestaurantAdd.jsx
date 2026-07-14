@@ -101,6 +101,8 @@ const RestaurantAdd = () => {
         status: raw.status || "active",
         type: raw.type || raw.restauranttype || "",
         likes: raw.likes || 0,
+        facebookLink: raw.facebookLink || "",
+        orderLink: raw.orderLink || "",
         ownerposition: raw.ownerposition || "",
         // ربط قيم الـ Business Plan بالـ inputs المؤقتة بالفورم لتعمل في الـ Edit تلقائياً
         online_commissionRate: onlinePlan.commissionRate || "",
@@ -276,6 +278,8 @@ const RestaurantAdd = () => {
             "cuisineId",
             "tags",
             "likes",
+            "facebookLink",
+            "orderLink",
           ],
           business: [
             "ownerFirstName",
@@ -409,6 +413,22 @@ const RestaurantAdd = () => {
                   <Input
                     type="number"
                     {...register("likes", { required: true })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Facebook Link *</Label>
+                  <Input
+                    {...register("facebookLink", { required: true })}
+                    placeholder="Facebook Link"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Order Link *</Label>
+                  <Input
+                    {...register("orderLink", { required: true })}
+                    placeholder="Order Link"
                   />
                 </div>
 
@@ -635,10 +655,7 @@ const RestaurantAdd = () => {
                   <Label>Responsible person Name *</Label>
                   <Input {...register("ownerFirstName", { required: true })} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Responsible person Name *</Label>
-                  <Input {...register("ownerLastName", { required: true })} />
-                </div>
+
                 <div className="space-y-2">
                   <Label>Responsible person Phone *</Label>
                   <Input {...register("ownerPhone", { required: true })} />

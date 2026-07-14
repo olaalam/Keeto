@@ -23,10 +23,47 @@ import {
   Wallet,
   Tag,
   X,
+  Phone,
+  MessageCircle,
 } from "lucide-react";
 
-// Defined outside the component so it isn't re-created (and every card
-// re-mounted) on each render — keeps re-renders cheap.
+// Inline Custom SVGs to prevent lucide-react version export errors
+const FacebookIcon = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const LinkIcon = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
+);
+
+// Standardized dashboard card component modeled after the provided screenshot
 const Card = ({ title, value, icon: Icon, borderColor, bgColor }) => (
   <div
     className={`bg-white border-2 ${borderColor} rounded-3xl p-4 sm:p-6 flex items-center justify-between gap-3`}
@@ -52,9 +89,7 @@ export default function ResReport() {
   const [endDate, setEndDate] = useState("");
   const [minOrders, setMinOrders] = useState("");
   const [maxOrders, setMaxOrders] = useState("");
-  // Raw, immediately-controlled input values. The committed min/max state
-  // above (used for filtering) updates 300ms after typing stops, so large
-  // tables aren't re-filtered on every keystroke.
+
   const [minOrdersInput, setMinOrdersInput] = useState("");
   const [maxOrdersInput, setMaxOrdersInput] = useState("");
   const [orderSort, setOrderSort] = useState("");
@@ -122,6 +157,18 @@ export default function ResReport() {
     );
   }, [displayedRestaurants]);
 
+  // Generate stats grouped by type for the filtered restaurants
+  const statsByType = useMemo(() => {
+    const stats = {};
+    displayedRestaurants.forEach((r) => {
+      const type = r.restaurantDetails?.type || "Unknown";
+      if (!stats[type]) stats[type] = { count: 0, orders: 0 };
+      stats[type].count += 1;
+      stats[type].orders += r.ordersCount || 0;
+    });
+    return stats;
+  }, [displayedRestaurants]);
+
   const toggleType = useCallback((type) => {
     if (type === "all") setSelectedTypes([]);
     else
@@ -138,7 +185,9 @@ export default function ResReport() {
     minOrdersInput !== "" ||
     maxOrdersInput !== "" ||
     orderSort !== "" ||
-    selectedTypes.length > 0;
+    selectedTypes.length > 0 ||
+    startDate !== "" ||
+    endDate !== "";
 
   const clearFilters = useCallback(() => {
     setMinOrdersInput("");
@@ -147,6 +196,8 @@ export default function ResReport() {
     setMaxOrders("");
     setOrderSort("");
     setSelectedTypes([]);
+    setStartDate("");
+    setEndDate("");
   }, []);
 
   const restaurantColumns = useMemo(
@@ -235,7 +286,7 @@ export default function ResReport() {
   );
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8">
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8 bg-[#fafafa] min-h-screen">
       {showTable && (
         <Button
           variant="outline"
@@ -263,6 +314,17 @@ export default function ResReport() {
           onChange={(e) => setEndDate(e.target.value)}
           className="w-full sm:w-40"
         />
+        {/* Added Clear Button Next to Dates */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            onClick={clearFilters}
+            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       {!showTable ? (
@@ -307,7 +369,7 @@ export default function ResReport() {
           />
           <Card
             title="Total Commission"
-            value={`${(summary.total_commission ?? 0).toFixed(2)} EGP`}
+            value={`${Number(summary.total_commission ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`}
             icon={Wallet}
             borderColor="border-amber-500"
             bgColor="bg-amber-50 text-amber-600"
@@ -415,22 +477,55 @@ export default function ResReport() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Card
-              title=" Orders"
-              value={filteredSummary.totalOrders}
-              icon={ShoppingBag}
-              borderColor="border-blue-500"
-              bgColor="bg-blue-50 text-blue-600"
-            />
 
-            <Card
-              title=" Restaurants"
-              value={filteredSummary.totalRestaurants}
-              icon={Store}
-              borderColor="border-emerald-500"
-              bgColor="bg-emerald-50 text-emerald-600"
-            />
+          {/* Simple Cards with Soft Backgrounds and No Icons (Matching image_99655f.png layout) */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Total Orders Box */}
+            <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-4 sm:p-6 flex flex-col justify-center shadow-sm">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Total Orders
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mt-1">
+                {filteredSummary.totalOrders}
+              </h2>
+            </div>
+
+            {/* Restaurants Box */}
+            <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 sm:p-6 flex flex-col justify-center shadow-sm">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Restaurants
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mt-1">
+                {filteredSummary.totalRestaurants}
+              </h2>
+            </div>
+          </div>
+
+          {/* Stats By Type Cards */}
+          <div className="bg-white border rounded-2xl p-4 mb-4">
+            <h3 className="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">
+              Statistics by Type
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {Object.entries(statsByType).map(([type, stats]) => (
+                <div
+                  key={type}
+                  className="bg-slate-50 border rounded-xl p-3 text-center"
+                >
+                  <p className="text-sm font-bold text-slate-800 capitalize">
+                    {type}
+                  </p>
+                  <div className="flex justify-between items-center mt-2 text-xs text-slate-600">
+                    <span>
+                      Rests: <strong>{stats.count}</strong>
+                    </span>
+                    <span>
+                      Orders: <strong>{stats.orders}</strong>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="w-full overflow-x-auto rounded-2xl border bg-white">
@@ -443,38 +538,41 @@ export default function ResReport() {
         </>
       )}
 
-      {/* Popup showing full restaurant details when a name is clicked */}
+      {/* Popup showing full restaurant details with Facebook and Order Links */}
       <Dialog
         open={!!selectedRestaurant}
         onOpenChange={(open) => !open && setSelectedRestaurant(null)}
       >
-        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl p-6">
           {selectedRestaurant &&
             (() => {
               const d = selectedRestaurant.restaurantDetails || {};
               const isActive = d.status === "active";
               const owner =
                 `${d.ownerFirstName || ""} ${d.ownerLastName || ""}`.trim();
+              const phoneRegex = d.ownerPhone
+                ? d.ownerPhone.replace(/\D/g, "")
+                : "";
 
               return (
                 <>
                   <DialogHeader>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
                       {d.logo && (
                         <img
                           src={d.logo}
                           alt={d.name}
-                          className="w-14 h-14 rounded-xl object-cover border"
+                          className="w-14 h-14 rounded-xl object-cover border border-slate-200 shadow-sm"
                         />
                       )}
                       <div>
-                        <DialogTitle className="text-lg">
+                        <DialogTitle className="text-lg font-bold text-slate-800">
                           {d.name || d.nameAr || "-"}
                         </DialogTitle>
                         <DialogDescription asChild>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-1.5">
                             <span
-                              className={`px-2 py-0.5 rounded-lg text-xs font-semibold capitalize ${
+                              className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${
                                 isActive
                                   ? "bg-emerald-50 text-emerald-600"
                                   : "bg-rose-50 text-rose-600"
@@ -482,7 +580,7 @@ export default function ResReport() {
                             >
                               {d.status || "-"}
                             </span>
-                            <span className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">
+                            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-600">
                               {d.type || "Unknown"}
                             </span>
                           </div>
@@ -491,53 +589,114 @@ export default function ResReport() {
                     </div>
                   </DialogHeader>
 
-                  <div className="space-y-4 text-sm mt-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs font-medium text-slate-400">
+                  <div className="space-y-5 text-sm pt-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                        <p className="text-xs font-semibold text-slate-400 mb-0.5">
                           Orders Count
                         </p>
-                        <p className="font-semibold font-mono text-blue-600">
+                        <p className="font-bold font-mono text-blue-600 text-lg">
                           {selectedRestaurant.ordersCount ?? 0}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs font-medium text-slate-400">
+                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                        <p className="text-xs font-semibold text-slate-400 mb-0.5">
                           Delivery Time
                         </p>
-                        <p className="font-semibold text-slate-700">
-                          {d.minDeliveryTime || 0}–{d.maxDeliveryTime || 0}{" "}
-                          {d.deliveryTimeUnit || "min"}
+                        <p className="font-bold text-slate-700 text-lg">
+                          {d.minDeliveryTime || 0}–{d.maxDeliveryTime || 0}
+                          <span className="text-xs font-normal text-slate-400 ml-1">
+                            {d.deliveryTimeUnit || "min"}
+                          </span>
                         </p>
                       </div>
                     </div>
 
-                    <div>
-                      <p className="text-xs font-medium text-slate-400">
-                        Sales Representative
-                      </p>
-                      <p className="font-semibold text-slate-700">
-                        {d.salesObj?.name || "-"}
-                      </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                          Sales Representative
+                        </p>
+                        <p className="font-semibold text-slate-700 mt-0.5">
+                          {d.salesObj?.name || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                          Responsible Person
+                        </p>
+                        <p className="font-semibold text-slate-700 mt-0.5">
+                          {owner || "-"}
+                          {d.ownerposition && (
+                            <span className="text-slate-400 font-normal text-xs ml-1">
+                              ({d.ownerposition})
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <p className="text-xs font-medium text-slate-400">
-                        Responsible Person
+                    {/* Contact Channels & Custom Social Links */}
+                    <div className="pt-4 border-t border-slate-100 space-y-3">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Contact Channels & Links
                       </p>
-                      <p className="font-semibold text-slate-700">
-                        {owner || "-"}
-                      </p>
-                      <p className="text-xs font-medium text-slate-400">
-                        Responsible Person position
-                      </p>
-                      <p className="font-semibold text-slate-700">
-                        {d.ownerposition || "-"}
-                      </p>
-                      <p className="text-slate-500">{d.ownerPhone || "-"}</p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {d.ownerPhone && (
+                          <>
+                            <a
+                              href={`tel:${d.ownerPhone}`}
+                              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors border border-slate-200/40"
+                            >
+                              <Phone className="w-3.5 h-3.5 text-slate-500" />
+                              Call Owner
+                            </a>
+                            <a
+                              href={`https://wa.me/${phoneRegex}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-green-50 text-green-600 rounded-xl text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200/40"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              WhatsApp Chat
+                            </a>
+                          </>
+                        )}
+
+                        {d.facebookLink && (
+                          <a
+                            href={d.facebookLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-100 transition-colors border border-blue-200/40"
+                          >
+                            <FacebookIcon className="w-3.5 h-3.5" />
+                            Facebook Page
+                          </a>
+                        )}
+
+                        {d.orderLink && (
+                          <a
+                            href={d.orderLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-semibold hover:bg-indigo-100 transition-colors border border-indigo-200/40"
+                          >
+                            <LinkIcon className="w-3.5 h-3.5" />
+                            Direct Order Link
+                          </a>
+                        )}
+                      </div>
+
+                      {!d.ownerPhone && !d.facebookLink && !d.orderLink && (
+                        <p className="text-xs text-slate-400 italic">
+                          No contact lines or metadata available.
+                        </p>
+                      )}
                     </div>
 
-                    <div className="text-xs text-slate-400 pt-2 border-t">
+                    <div className="text-xs text-slate-400 pt-3 border-t border-slate-100">
                       Registered{" "}
                       {d.createdAt
                         ? new Date(d.createdAt).toLocaleDateString()
