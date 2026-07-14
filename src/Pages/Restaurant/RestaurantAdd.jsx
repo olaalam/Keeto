@@ -54,6 +54,15 @@ const RestaurantAdd = () => {
     },
   });
 
+  // جلب قائمة الـ Sales النشطين لاختيار الـ Sales المسؤول عن المطعم
+  const { data: salesData, isLoading: isLoadingSales } = useQuery({
+    queryKey: ["activeSales"],
+    queryFn: async () => {
+      const res = await api.get("/api/superadmin/restaurants/sales/active");
+      return res.data.data.data;
+    },
+  });
+
   // جلب بيانات المطعم في حالة التعديل وفرد الـ Business Plans داخل الفورم
   const { data: fetchedData, isLoading: isFetching } = useQuery({
     queryKey: ["restaurant", id],
@@ -86,6 +95,7 @@ const RestaurantAdd = () => {
         ...raw,
         cuisineId: initialCuisineIds,
         zoneId: String(raw.zoneId || ""),
+        salesId: raw.salesId ? String(raw.salesId) : "",
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
         status: raw.status || "active",
@@ -116,7 +126,8 @@ const RestaurantAdd = () => {
 
   const initialData = state?.restaurantData || fetchedData;
 
-  if (id && (isFetching || isLoadingSelect)) return <LoadingSpinner />;
+  if (id && (isFetching || isLoadingSelect || isLoadingSales))
+    return <LoadingSpinner />;
 
   return (
     <AddPage
@@ -635,6 +646,31 @@ const RestaurantAdd = () => {
                 <div className="space-y-2">
                   <Label>Responsible person Position *</Label>
                   <Input {...register("ownerposition", { required: true })} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Sales Representative</Label>
+                  <Controller
+                    name="salesId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Sales" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {salesData?.map((s) => (
+                            <SelectItem key={s.id} value={String(s.id)}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
 
                 {isEdit && (

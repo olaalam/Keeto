@@ -296,6 +296,23 @@ export default function ResReport() {
       ),
     },
     {
+      accessorKey: "total_commission",
+      header: () => (
+        <div className="text-right font-bold min-w-[130px]">
+          Total Commission
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-right font-semibold font-mono text-amber-600">
+          {(row.getValue("total_commission") ?? 0).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}{" "}
+          EGP
+        </div>
+      ),
+    },
+    {
       accessorKey: "restaurantDetails.status",
       header: () => (
         <div className="text-center font-bold min-w-[100px]">Status</div>
@@ -659,27 +676,27 @@ export default function ResReport() {
 
                     <div>
                       <p className="text-xs font-medium text-slate-400">
+                        Sales Representative
+                      </p>
+                      <p className="font-semibold text-slate-700">
+                        {d.salesObj?.name || "-"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-400">
                         Responsible Person
                       </p>
                       <p className="font-semibold text-slate-700">
                         {owner || "-"}
                       </p>
-                       <p className="text-xs font-medium text-slate-400">
+                      <p className="text-xs font-medium text-slate-400">
                         Responsible Person position
                       </p>
-                        <p className="font-semibold text-slate-700">
+                      <p className="font-semibold text-slate-700">
                         {d.ownerposition || "-"}
                       </p>
                       <p className="text-slate-500">{d.ownerPhone || "-"}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-medium text-slate-400">
-                        Address
-                      </p>
-                      <p className="font-medium text-slate-700">
-                        {d.address || d.addressAr || "-"}
-                      </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
