@@ -18,8 +18,8 @@ export default function Sales() {
 
   const columns = [
     { accessorKey: "name", header: "Name" },
-    { accessorKey: "phone", header: "Phine" },
-    { accessorKey: "email", header: " Email" },
+    /* { accessorKey: "phone", header: "Phine" },
+    { accessorKey: "email", header: " Email" }, */
     { accessorKey: "points", header: "Points" },
     {
       accessorKey: "status",

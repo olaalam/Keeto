@@ -159,14 +159,28 @@ export default function ResReport() {
 
   // Generate stats grouped by type for the filtered restaurants
   const statsByType = useMemo(() => {
-    const stats = {};
+    // 1. Initialize with predefined order (excluding 'all' since it's a filter, not a type)
+    const statsMap = new Map();
+    RESTAURANT_TYPES.filter((t) => t !== "all").forEach((type) => {
+      statsMap.set(type, { count: 0, orders: 0 });
+    });
+
+    // 2. Populate with actual data
     displayedRestaurants.forEach((r) => {
       const type = r.restaurantDetails?.type || "Unknown";
-      if (!stats[type]) stats[type] = { count: 0, orders: 0 };
-      stats[type].count += 1;
-      stats[type].orders += r.ordersCount || 0;
+
+      // If a new/unknown type appears that isn't in RESTAURANT_TYPES, append it to the end
+      if (!statsMap.has(type)) {
+        statsMap.set(type, { count: 0, orders: 0 });
+      }
+
+      const current = statsMap.get(type);
+      current.count += 1;
+      current.orders += r.ordersCount || 0;
     });
-    return stats;
+
+    // 3. Return as an array of entries to strictly preserve the insertion order
+    return Array.from(statsMap.entries());
   }, [displayedRestaurants]);
 
   const toggleType = useCallback((type) => {
@@ -507,7 +521,7 @@ export default function ResReport() {
               Statistics by Type
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {Object.entries(statsByType).map(([type, stats]) => (
+              {statsByType.map(([type, stats]) => (
                 <div
                   key={type}
                   className="bg-slate-50 border rounded-xl p-3 text-center"

@@ -41,10 +41,10 @@ const SalesAdd = () => {
   const salesFields = [
     { name: "name", label: "Name", required: true },
     { name: "phone", label: "Phone", required: true },
-    { name: "email", label: "Email", required: false },
-    { name: "points", label: "Points", required:false, type: "number" }, // تحويل لنوع رقم
-    { name: "password", label: "Password", required: false, type: "password" }, // إخفاء الباسورد في الإيديت
-  ].filter((field) => !(id && field.name === "password")); // إخفاء الباسورد في الإيديت
+   // { name: "email", label: "Email", required: false },
+    //{ name: "points", label: "Points", required:false, type: "number" }, // تحويل لنوع رقم
+    //{ name: "password", label: "Password", required: false, type: "password" }, // إخفاء الباسورد في الإيديت
+  ]//.filter((field) => !(id && field.name === "password")); // إخفاء الباسورد في الإيديت
 
   if (id && isFetching) return <LoadingSpinner />;
 
