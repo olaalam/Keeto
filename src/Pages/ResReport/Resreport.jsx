@@ -87,52 +87,60 @@ const RESTAURANT_TYPES = ["all", "mega", "super", "A", "B", "C", "C-", "test"];
 // Color map for distinct styling based on restaurant type
 const TYPE_COLORS = {
   mega: {
-    bg: "bg-purple-50",
-    border: "border-purple-200",
-    title: "text-purple-800",
-    text: "text-purple-600",
+    bg: "bg-rose-50",
+    border: "border-rose-200",
+    title: "text-rose-800",
+    text: "text-rose-600",
+    accent: "bg-rose-500",
   },
   super: {
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    title: "text-blue-800",
-    text: "text-blue-600",
+    bg: "bg-sky-50",
+    border: "border-sky-200",
+    title: "text-sky-800",
+    text: "text-sky-600",
+    accent: "bg-sky-500",
   },
   A: {
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     title: "text-emerald-800",
     text: "text-emerald-600",
+    accent: "bg-emerald-500",
   },
   B: {
     bg: "bg-amber-50",
     border: "border-amber-200",
     title: "text-amber-800",
     text: "text-amber-700",
+    accent: "bg-amber-500",
   },
   C: {
     bg: "bg-orange-50",
     border: "border-orange-200",
     title: "text-orange-800",
     text: "text-orange-700",
+    accent: "bg-orange-500",
   },
   "C-": {
-    bg: "bg-rose-50",
-    border: "border-rose-200",
-    title: "text-rose-800",
-    text: "text-rose-600",
+    bg: "bg-violet-50",
+    border: "border-violet-200",
+    title: "text-violet-800",
+    text: "text-violet-600",
+    accent: "bg-violet-500",
   },
   test: {
     bg: "bg-slate-100",
     border: "border-slate-300 border-dashed",
     title: "text-slate-700",
     text: "text-slate-500",
+    accent: "bg-slate-400",
   },
   default: {
-    bg: "bg-slate-50",
-    border: "border-slate-200",
-    title: "text-slate-800",
-    text: "text-slate-600",
+    bg: "bg-gray-50",
+    border: "border-gray-200",
+    title: "text-gray-800",
+    text: "text-gray-600",
+    accent: "bg-gray-400",
   },
 };
 
@@ -579,26 +587,31 @@ export default function ResReport() {
                 return (
                   <div
                     key={type}
-                    className={`border rounded-xl p-3 text-center ${colors.bg} ${colors.border}`}
+                    className={`relative overflow-hidden border rounded-xl p-3 pt-4 text-center min-w-0 ${colors.bg} ${colors.border}`}
                   >
+                    <div
+                      className={`absolute top-0 left-0 right-0 h-1 ${colors.accent}`}
+                    />
                     <p
-                      className={`text-sm font-bold capitalize ${colors.title}`}
+                      className={`text-sm font-bold capitalize truncate ${colors.title}`}
                     >
                       {type}
                     </p>
-                    <div className="flex justify-between items-center mt-3 pt-2 text-xs border-t border-black/5">
-                      <div
-                        className="flex items-center gap-1.5"
-                        title="Restaurants"
-                      >
-                        <Store className="w-3.5 h-3.5 text-green-500" />
-                        <span className={`font-semibold ${colors.text}`}>
+                    <div className="flex items-stretch justify-between mt-1.5 pt-2 text-xs border-t border-black/10">
+                      <div className="flex-1 min-w-0 flex flex-col items-center gap-0.5">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide truncate max-w-full">
+                          Restaurants
+                        </span>
+                        <span className={`font-bold text-sm ${colors.text}`}>
                           {stats.count}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5" title="Orders">
-                        <ShoppingBag className="w-3.5 h-3.5 text-yellow-500" />
-                        <span className={`font-semibold ${colors.text}`}>
+                      <div className="w-px bg-black/10 mx-2 shrink-0" />
+                      <div className="flex-1 min-w-0 flex flex-col items-center gap-0.5">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide truncate max-w-full">
+                          Orders
+                        </span>
+                        <span className={`font-bold text-sm ${colors.text}`}>
                           {stats.orders}
                         </span>
                       </div>
