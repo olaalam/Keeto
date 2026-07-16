@@ -62,6 +62,7 @@ import SalesAdd from "./Pages/Sales/salesAdd";
 import Branches from "./Pages/Branches/branches";
 import BranchesAdd from "./Pages/Branches/branchesAdd";
 import RestaurantsReport from "./Pages/ResReport/Resreport";
+import SalesReport from "./Pages/SalesReport/SalesReport";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -395,6 +396,10 @@ const router = createBrowserRouter([
         path: "restaurants-report",
         element: <RestaurantsReport />,
       },
+      {
+        path: "sales-report",
+        element: <SalesReport />,
+      }
       /*   {
         path: "users/add",
         element: <UsersAdd />,

@@ -7,6 +7,9 @@ import { Eye } from "lucide-react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import FoodListDialog from "./FoodListDialog";
+import { useUpdate } from "@/hooks/useUpdate";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 export default function Restaurant() {
   const navigate = useNavigate();
@@ -17,6 +20,11 @@ export default function Restaurant() {
     setSelectedRestaurant(restaurantId);
     setIsDialogOpen(true);
   };
+
+  const deliveryStatusMutation = useUpdate(
+    "/api/superadmin/restaurants",
+    "restaurants",
+  );
 
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ["restaurants"],
@@ -58,7 +66,7 @@ export default function Restaurant() {
     },
 
     // { accessorKey: "ownerPhone", header: "Phone" },
-     { accessorKey: "likes", header: "Likes" },
+    { accessorKey: "likes", header: "Likes" },
     { accessorKey: "type", header: "Type" },
     {
       accessorKey: "view_food",
@@ -139,6 +147,41 @@ export default function Restaurant() {
       accessorKey: "status",
       header: "status",
       // 💡 قمنا بحذف الـ cell بالكامل هنا لكي يتولى GenericDataTable توليد الـ Switch تلقائياً
+    },
+    {
+      accessorKey: "deliverystatus",
+      header: "Delivery Status",
+      cell: ({ row }) => {
+        const restaurant = row.original;
+        const isDelivered = restaurant.deliverystatus === "delivered";
+
+        return (
+          <div className="flex items-center justify-center gap-2">
+            <Switch
+              checked={isDelivered}
+              disabled={deliveryStatusMutation.isPending}
+              onCheckedChange={(checked) => {
+                deliveryStatusMutation.mutate({
+                  customUrl: `/api/superadmin/restaurants/${restaurant.id}/delivery-status`,
+                  payload: {
+                    deliverystatus: checked ? "delivered" : "not_delivered",
+                  },
+                });
+              }}
+            />
+            <span
+              className={cn(
+                "text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                isDelivered
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-slate-100 text-slate-500",
+              )}
+            >
+              {isDelivered ? "Delivered" : "Not Delivered"}
+            </span>
+          </div>
+        );
+      },
     },
   ];
   const exportToExcel = () => {

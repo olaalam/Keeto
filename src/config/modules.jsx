@@ -171,6 +171,7 @@ export const modules = [
         icon: KeetoIcon,
         module: "reports",
       },
+      { title: "Sales Report ", url: "/sales-report", icon: TrendingUp, module: "reports" },
     ],
   },
   {

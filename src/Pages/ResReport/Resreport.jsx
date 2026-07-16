@@ -84,6 +84,58 @@ const Card = ({ title, value, icon: Icon, borderColor, bgColor }) => (
 
 const RESTAURANT_TYPES = ["all", "mega", "super", "A", "B", "C", "C-", "test"];
 
+// Color map for distinct styling based on restaurant type
+const TYPE_COLORS = {
+  mega: {
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    title: "text-purple-800",
+    text: "text-purple-600",
+  },
+  super: {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    title: "text-blue-800",
+    text: "text-blue-600",
+  },
+  A: {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    title: "text-emerald-800",
+    text: "text-emerald-600",
+  },
+  B: {
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    title: "text-amber-800",
+    text: "text-amber-700",
+  },
+  C: {
+    bg: "bg-orange-50",
+    border: "border-orange-200",
+    title: "text-orange-800",
+    text: "text-orange-700",
+  },
+  "C-": {
+    bg: "bg-rose-50",
+    border: "border-rose-200",
+    title: "text-rose-800",
+    text: "text-rose-600",
+  },
+  test: {
+    bg: "bg-slate-100",
+    border: "border-slate-300 border-dashed",
+    title: "text-slate-700",
+    text: "text-slate-500",
+  },
+  default: {
+    bg: "bg-slate-50",
+    border: "border-slate-200",
+    title: "text-slate-800",
+    text: "text-slate-600",
+  },
+};
+
 export default function ResReport() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -521,24 +573,39 @@ export default function ResReport() {
               Statistics by Type
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {statsByType.map(([type, stats]) => (
-                <div
-                  key={type}
-                  className="bg-slate-50 border rounded-xl p-3 text-center"
-                >
-                  <p className="text-sm font-bold text-slate-800 capitalize">
-                    {type}
-                  </p>
-                  <div className="flex justify-between items-center mt-2 text-xs text-slate-600">
-                    <span>
-                      Rests: <strong>{stats.count}</strong>
-                    </span>
-                    <span>
-                      Orders: <strong>{stats.orders}</strong>
-                    </span>
+              {statsByType.map(([type, stats]) => {
+                const colors = TYPE_COLORS[type] || TYPE_COLORS.default;
+
+                return (
+                  <div
+                    key={type}
+                    className={`border rounded-xl p-3 text-center ${colors.bg} ${colors.border}`}
+                  >
+                    <p
+                      className={`text-sm font-bold capitalize ${colors.title}`}
+                    >
+                      {type}
+                    </p>
+                    <div className="flex justify-between items-center mt-3 pt-2 text-xs border-t border-black/5">
+                      <div
+                        className="flex items-center gap-1.5"
+                        title="Restaurants"
+                      >
+                        <Store className="w-3.5 h-3.5 text-green-500" />
+                        <span className={`font-semibold ${colors.text}`}>
+                          {stats.count}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5" title="Orders">
+                        <ShoppingBag className="w-3.5 h-3.5 text-yellow-500" />
+                        <span className={`font-semibold ${colors.text}`}>
+                          {stats.orders}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -584,7 +651,7 @@ export default function ResReport() {
                           {d.name || d.nameAr || "-"}
                         </DialogTitle>
                         <DialogDescription asChild>
-                          <div className="flex items-center gap-2 mt-1.5">
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             <span
                               className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${
                                 isActive
@@ -596,6 +663,17 @@ export default function ResReport() {
                             </span>
                             <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-600">
                               {d.type || "Unknown"}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${
+                                d.deliverystatus === "delivered"
+                                  ? "bg-emerald-50 text-emerald-600"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {d.deliverystatus === "delivered"
+                                ? "Delivered"
+                                : "Not Delivered"}
                             </span>
                           </div>
                         </DialogDescription>
@@ -622,6 +700,22 @@ export default function ResReport() {
                           <span className="text-xs font-normal text-slate-400 ml-1">
                             {d.deliveryTimeUnit || "min"}
                           </span>
+                        </p>
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                        <p className="text-xs font-semibold text-slate-400 mb-0.5">
+                          Delivery Status
+                        </p>
+                        <p
+                          className={`font-bold text-lg capitalize ${
+                            d.deliverystatus === "delivered"
+                              ? "text-emerald-600"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {d.deliverystatus === "delivered"
+                            ? "Delivered"
+                            : "Not Delivered"}
                         </p>
                       </div>
                     </div>
@@ -664,7 +758,7 @@ export default function ResReport() {
                               className="flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors border border-slate-200/40"
                             >
                               <Phone className="w-3.5 h-3.5 text-slate-500" />
-                              Call Owner
+                              Call
                             </a>
                             <a
                               href={`https://wa.me/${phoneRegex}`}
