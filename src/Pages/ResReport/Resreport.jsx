@@ -84,6 +84,17 @@ const Card = ({ title, value, icon: Icon, borderColor, bgColor }) => (
 
 const RESTAURANT_TYPES = ["all", "mega", "super", "A", "B", "C", "C-", "test"];
 
+// Rank used to order/tie-break by restaurant type: mega > super > A > B > C > C- > test
+const TYPE_ORDER = ["mega", "super", "A", "B", "C", "C-", "test"].reduce(
+  (acc, type, index) => {
+    acc[type] = index;
+    return acc;
+  },
+  {},
+);
+const getTypeRank = (type) =>
+  TYPE_ORDER[type] !== undefined ? TYPE_ORDER[type] : TYPE_ORDER.length;
+
 // Color map for distinct styling based on restaurant type
 const TYPE_COLORS = {
   mega: {
@@ -193,10 +204,27 @@ export default function ResReport() {
       data = data.filter((r) => (r.ordersCount ?? 0) >= Number(minOrders));
     if (maxOrders !== "")
       data = data.filter((r) => (r.ordersCount ?? 0) <= Number(maxOrders));
-    if (orderSort === "asc")
-      data.sort((a, b) => (a.ordersCount ?? 0) - (b.ordersCount ?? 0));
-    if (orderSort === "desc")
-      data.sort((a, b) => (b.ordersCount ?? 0) - (a.ordersCount ?? 0));
+    if (orderSort === "asc") {
+      data.sort((a, b) => {
+        const diff = (a.ordersCount ?? 0) - (b.ordersCount ?? 0);
+        if (diff !== 0) return diff;
+        // Same ordersCount -> tie-break by type order (mega, super, A, B, C, C-, test)
+        return (
+          getTypeRank(a.restaurantDetails?.type) -
+          getTypeRank(b.restaurantDetails?.type)
+        );
+      });
+    } else if (orderSort === "desc") {
+      data.sort((a, b) => {
+        const diff = (b.ordersCount ?? 0) - (a.ordersCount ?? 0);
+        if (diff !== 0) return diff;
+        // Same ordersCount -> tie-break by type order (mega, super, A, B, C, C-, test)
+        return (
+          getTypeRank(a.restaurantDetails?.type) -
+          getTypeRank(b.restaurantDetails?.type)
+        );
+      });
+    }
     return data;
   }, [restaurants, selectedTypes, minOrders, maxOrders, orderSort]);
 
@@ -350,6 +378,32 @@ export default function ResReport() {
                 }`}
               >
                 {status}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "restaurantDetails.deliverystatus",
+        header: () => (
+          <div className="text-center font-bold min-w-[100px]">
+            Delivery Status
+          </div>
+        ),
+        cell: ({ row }) => {
+          const Deliverystatus =
+            row.original.restaurantDetails?.deliverystatus || "-";
+          const isDelivering = Deliverystatus === "delivered";
+          return (
+            <div className="text-center">
+              <span
+                className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold capitalize ${
+                  isDelivering
+                    ? "bg-emerald-50 text-emerald-600"
+                    : "bg-rose-50 text-rose-600"
+                }`}
+              >
+                {Deliverystatus}
               </span>
             </div>
           );

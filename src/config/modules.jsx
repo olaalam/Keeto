@@ -1,4 +1,4 @@
-import { icon, popup } from "leaflet";
+//import { icon, popup } from "leaflet";
 import {
   LayoutDashboard,
   UserCog,
@@ -11,6 +11,7 @@ import {
   Library,
   Beef,
   ChefHat,
+  Settings,
   Utensils,
   Wallet,
   PlusSquare,
@@ -148,22 +149,10 @@ export const modules = [
         module: "reports",
       },
       {
-        title: "Business Plans",
-        url: "/business-plans",
-        icon: Briefcase,
-        module: "BusninessPlan",
-      },
-      {
-        title: "Financial report",
+        title: "Financial Report",
         url: "/financial-report",
         icon: FileBarChart,
         module: "reports",
-      },
-      {
-        title: "Payment Methods",
-        url: "/payment-methods",
-        icon: Wallet,
-        module: "RestaurantWallets",
       },
       {
         title: "MyKeeto Report",
@@ -171,7 +160,12 @@ export const modules = [
         icon: KeetoIcon,
         module: "reports",
       },
-      { title: "Sales Report ", url: "/sales-report", icon: TrendingUp, module: "reports" },
+      {
+        title: "Sales Report ",
+        url: "/sales-report",
+        icon: TrendingUp,
+        module: "reports",
+      },
     ],
   },
   {
@@ -192,6 +186,25 @@ export const modules = [
         module: "Coupons",
       },
       { title: "Popup", url: "/popup", icon: Layers, module: "popup" },
+    ],
+  },
+  {
+    name: "Settings",
+    key: "settings",
+    icon: Settings,
+    items: [
+      {
+        title: "Business Plans",
+        url: "/business-plans",
+        icon: Briefcase,
+        module: "BusninessPlan",
+      },
+      {
+        title: "Payment Methods",
+        url: "/payment-methods",
+        icon: Wallet,
+        module: "RestaurantWallets",
+      },
     ],
   },
 ];
