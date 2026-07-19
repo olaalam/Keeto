@@ -427,7 +427,7 @@ const RestaurantAdd = () => {
                 <div className="space-y-2">
                   <Label>Order Link *</Label>
                   <Input
-                    {...register("orderLink", { required: true })}
+                    {...register("orderLink", { required: false })}
                     placeholder="Order Link"
                   />
                 </div>

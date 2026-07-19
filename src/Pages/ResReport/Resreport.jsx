@@ -25,6 +25,8 @@ import {
   X,
   Phone,
   MessageCircle,
+  ArrowLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // Inline Custom SVGs to prevent lucide-react version export errors
@@ -69,8 +71,8 @@ const Card = ({ title, value, icon: Icon, borderColor, bgColor }) => (
     className={`bg-white border-2 ${borderColor} rounded-3xl p-4 sm:p-6 flex items-center justify-between gap-3`}
   >
     <div className="min-w-0">
-      <p className="text-sm text-slate-500 font-medium truncate">{title}</p>
-      <h2 className="text-xl sm:text-2xl font-bold mt-1 text-slate-900 truncate">
+      <p className="text-sm text-slate-500 font-medium ">{title}</p>
+      <h2 className="text-lg sm:text-xl font-bold mt-1 text-slate-900">
         {value}
       </h2>
     </div>
@@ -168,6 +170,13 @@ export default function ResReport() {
   const [showTable, setShowTable] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
 
+  // "with" -> restaurants that have orders, "without" -> restaurants with no orders.
+  // We deliberately do NOT add a per-type list here (per request) — only these two.
+  const [restaurantListMode, setRestaurantListMode] = useState(null);
+  // Remembers which list (if any) the currently open detail popup was opened
+  // from, so we can offer a "Back to list" link instead of just closing.
+  const [detailOpenedFromList, setDetailOpenedFromList] = useState(null);
+
   useEffect(() => {
     const t = setTimeout(() => setMinOrders(minOrdersInput), 300);
     return () => clearTimeout(t);
@@ -190,6 +199,19 @@ export default function ResReport() {
 
   const summary = reportData?.summary || {};
   const restaurants = reportData?.restaurants || [];
+
+  // Full (unfiltered) split by whether the restaurant has any orders — this
+  // mirrors the summary.restaurantsWithOrders / restaurantsWithoutOrders
+  // counts shown in the top cards, so clicking a card shows exactly those
+  // restaurants.
+  const restaurantsWithOrdersList = useMemo(
+    () => restaurants.filter((r) => (r.ordersCount ?? 0) > 0),
+    [restaurants],
+  );
+  const restaurantsWithoutOrdersList = useMemo(
+    () => restaurants.filter((r) => (r.ordersCount ?? 0) === 0),
+    [restaurants],
+  );
 
   const displayedRestaurants = useMemo(() => {
     let data = restaurants.filter(
@@ -309,7 +331,10 @@ export default function ResReport() {
         header: "Restaurant",
         cell: ({ row }) => (
           <button
-            onClick={() => setSelectedRestaurant(row.original)}
+            onClick={() => {
+              setDetailOpenedFromList(null);
+              setSelectedRestaurant(row.original);
+            }}
             className="text-blue-600 hover:underline"
           >
             {row.original.restaurantDetails?.name}
@@ -463,7 +488,7 @@ export default function ResReport() {
           >
             <Card
               title="Total Orders"
-              value={summary.totalOrders ?? 0}
+              value={`${summary.totalOrders ?? 0} /  ${summary.restaurantsWithOrders ?? 0} with orders`}
               icon={ShoppingBag}
               borderColor="border-blue-500"
               bgColor="bg-blue-50 text-blue-600"
@@ -495,6 +520,19 @@ export default function ResReport() {
             borderColor="border-rose-500"
             bgColor="bg-rose-50 text-rose-600"
           />
+
+          <button
+            onClick={() => setRestaurantListMode("without")}
+            className="w-full text-left"
+          >
+            <Card
+              title="Restaurants missing Orders"
+              value={summary.restaurantsWithoutOrders ?? 0}
+              icon={ShoppingBag}
+              borderColor="border-rose-500"
+              bgColor="bg-rose-50 text-rose-600"
+            />
+          </button>
           <Card
             title="Total Commission"
             value={`${Number(summary.total_commission ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`}
@@ -686,10 +724,96 @@ export default function ResReport() {
         </>
       )}
 
+      {/* Restaurant list popup — opened from "Restaurants make Orders" / "Restaurants missing Orders" cards */}
+      <Dialog
+        open={!!restaurantListMode}
+        onOpenChange={(open) => !open && setRestaurantListMode(null)}
+      >
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-2xl p-0">
+          {(() => {
+            const list =
+              restaurantListMode === "with"
+                ? restaurantsWithOrdersList
+                : restaurantsWithoutOrdersList;
+            const title =
+              restaurantListMode === "with"
+                ? `Restaurants with Orders (${list.length})`
+                : `Restaurants without Orders (${list.length})`;
+
+            return (
+              <>
+                <DialogHeader className="bg-slate-50 p-5 border-b border-slate-100">
+                  <DialogTitle className="text-lg font-bold text-slate-800">
+                    {title}
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="p-4 space-y-2">
+                  {list.length > 0 ? (
+                    list.map((r) => {
+                      const d = r.restaurantDetails || {};
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => {
+                            // No API call needed here — this report already
+                            // loaded the full restaurant record client-side,
+                            // so we just reuse it directly for the detail
+                            // popup instead of re-fetching by id.
+                            setDetailOpenedFromList(restaurantListMode);
+                            setSelectedRestaurant(r);
+                            setRestaurantListMode(null);
+                          }}
+                          className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-300 hover:shadow-sm transition-all text-left"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-800 truncate">
+                              {d.name || d.nameAr || "-"}
+                            </p>
+                            {d.nameAr && (
+                              <p className="text-xs text-slate-400 truncate">
+                                {d.nameAr}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-600">
+                              {d.type || "Unknown"}
+                            </span>
+                            <span className="text-xs font-bold font-mono text-slate-600">
+                              {r.ordersCount ?? 0} orders
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-slate-400" />
+                          </div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      <p className="text-sm text-slate-500">
+                        No restaurants in this list.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Popup showing full restaurant details with Facebook and Order Links */}
       <Dialog
         open={!!selectedRestaurant}
-        onOpenChange={(open) => !open && setSelectedRestaurant(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            // If this popup was opened from one of the lists above, going
+            // back there is one click away via the "Back" link instead.
+            setSelectedRestaurant(null);
+            setDetailOpenedFromList(null);
+          }
+        }}
       >
         <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl p-6">
           {selectedRestaurant &&
@@ -705,6 +829,19 @@ export default function ResReport() {
               return (
                 <>
                   <DialogHeader>
+                    {detailOpenedFromList && (
+                      <button
+                        onClick={() => {
+                          setRestaurantListMode(detailOpenedFromList);
+                          setSelectedRestaurant(null);
+                          setDetailOpenedFromList(null);
+                        }}
+                        className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-1"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        Back to list
+                      </button>
+                    )}
                     <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
                       {d.logo && (
                         <img
