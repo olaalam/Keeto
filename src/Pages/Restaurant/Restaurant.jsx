@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
@@ -15,6 +15,8 @@ export default function Restaurant() {
   const navigate = useNavigate();
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState("all");
+  const [likesSort, setLikesSort] = useState("");
 
   const openFoodDialog = (restaurantId) => {
     setSelectedRestaurant(restaurantId);
@@ -33,7 +35,9 @@ export default function Restaurant() {
       return res.data.data.data; // بناءً على هيكل الـ Response الخاص بكِ
     },
   });
-
+  const restaurantTypes = useMemo(() => {
+    return ["all", ...new Set(restaurants.map((r) => r.type).filter(Boolean))];
+  }, [restaurants]);
   const columns = [
     {
       accessorKey: "name",
@@ -184,6 +188,25 @@ export default function Restaurant() {
       },
     },
   ];
+  const filteredRestaurants = useMemo(() => {
+    let data = [...restaurants];
+
+    // Filter by Type
+    if (selectedType !== "all") {
+      data = data.filter((r) => r.type === selectedType);
+    }
+
+    // Sort by Likes
+    if (likesSort === "asc") {
+      data.sort((a, b) => (a.likes || 0) - (b.likes || 0));
+    }
+
+    if (likesSort === "desc") {
+      data.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    }
+
+    return data;
+  }, [restaurants, selectedType, likesSort]);
   const exportToExcel = () => {
     const exportData = restaurants.map((restaurant) => ({
       "Restaurant Name": restaurant.name || "",
@@ -220,7 +243,31 @@ export default function Restaurant() {
   };
   return (
     <div className="container mx-auto py-10">
-      <div className="flex justify-end mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex gap-3">
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            className="border rounded-md px-3 py-2"
+          >
+            {restaurantTypes.map((type) => (
+              <option key={type} value={type}>
+                {type === "all" ? "All Types" : type}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={likesSort}
+            onChange={(e) => setLikesSort(e.target.value)}
+            className="border rounded-md px-3 py-2"
+          >
+            <option value="">Sort Likes</option>
+            <option value="asc">Likes ↑</option>
+            <option value="desc">Likes ↓</option>
+          </select>
+        </div>
+
         <button
           onClick={exportToExcel}
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -231,7 +278,7 @@ export default function Restaurant() {
       <GenericDataTable
         title="restaurants"
         columns={columns}
-        data={restaurants}
+        data={filteredRestaurants}
         isLoading={isLoading}
         queryKey="restaurants"
         deleteApiUrl="/api/superadmin/restaurants"
