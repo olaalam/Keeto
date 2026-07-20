@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useGet } from "../../hooks/useGet";
+import { useUpdate } from "../../hooks/useUpdate";
 import {
   BarChart,
   Bar,
@@ -106,6 +107,7 @@ const PerformanceGauge = ({
   color,
   maxVal,
 }) => {
+  const progress = Math.min(percentage, 100);
   return (
     <div className="bg-white rounded-xl p-6 flex flex-col items-center justify-between border border-slate-100 shadow-sm min-h-[220px]">
       <div className="text-center w-full">
@@ -116,12 +118,19 @@ const PerformanceGauge = ({
       <div className="relative w-40 h-20 overflow-hidden flex items-end justify-center mt-4">
         <div className="w-40 h-40 rounded-full border-[14px] border-slate-100 absolute top-0 left-0"></div>
         <div
-          className="w-40 h-40 rounded-full border-[14px] absolute top-0 left-0 border-b-transparent border-r-transparent transition-transform duration-500"
+          className="absolute top-0 left-0 w-40 h-40 rounded-full transition-all duration-700"
           style={{
-            transform: `rotate(${(percentage > 100 ? 100 : percentage) * 1.8 - 45}deg)`,
-            borderColor: color,
+            background: `conic-gradient(
+      ${color} ${progress * 1.8}deg,
+      #e5e7eb ${progress * 1.8}deg 180deg,
+      transparent 180deg
+    )`,
+            transform: "rotate(-90deg)",
+            WebkitMask:
+              "radial-gradient(farthest-side, transparent calc(100% - 14px), black 0)",
+            mask: "radial-gradient(farthest-side, transparent calc(100% - 14px), black 0)",
           }}
-        ></div>
+        />
 
         <div className="absolute text-center bottom-1">
           <span
@@ -155,6 +164,35 @@ export default function KeetoDashboard() {
   const [appliedFrom, setAppliedFrom] = useState("2026-01-01");
   const [appliedTo, setAppliedTo] = useState("2026-12-31");
   const [filterMsg, setFilterMsg] = useState("");
+  const { data: targetsResponse } = useGet(
+    "dashboardTargets",
+    "/api/superadmin/dashboard/targets",
+  );
+
+  const targets = targetsResponse?.data?.data || {};
+  const [targetForm, setTargetForm] = useState({
+    totalOrdersTarget: 0,
+    totalCustomersTarget: 0,
+    totalRestaurantsTarget: 0,
+  });
+  useEffect(() => {
+    if (targets.id) {
+      setTargetForm({
+        totalOrdersTarget: targets.totalOrdersTarget,
+        totalCustomersTarget: targets.totalCustomersTarget,
+        totalRestaurantsTarget: targets.totalRestaurantsTarget,
+      });
+    }
+  }, [targets]);
+  const { mutate: updateTargets, isPending: updatingTargets } = useUpdate(
+    "/api/superadmin/dashboard/targets",
+    "dashboardTargets",
+  );
+  const handleSaveTargets = () => {
+    updateTargets({
+      payload: targetForm,
+    });
+  };
 
   const {
     data: response,
@@ -278,29 +316,43 @@ export default function KeetoDashboard() {
     const totalOrders = cards.totalOrders || 0;
     const totalCustomers = cards.totalCustomers || 0;
     const totalRestaurants = cards.totalRestaurants || 0;
-    const activeRestaurants = cards.activeRestaurants || 0;
+
+    const ordersTarget = targets.totalOrdersTarget || 1;
+    const customersTarget = targets.totalCustomersTarget || 1;
+    const restaurantsTarget = targets.totalRestaurantsTarget || 1;
 
     return {
       orders: {
         value: totalOrders,
-        percentage: Math.min(Math.round((totalOrders / 200) * 100), 100),
-        targetText: `${Math.min(Math.round((totalOrders / 200) * 100), 100)}% of month target`,
+        percentage: Math.min(
+          Math.round((totalOrders / ordersTarget) * 100),
+          100,
+        ),
+        target: ordersTarget,
+        targetText: `${totalOrders}/${ordersTarget}`,
       },
+
       customers: {
         value: totalCustomers,
-        percentage: Math.min(Math.round((totalCustomers / 100) * 100), 100),
-        targetText: `${Math.min(Math.round((totalCustomers / 100) * 100), 100)}% of conversion`,
+        percentage: Math.min(
+          Math.round((totalCustomers / customersTarget) * 100),
+          100,
+        ),
+        target: customersTarget,
+        targetText: `${totalCustomers}/${customersTarget}`,
       },
+
       restaurants: {
         value: totalRestaurants,
-        percentage:
-          totalRestaurants > 0
-            ? Math.round((activeRestaurants / totalRestaurants) * 100)
-            : 0,
-        targetText: `${activeRestaurants} active out of ${totalRestaurants}`,
+        percentage: Math.min(
+          Math.round((totalRestaurants / restaurantsTarget) * 100),
+          100,
+        ),
+        target: restaurantsTarget,
+        targetText: `${totalRestaurants}/${restaurantsTarget}`,
       },
     };
-  }, [cards]);
+  }, [cards, targets]);
 
   // 6. تجهيز مصادر الطلبات
   const sourceData = useMemo(() => {
@@ -493,6 +545,55 @@ export default function KeetoDashboard() {
               Real-time metrics tracking vs platform capacity
             </p>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <input
+              type="number"
+              className="border rounded-lg px-3 py-2"
+              placeholder="Orders Target"
+              value={targetForm.totalOrdersTarget}
+              onChange={(e) =>
+                setTargetForm((prev) => ({
+                  ...prev,
+                  totalOrdersTarget: Number(e.target.value),
+                }))
+              }
+            />
+
+            <input
+              type="number"
+              className="border rounded-lg px-3 py-2"
+              placeholder="Customers Target"
+              value={targetForm.totalCustomersTarget}
+              onChange={(e) =>
+                setTargetForm((prev) => ({
+                  ...prev,
+                  totalCustomersTarget: Number(e.target.value),
+                }))
+              }
+            />
+
+            <input
+              type="number"
+              className="border rounded-lg px-3 py-2"
+              placeholder="Restaurants Target"
+              value={targetForm.totalRestaurantsTarget}
+              onChange={(e) =>
+                setTargetForm((prev) => ({
+                  ...prev,
+                  totalRestaurantsTarget: Number(e.target.value),
+                }))
+              }
+            />
+
+            <button
+              onClick={handleSaveTargets}
+              disabled={updatingTargets}
+              className="bg-[#facc15] hover:bg-[#eab308] rounded-lg font-semibold px-4 py-2 disabled:opacity-50"
+            >
+              {updatingTargets ? "Saving..." : "Save Targets"}
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <PerformanceGauge
               title="Total Orders"
@@ -501,7 +602,7 @@ export default function KeetoDashboard() {
               targetText={gaugeMetrics.orders.targetText}
               percentage={gaugeMetrics.orders.percentage}
               color="#facc15"
-              maxVal="200"
+              maxVal={gaugeMetrics.orders.target}
             />
             <PerformanceGauge
               title="Total Customers"
@@ -510,7 +611,7 @@ export default function KeetoDashboard() {
               targetText={gaugeMetrics.customers.targetText}
               percentage={gaugeMetrics.customers.percentage}
               color="#f97316"
-              maxVal="100"
+              maxVal={gaugeMetrics.customers.target}
             />
             <PerformanceGauge
               title="Total Restaurants"
@@ -519,7 +620,7 @@ export default function KeetoDashboard() {
               targetText={gaugeMetrics.restaurants.targetText}
               percentage={gaugeMetrics.restaurants.percentage}
               color="#a78bfa"
-              maxVal="50"
+              maxVal={gaugeMetrics.restaurants.target}
             />
           </div>
         </div>

@@ -162,7 +162,7 @@ export default function ResReport() {
   const [endDate, setEndDate] = useState("");
   const [minOrders, setMinOrders] = useState("");
   const [maxOrders, setMaxOrders] = useState("");
-
+  const [deliveryStatus, setDeliveryStatus] = useState("all");
   const [minOrdersInput, setMinOrdersInput] = useState("");
   const [maxOrdersInput, setMaxOrdersInput] = useState("");
   const [orderSort, setOrderSort] = useState("");
@@ -222,6 +222,21 @@ export default function ResReport() {
         selectedTypes.includes(r.restaurantDetails?.type),
       );
     }
+    if (deliveryStatus !== "all") {
+      data = data.filter((r) => {
+        const status = r.restaurantDetails?.deliverystatus;
+
+        if (deliveryStatus === "delivered") {
+          return status === "delivered";
+        }
+
+        if (deliveryStatus === "non-delivered") {
+          return status !== "delivered";
+        }
+
+        return true;
+      });
+    }
     if (minOrders !== "")
       data = data.filter((r) => (r.ordersCount ?? 0) >= Number(minOrders));
     if (maxOrders !== "")
@@ -248,7 +263,14 @@ export default function ResReport() {
       });
     }
     return data;
-  }, [restaurants, selectedTypes, minOrders, maxOrders, orderSort]);
+  }, [
+    restaurants,
+    selectedTypes,
+    minOrders,
+    maxOrders,
+    orderSort,
+    deliveryStatus,
+  ]);
 
   const filteredSummary = useMemo(() => {
     return displayedRestaurants.reduce(
@@ -311,7 +333,8 @@ export default function ResReport() {
     orderSort !== "" ||
     selectedTypes.length > 0 ||
     startDate !== "" ||
-    endDate !== "";
+    endDate !== "" ||
+    deliveryStatus !== "all";
 
   const clearFilters = useCallback(() => {
     setMinOrdersInput("");
@@ -322,6 +345,7 @@ export default function ResReport() {
     setSelectedTypes([]);
     setStartDate("");
     setEndDate("");
+    setDeliveryStatus("all");
   }, []);
 
   const restaurantColumns = useMemo(
@@ -643,7 +667,40 @@ export default function ResReport() {
               </div>
             </div>
           </div>
+          {/* Delivery status filter */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">
+              Delivery Status
+            </label>
 
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={deliveryStatus === "all" ? "default" : "outline"}
+                onClick={() => setDeliveryStatus("all")}
+              >
+                All
+              </Button>
+
+              <Button
+                size="sm"
+                variant={deliveryStatus === "delivered" ? "default" : "outline"}
+                onClick={() => setDeliveryStatus("delivered")}
+              >
+                Delivered
+              </Button>
+
+              <Button
+                size="sm"
+                variant={
+                  deliveryStatus === "non-delivered" ? "default" : "outline"
+                }
+                onClick={() => setDeliveryStatus("non-delivered")}
+              >
+                Non Delivered
+              </Button>
+            </div>
+          </div>
           {/* Simple Cards with Soft Backgrounds and No Icons (Matching image_99655f.png layout) */}
           <div className="grid grid-cols-2 gap-4">
             {/* Total Orders Box */}
@@ -750,45 +807,64 @@ export default function ResReport() {
 
                 <div className="p-4 space-y-2">
                   {list.length > 0 ? (
-                    list.map((r) => {
-                      const d = r.restaurantDetails || {};
-                      return (
-                        <button
-                          key={d.id}
-                          type="button"
-                          onClick={() => {
-                            // No API call needed here — this report already
-                            // loaded the full restaurant record client-side,
-                            // so we just reuse it directly for the detail
-                            // popup instead of re-fetching by id.
-                            setDetailOpenedFromList(restaurantListMode);
-                            setSelectedRestaurant(r);
-                            setRestaurantListMode(null);
-                          }}
-                          className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-300 hover:shadow-sm transition-all text-left"
-                        >
-                          <div className="min-w-0">
-                            <p className="font-semibold text-slate-800 truncate">
-                              {d.name || d.nameAr || "-"}
-                            </p>
-                            {d.nameAr && (
-                              <p className="text-xs text-slate-400 truncate">
-                                {d.nameAr}
+                    [...list]
+                      .sort((a, b) => {
+                        const typeDiff =
+                          getTypeRank(a.restaurantDetails?.type) -
+                          getTypeRank(b.restaurantDetails?.type);
+
+                        if (typeDiff !== 0) return typeDiff;
+                      })
+                      .map((r) => {
+                        const d = r.restaurantDetails || {};
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            onClick={() => {
+                              // No API call needed here — this report already
+                              // loaded the full restaurant record client-side,
+                              // so we just reuse it directly for the detail
+                              // popup instead of re-fetching by id.
+                              setDetailOpenedFromList(restaurantListMode);
+                              setSelectedRestaurant(r);
+                              setRestaurantListMode(null);
+                            }}
+                            className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-300 hover:shadow-sm transition-all text-left"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-800 truncate">
+                                {d.name || d.nameAr || "-"}
                               </p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-600">
-                              {d.type || "Unknown"}
-                            </span>
-                            <span className="text-xs font-bold font-mono text-slate-600">
-                              {r.ordersCount ?? 0} orders
-                            </span>
-                            <ChevronRight className="w-4 h-4 text-slate-400" />
-                          </div>
-                        </button>
-                      );
-                    })
+                              {d.nameAr && (
+                                <p className="text-xs text-slate-400 truncate">
+                                  {d.nameAr}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-600">
+                                {d.type || "Unknown"}
+                              </span>
+                              <span className="text-xs font-bold font-mono text-slate-600">
+                                {r.ordersCount ?? 0} orders
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${
+                                  d.deliverystatus === "delivered"
+                                    ? "bg-emerald-50 text-emerald-600"
+                                    : "bg-slate-100 text-slate-500"
+                                }`}
+                              >
+                                {d.deliverystatus === "delivered"
+                                  ? "Delivered"
+                                  : "Not Delivered"}
+                              </span>
+                              <ChevronRight className="w-4 h-4 text-slate-400" />
+                            </div>
+                          </button>
+                        );
+                      })
                   ) : (
                     <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
                       <p className="text-sm text-slate-500">

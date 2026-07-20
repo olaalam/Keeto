@@ -28,6 +28,16 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 const RESTAURANT_TYPES = ["super", "mega", "A", "B", "C", "C-"];
+const TYPE_ORDER = ["mega", "super", "A", "B", "C", "C-"].reduce(
+  (acc, type, index) => {
+    acc[type] = index;
+    return acc;
+  },
+  {},
+);
+
+const getTypeRank = (type) =>
+  TYPE_ORDER[type] !== undefined ? TYPE_ORDER[type] : TYPE_ORDER.length;
 
 // Inline Custom SVGs (kept consistent with ResReport) to avoid lucide-react export issues
 const FacebookIcon = (props) => (
@@ -373,12 +383,19 @@ export default function SalesReport() {
 
         head: [["Restaurant", "Type"]],
 
-        body: salesman.restaurants.map((restaurant) => [
-          restaurant.name,
+        body: [...salesman.restaurants]
+          .sort((a, b) => {
+            const typeDiff =
+              getTypeRank(typeMap[a.id]) - getTypeRank(typeMap[b.id]);
 
-          typeMap[restaurant.id] || "-",
-          
-        ]),
+            if (typeDiff !== 0) return typeDiff;
+
+            return a.name.localeCompare(b.name);
+          })
+          .map((restaurant) => [
+            restaurant.name,
+            typeMap[restaurant.id] || "-",
+          ]),
 
         styles: {
           fontSize: 9,
@@ -711,47 +728,57 @@ export default function SalesReport() {
                         </h4>
 
                         {restaurants.length > 0 ? (
-                          restaurants.map((restaurant) => (
-                            <button
-                              key={restaurant.id}
-                              type="button"
-                              onClick={() =>
-                                setSelectedRestaurantId(restaurant.id)
-                              }
-                              className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-300 hover:shadow-sm transition-all text-left"
-                            >
-                              <div className="min-w-0">
-                                <p className="font-semibold text-slate-800 truncate">
-                                  {restaurant.name}
-                                </p>
-                                {restaurant.nameAr && (
-                                  <p className="text-xs text-slate-400 truncate">
-                                    {restaurant.nameAr}
+                          [...restaurants]
+                            .sort((a, b) => {
+                              const typeDiff =
+                                getTypeRank(typeById[a.id]) -
+                                getTypeRank(typeById[b.id]);
+
+                              if (typeDiff !== 0) return typeDiff;
+
+                              return a.name.localeCompare(b.name);
+                            })
+                            .map((restaurant) => (
+                              <button
+                                key={restaurant.id}
+                                type="button"
+                                onClick={() =>
+                                  setSelectedRestaurantId(restaurant.id)
+                                }
+                                className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-300 hover:shadow-sm transition-all text-left"
+                              >
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-slate-800 truncate">
+                                    {restaurant.name}
                                   </p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                {restaurantListSource === "all" &&
-                                  typeById[restaurant.id] && (
-                                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-600">
-                                      {typeById[restaurant.id]}
+                                  {restaurant.nameAr && (
+                                    <p className="text-xs text-slate-400 truncate">
+                                      {restaurant.nameAr}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {restaurantListSource === "all" &&
+                                    typeById[restaurant.id] && (
+                                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-600">
+                                        {typeById[restaurant.id]}
+                                      </span>
+                                    )}
+                                  {restaurant.status && (
+                                    <span
+                                      className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${
+                                        restaurant.status === "active"
+                                          ? "bg-emerald-50 text-emerald-600"
+                                          : "bg-rose-50 text-rose-600"
+                                      }`}
+                                    >
+                                      {restaurant.status}
                                     </span>
                                   )}
-                                {restaurant.status && (
-                                  <span
-                                    className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${
-                                      restaurant.status === "active"
-                                        ? "bg-emerald-50 text-emerald-600"
-                                        : "bg-rose-50 text-rose-600"
-                                    }`}
-                                  >
-                                    {restaurant.status}
-                                  </span>
-                                )}
-                                <ChevronRight className="w-4 h-4 text-slate-400" />
-                              </div>
-                            </button>
-                          ))
+                                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                                </div>
+                              </button>
+                            ))
                         ) : (
                           <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
                             <p className="text-sm text-slate-500">
