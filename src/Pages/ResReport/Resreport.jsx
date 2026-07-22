@@ -458,6 +458,17 @@ export default function ResReport() {
           );
         },
       },
+      {
+        accessorKey: "signupUsersCount",
+        header: () => (
+          <div className="text-right font-bold min-w-[100px]">Signup Users Count</div>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-semibold font-mono text-blue-600">
+            {row.getValue("signupUsersCount") ?? 0}
+          </div>
+        ),
+      },
     ],
     [],
   );
@@ -982,7 +993,7 @@ export default function ResReport() {
                           </span>
                         </p>
                       </div>
-                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                     {/*  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                         <p className="text-xs font-semibold text-slate-400 mb-0.5">
                           Delivery Status
                         </p>
@@ -997,7 +1008,7 @@ export default function ResReport() {
                             ? "Delivered"
                             : "Not Delivered"}
                         </p>
-                      </div>
+                      </div> */}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1020,6 +1031,14 @@ export default function ResReport() {
                               ({d.ownerposition})
                             </span>
                           )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                          Signup Users Count
+                        </p>
+                        <p className="font-semibold text-slate-700 mt-0.5">
+                          {selectedRestaurant.signupUsersCount || "-"}
                         </p>
                       </div>
                     </div>
