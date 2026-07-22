@@ -15,6 +15,7 @@ import {
   CalendarRange,
   Filter,
   ArrowUp,
+  UserCog,
   ArrowDown,
   ShoppingBag,
   Store,
@@ -461,7 +462,9 @@ export default function ResReport() {
       {
         accessorKey: "signupUsersCount",
         header: () => (
-          <div className="text-right font-bold min-w-[100px]">Signup Users Count</div>
+          <div className="text-right font-bold min-w-[100px]">
+            Signup Users Count
+          </div>
         ),
         cell: ({ row }) => (
           <div className="text-right font-semibold font-mono text-blue-600">
@@ -574,6 +577,13 @@ export default function ResReport() {
             icon={Wallet}
             borderColor="border-amber-500"
             bgColor="bg-amber-50 text-amber-600"
+          />
+          <Card
+            title="Total Signup Users"
+            value={summary.totalSignupUsers ?? 0}
+            icon={UserCog}
+            borderColor="border-blue-500"
+            bgColor="bg-blue-50 text-blue-600"
           />
         </div>
       ) : (
@@ -993,7 +1003,7 @@ export default function ResReport() {
                           </span>
                         </p>
                       </div>
-                     {/*  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                      {/*  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                         <p className="text-xs font-semibold text-slate-400 mb-0.5">
                           Delivery Status
                         </p>
