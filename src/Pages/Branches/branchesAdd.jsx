@@ -19,13 +19,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,12 +35,11 @@ const BranhesAdd = () => {
       .trim()
       .toLowerCase();
 
-  // جلب قائمة التصنيفات والمطاعم من الـ الـ API المحدد
+  // جلب قائمة التصنيفات والمطاعم من الـ API المحدد
   const { data: selectData = {}, isLoading } = useQuery({
     queryKey: ["BranchesSelectData"],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/branches/select");
-
       return res.data?.data?.data || {};
     },
   });
@@ -75,6 +67,18 @@ const BranhesAdd = () => {
     const list = selectPayload?.zone ?? selectPayload?.zones ?? [];
     return Array.isArray(list) ? list : [];
   }, [selectPayload]);
+
+  const cities = React.useMemo(() => {
+    const map = new Map();
+
+    zones.forEach((zone) => {
+      if (zone.city && !map.has(zone.city.id)) {
+        map.set(zone.city.id, zone.city);
+      }
+    });
+
+    return [...map.values()];
+  }, [zones]);
 
   const { data: BrancheData, isLoading: isFetching } = useQuery({
     queryKey: ["BranchAdd", id],
@@ -126,6 +130,7 @@ const BranhesAdd = () => {
           ? String(exactRestaurantId)
           : "",
       zoneId: exactZoneId ? String(exactZoneId) : "",
+      cityId: rawData.cityId || rawData.city?.id || "",
     };
   }, [rawData, normalizeText, restaurants]);
 
@@ -145,6 +150,7 @@ const BranhesAdd = () => {
         ...data,
         restaurantId: data.restaurantId ? String(data.restaurantId) : "",
         zoneId: data.zoneId ? String(data.zoneId) : "",
+        cityId: data.cityId ? String(data.cityId) : "",
         deliveryRadiusKm: data.deliveryRadiusKm
           ? String(data.deliveryRadiusKm)
           : 0,
@@ -157,8 +163,20 @@ const BranhesAdd = () => {
         const {
           register,
           control,
+          watch,
+          setValue,
           formState: { errors },
         } = methods;
+
+        const selectedCityId = watch("cityId");
+
+        const filteredZones = React.useMemo(() => {
+          if (!selectedCityId) return zones;
+
+          return zones.filter(
+            (z) => String(z.cityId) === String(selectedCityId),
+          );
+        }, [zones, selectedCityId]);
 
         return (
           <div className="space-y-4 mt-4 max-w-xl">
@@ -167,7 +185,7 @@ const BranhesAdd = () => {
               <Label className="text-xs font-medium">Name *</Label>
               <Input
                 {...register("name", { required: true })}
-                placeholder="Subcategory Name"
+                placeholder="Branch Name"
                 className="h-9 text-xs rounded-md"
               />
               {errors.name && (
@@ -272,6 +290,7 @@ const BranhesAdd = () => {
                 className="h-9 text-xs rounded-md"
               />
             </div>
+
             {/* 10. Longitude */}
             <div className="space-y-2">
               <Label className="text-xs font-medium">Longitude</Label>
@@ -284,7 +303,75 @@ const BranhesAdd = () => {
               />
             </div>
 
-            {/* 11. Zone Search Select */}
+            {/* 11. City Search Select */}
+            <div className="space-y-2 flex flex-col w-full">
+              <Label className="text-xs font-medium">City</Label>
+              <Controller
+                name="cityId"
+                control={control}
+                render={({ field }) => (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between font-normal text-left h-9 px-3 text-xs rounded-md",
+                          !field.value && "text-muted-foreground",
+                        )}
+                      >
+                        {field.value
+                          ? cities.find((c) => String(c.id) === field.value)
+                              ?.name
+                          : "Select City"}
+                        <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-(--radix-popover-trigger-width) p-0"
+                      align="start"
+                    >
+                      <Command className="text-xs">
+                        <CommandInput
+                          placeholder="Search city..."
+                          className="h-8 text-xs"
+                        />
+                        <CommandList>
+                          <CommandEmpty className="p-2 text-xs text-center text-gray-500">
+                            No cities found.
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {cities.map((c) => (
+                              <CommandItem
+                                key={c.id}
+                                value={c.name}
+                                className="text-xs py-1.5 px-2 cursor-pointer"
+                                onSelect={() => {
+                                  field.onChange(String(c.id));
+                                  setValue("zoneId", ""); // Reset the zone if city changes
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-3.5 w-3.5",
+                                    String(c.id) === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                {c.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              />
+            </div>
+
+            {/* 12. Zone Search Select */}
             <div className="space-y-2 flex flex-col w-full">
               <Label className="text-xs font-medium">Zone</Label>
               <Controller
@@ -296,6 +383,7 @@ const BranhesAdd = () => {
                       <Button
                         variant="outline"
                         role="combobox"
+                        disabled={!selectedCityId} // Disable if city isn't selected (optional UX improvement)
                         className={cn(
                           "w-full justify-between font-normal text-left h-9 px-3 text-xs rounded-md",
                           !field.value && "text-muted-foreground",
@@ -322,7 +410,8 @@ const BranhesAdd = () => {
                             No zones found.
                           </CommandEmpty>
                           <CommandGroup>
-                            {zones.map((z) => (
+                            {/* Use filteredZones here so only relevant zones appear */}
+                            {filteredZones.map((z) => (
                               <CommandItem
                                 key={z.id}
                                 value={z.name}
@@ -351,7 +440,7 @@ const BranhesAdd = () => {
               />
             </div>
 
-            {/* 12. Restaurant Search Select */}
+            {/* 13. Restaurant Search Select */}
             <div className="space-y-2 flex flex-col w-full">
               <Label className="text-xs font-medium">Restaurant *</Label>
               <Controller
