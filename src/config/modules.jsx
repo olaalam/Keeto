@@ -23,6 +23,7 @@ import {
   FileText,
   HelpCircle,
   TrendingUp,
+  ShoppingBag,
 } from "lucide-react";
 import keetoImage from "../../public/WhatsApp Image 2026-05-18 at 11.27.30 AM.jpeg";
 
@@ -135,6 +136,12 @@ export const modules = [
         icon: PlusSquare,
         module: "AdonesCategories",
       },
+      {
+        title: "Orders",
+        url: "/ordersreport",
+        icon: ShoppingBag,
+        module: "Orders",
+      }
     ],
   },
   {
