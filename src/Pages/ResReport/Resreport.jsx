@@ -66,6 +66,31 @@ const LinkIcon = (props) => (
   </svg>
 );
 
+// Small self-contained toggle switch (no extra UI dependency) used for the
+// "show/hide columns" controls above the restaurants table.
+const ColumnSwitch = ({ label, checked, onChange }) => (
+  <label className="flex items-center gap-2 cursor-pointer select-none">
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+        checked ? "bg-yellow-400" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-4" : "translate-x-1"
+        }`}
+      />
+    </button>
+    <span className="text-xs font-medium text-slate-600 whitespace-nowrap">
+      {label}
+    </span>
+  </label>
+);
+
 // Standardized dashboard card component modeled after the provided screenshot
 const Card = ({ title, value, icon: Icon, borderColor, bgColor }) => (
   <div
@@ -86,6 +111,19 @@ const Card = ({ title, value, icon: Icon, borderColor, bgColor }) => (
 );
 
 const RESTAURANT_TYPES = ["all", "mega", "super", "A", "B", "C", "C-", "test"];
+
+// Columns available in the "show/hide columns" switches above the table.
+// "restaurantDetails.name" (Restaurant) is intentionally excluded so at
+// least one identifying column always stays visible.
+const COLUMN_OPTIONS = [
+  { id: "restaurantDetails.type", label: "Type" },
+  { id: "ordersCount", label: "Orders Count" },
+  { id: "total_commission", label: "Total Commission" },
+  { id: "restaurantDetails.status", label: "Status" },
+  { id: "restaurantDetails.deliverystatus", label: "Delivery Status" },
+  { id: "restaurantDetails.FacebookLink", label: "Facebook Link" },
+  { id: "signupUsersCount", label: "Signup Users Count" },
+];
 
 // Rank used to order/tie-break by restaurant type: mega > super > A > B > C > C- > test
 const TYPE_ORDER = ["mega", "super", "A", "B", "C", "C-", "test"].reduce(
@@ -170,6 +208,33 @@ export default function ResReport() {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [showTable, setShowTable] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  // Tracks which optional columns are hidden. A column is visible unless
+  // its id is explicitly set to false here.
+  const [columnVisibility, setColumnVisibility] = useState({});
+  // User-added "blank" columns — just a title with no data, appended to the
+  // end of the table. Each entry: { id, label }.
+  // Persisted to localStorage so they survive a page refresh / leaving the site,
+  // and only disappear when the user removes them.
+  const [customColumns, setCustomColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem("resreport_customColumns");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [newColumnTitle, setNewColumnTitle] = useState("");
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "resreport_customColumns",
+        JSON.stringify(customColumns),
+      );
+    } catch {
+      // ignore storage errors (e.g. private browsing / quota)
+    }
+  }, [customColumns]);
 
   // "with" -> restaurants that have orders, "without" -> restaurants with no orders.
   // We deliberately do NOT add a per-type list here (per request) — only these two.
@@ -262,6 +327,14 @@ export default function ResReport() {
           getTypeRank(b.restaurantDetails?.type)
         );
       });
+    } else {
+      // No orders sort active — default to ordering by restaurant type
+      // (mega, super, A, B, C, C-, test) so the table is never in raw/random order.
+      data.sort(
+        (a, b) =>
+          getTypeRank(a.restaurantDetails?.type) -
+          getTypeRank(b.restaurantDetails?.type),
+      );
     }
     return data;
   }, [
@@ -460,6 +533,28 @@ export default function ResReport() {
         },
       },
       {
+        accessorKey: "restaurantDetails.FacebookLink",
+        header: "Facebook Link",
+        cell: ({ row }) => {
+          const facebookLink = row.original.restaurantDetails?.facebookLink;
+
+          return facebookLink ? (
+            <a
+              href={facebookLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={facebookLink}
+              className="block max-w-[200px] truncate text-blue-600 hover:underline"
+            >
+              Yes
+            </a>
+          ) : (
+            "No"
+          );
+        },
+      },
+
+      {
         accessorKey: "signupUsersCount",
         header: () => (
           <div className="text-right font-bold min-w-[100px]">
@@ -474,6 +569,55 @@ export default function ResReport() {
       },
     ],
     [],
+  );
+
+  const toggleColumnVisibility = useCallback((id) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [id]: prev[id] === false ? true : false,
+    }));
+  }, []);
+
+  // Adds a new blank column (title only, no data) to the table.
+  const addCustomColumn = useCallback(() => {
+    const title = newColumnTitle.trim();
+    if (!title) return;
+    const id = `custom_${Date.now()}`;
+    setCustomColumns((prev) => [...prev, { id, label: title }]);
+    setNewColumnTitle("");
+  }, [newColumnTitle]);
+
+  const removeCustomColumn = useCallback((id) => {
+    setCustomColumns((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  // Column definitions for the user-added blank columns — header only,
+  // every cell renders empty.
+  const customColumnDefs = useMemo(
+    () =>
+      customColumns.map((c) => ({
+        id: c.id,
+        header: () => (
+          <div className="text-center font-bold min-w-[120px]">{c.label}</div>
+        ),
+        cell: () => "",
+      })),
+    [customColumns],
+  );
+
+  // Columns actually passed to the table — hidden ones are filtered out.
+  // The Restaurant name column is never filtered, so a row always has an
+  // identifying column visible.
+  const visibleColumns = useMemo(
+    () =>
+      restaurantColumns
+        .filter((col) => {
+          const id = col.id ?? col.accessorKey;
+          if (id === "restaurantDetails.name") return true;
+          return columnVisibility[id] !== false;
+        })
+        .concat(customColumnDefs),
+    [restaurantColumns, columnVisibility, customColumnDefs],
   );
 
   return (
@@ -792,11 +936,75 @@ export default function ResReport() {
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-1 pb-3">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+              Columns:
+            </span>
+            {COLUMN_OPTIONS.map((opt) => (
+              <ColumnSwitch
+                key={opt.id}
+                label={opt.label}
+                checked={columnVisibility[opt.id] !== false}
+                onChange={() => toggleColumnVisibility(opt.id)}
+              />
+            ))}
+
+            {/* Divider between the show/hide switches and the "add a blank
+                column" control */}
+            <span className="w-px h-4 bg-slate-200" />
+
+            {/* Add a custom column: title only, no data — just adds an
+                empty column to the table for manual notes/printing etc. */}
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="text"
+                value={newColumnTitle}
+                onChange={(e) => setNewColumnTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomColumn();
+                  }
+                }}
+                placeholder="New column title"
+                className="h-8 w-40 text-xs"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={addCustomColumn}
+                disabled={!newColumnTitle.trim()}
+                className="h-8"
+              >
+                + Add Column
+              </Button>
+            </div>
+
+            {/* Chips for currently added blank columns, each removable */}
+            {customColumns.map((c) => (
+              <span
+                key={c.id}
+                className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-slate-100 text-xs font-medium text-slate-600"
+              >
+                {c.label}
+                <button
+                  type="button"
+                  onClick={() => removeCustomColumn(c.id)}
+                  className="rounded-full hover:bg-slate-200 p-0.5"
+                  aria-label={`Remove ${c.label} column`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+
           <div className="w-full overflow-x-auto rounded-2xl border bg-white">
             <GenericDataTable
               data={displayedRestaurants}
               actions={false}
-              columns={restaurantColumns}
+              columns={visibleColumns}
             />
           </div>
         </>
@@ -830,11 +1038,10 @@ export default function ResReport() {
                   {list.length > 0 ? (
                     [...list]
                       .sort((a, b) => {
-                        const typeDiff =
+                        return (
                           getTypeRank(a.restaurantDetails?.type) -
-                          getTypeRank(b.restaurantDetails?.type);
-
-                        if (typeDiff !== 0) return typeDiff;
+                          getTypeRank(b.restaurantDetails?.type)
+                        );
                       })
                       .map((r) => {
                         const d = r.restaurantDetails || {};
