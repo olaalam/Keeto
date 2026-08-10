@@ -103,6 +103,8 @@ const RestaurantAdd = () => {
         likes: raw.likes || 0,
         facebookLink: raw.facebookLink || "",
         orderLink: raw.orderLink || "",
+        iosApp: raw.iosApp || "",
+        androidApp: raw.androidApp || "",
         ownerposition: raw.ownerposition || "",
         // ربط قيم الـ Business Plan بالـ inputs المؤقتة بالفورم لتعمل في الـ Edit تلقائياً
         online_commissionRate: onlinePlan.commissionRate || "",
@@ -218,6 +220,8 @@ const RestaurantAdd = () => {
             ? data.cuisineId.map(String)
             : [],
           type: data.type,
+          iosApp: data.iosApp || "",
+          androidApp: data.androidApp || "",
           businessPlans: businessPlans, // الـ Array مفرودة هنا وجاهزة للإرسال في الـ Create والـ Edit
         };
 
@@ -280,6 +284,8 @@ const RestaurantAdd = () => {
             "likes",
             "facebookLink",
             "orderLink",
+            "iosApp",
+            "androidApp",
           ],
           business: [
             "ownerFirstName",
@@ -425,10 +431,26 @@ const RestaurantAdd = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Order Link *</Label>
+                  <Label>Order Link</Label>
                   <Input
                     {...register("orderLink", { required: false })}
                     placeholder="Order Link"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>iOS App Link</Label>
+                  <Input
+                    {...register("iosApp", { required: false })}
+                    placeholder="https://apps.apple.com/..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Android App Link</Label>
+                  <Input
+                    {...register("androidApp", { required: false })}
+                    placeholder="https://play.google.com/store/..."
                   />
                 </div>
 

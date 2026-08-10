@@ -1,22 +1,30 @@
 import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
 import { useNavigate } from "react-router-dom";
 import { User, Phone, Eye } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import ReasonDialog from "../../components/ReasonDialog";
 
-const statusStyles = {
-  pending: "bg-yellow-100 text-yellow-700",
-  accepted: "bg-blue-100 text-blue-700",
-  preparing: "bg-orange-100 text-orange-700",
-  out_for_delivery: "bg-indigo-100 text-indigo-700",
-  delivered: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-  refund: "bg-pink-100 text-pink-700",
-  rejected: "bg-gray-200 text-gray-700",
-};
+const orderStatuses = [
+  "pending",
+  "accepted",
+  "preparing",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+  "refund",
+];
 
 const formatStatusLabel = (status = "") =>
   status
@@ -26,8 +34,17 @@ const formatStatusLabel = (status = "") =>
 
 export default function Order() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [selectedDate, setSelectedDate] = useState("");
+  // Holds which order the cancel-reason dialog is currently open for.
+  // Needs both restaurantId and orderId since the update endpoint is
+  // scoped per-restaurant: /api/superadmin/order/{restaurantId}/{orderId}/status
+  const [dialogConfig, setDialogConfig] = useState({
+    open: false,
+    restaurantId: null,
+    orderId: null,
+  });
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["superadmin-orders"],
@@ -36,6 +53,37 @@ export default function Order() {
       return res.data.data.data;
     },
   });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ restaurantId, orderId, status, cancelReasonId }) => {
+      const payload = { status };
+      if (cancelReasonId) payload.cancelReasonId = cancelReasonId;
+      const { data } = await api.put(
+        `/api/superadmin/order/${restaurantId}/${orderId}/status`,
+        payload,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["superadmin-orders"]);
+      toast.success("Order status updated successfully");
+      setDialogConfig({ open: false, restaurantId: null, orderId: null });
+    },
+    onError: (error) => {
+      const serverErrorMessage =
+        error?.response?.data?.error?.message || "Failed to update status";
+      toast.error(serverErrorMessage);
+      console.error("Update Error:", error);
+    },
+  });
+
+  const handleStatusChange = (restaurantId, orderId, newStatus) => {
+    if (newStatus === "cancelled") {
+      setDialogConfig({ open: true, restaurantId, orderId });
+    } else {
+      updateStatusMutation.mutate({ restaurantId, orderId, status: newStatus });
+    }
+  };
 
   const columns = [
     {
@@ -99,16 +147,33 @@ export default function Order() {
     {
       accessorKey: "orderStatus",
       header: "Status",
-      cell: ({ row }) => {
-        const status = row.original.orderStatus;
-        return (
-          <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status] || "bg-gray-100 text-gray-700"}`}
-          >
-            {formatStatusLabel(status)}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <Select
+          defaultValue={row.original.orderStatus}
+          onValueChange={(value) =>
+            handleStatusChange(
+              row.original.restaurantId,
+              row.original.internalId,
+              value,
+            )
+          }
+          disabled={
+            updateStatusMutation.isPending &&
+            updateStatusMutation.variables?.orderId === row.original.internalId
+          }
+        >
+          <SelectTrigger className="w-[170px] h-9">
+            <SelectValue placeholder="Select status" />
+          </SelectTrigger>
+          <SelectContent>
+            {orderStatuses.map((status) => (
+              <SelectItem key={status} value={status} className="capitalize">
+                {formatStatusLabel(status)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
     },
     {
       accessorKey: "orderDate",
@@ -184,6 +249,25 @@ export default function Order() {
         isLoading={isLoading}
         queryKey="superadmin-orders"
         actions={false}
+      />
+
+      {/* Cancel-reason dialog — reasons pulled from the superadmin endpoint */}
+      <ReasonDialog
+        isOpen={dialogConfig.open}
+        onClose={() =>
+          setDialogConfig({ open: false, restaurantId: null, orderId: null })
+        }
+        onConfirm={(cancelReasonId) =>
+          updateStatusMutation.mutate({
+            restaurantId: dialogConfig.restaurantId,
+            orderId: dialogConfig.orderId,
+            status: "cancelled",
+            cancelReasonId,
+          })
+        }
+        title="Cancel Order"
+        reasonsUrl="/api/superadmin/order/reasons"
+        reasonsQueryKey="superadmin-order-reasons"
       />
     </div>
   );

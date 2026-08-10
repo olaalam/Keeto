@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
@@ -29,6 +35,8 @@ import {
   ArrowLeft,
   ChevronRight,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Inline Custom SVGs to prevent lucide-react version export errors
 const FacebookIcon = (props) => (
@@ -224,6 +232,7 @@ export default function ResReport() {
     }
   });
   const [newColumnTitle, setNewColumnTitle] = useState("");
+  const tableRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -619,7 +628,88 @@ export default function ResReport() {
         .concat(customColumnDefs),
     [restaurantColumns, columnVisibility, customColumnDefs],
   );
+  // Maps a column id to the human-readable header used in the exported PDF.
+  const COLUMN_ID_TO_LABEL = {
+    "restaurantDetails.name": "Restaurant",
+    "restaurantDetails.type": "Type",
+    ordersCount: "Orders Count",
+    total_commission: "Total Commission",
+    "restaurantDetails.status": "Status",
+    "restaurantDetails.deliverystatus": "Delivery Status",
+    "restaurantDetails.FacebookLink": "Facebook Link",
+    signupUsersCount: "Signup Users Count",
+  };
 
+  // Pulls the same value that's rendered in a given table cell, straight
+  // from the row object — so the PDF always matches what's on screen
+  // (respecting current filters, since it reads from displayedRestaurants,
+  // not a fresh API call).
+  const getExportCellValue = (row, colId) => {
+    const d = row.restaurantDetails || {};
+    switch (colId) {
+      case "restaurantDetails.name":
+        return d.name || d.nameAr || "-";
+      case "restaurantDetails.type":
+        return d.type || "Unknown";
+      case "ordersCount":
+        return String(row.ordersCount ?? 0);
+      case "total_commission":
+        return `${(row.total_commission ?? 0).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })} EGP`;
+      case "restaurantDetails.status":
+        return d.status || "-";
+      case "restaurantDetails.deliverystatus":
+        return d.deliverystatus === "delivered" ? "Delivered" : "Not Delivered";
+      case "restaurantDetails.FacebookLink":
+        return d.facebookLink ? "Yes" : "No";
+      case "signupUsersCount":
+        return String(row.signupUsersCount ?? 0);
+      default:
+        // Custom blank columns render empty in the table too.
+        return "";
+    }
+  };
+
+  // Builds the PDF directly from the data currently shown in the table
+  // (displayedRestaurants + visibleColumns) rather than re-fetching from
+  // the API or screenshotting the DOM.
+  const exportPDF = () => {
+    try {
+      const columnIds = visibleColumns.map((col) => col.id ?? col.accessorKey);
+
+      const head = [
+        columnIds.map((id) => {
+          const custom = customColumns.find((c) => c.id === id);
+          return custom ? custom.label : COLUMN_ID_TO_LABEL[id] || id;
+        }),
+      ];
+
+      const body = displayedRestaurants.map((r) =>
+        columnIds.map((id) => getExportCellValue(r, id)),
+      );
+
+      const pdf = new jsPDF("landscape", "mm", "a4");
+
+      pdf.setFontSize(14);
+      pdf.text("Restaurant Orders Report", 14, 12);
+
+      autoTable(pdf, {
+        head,
+        body,
+        startY: 18,
+        styles: { fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+        headStyles: { fillColor: [250, 204, 21], textColor: [30, 30, 30] },
+        margin: { left: 10, right: 10 },
+      });
+
+      const date = new Date().toISOString().split("T")[0];
+      pdf.save(`Restaurant-Orders-Report-${date}.pdf`);
+    } catch (error) {
+      console.error("PDF export failed:", error);
+    }
+  };
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8 bg-[#fafafa] min-h-screen">
       {showTable && (
@@ -935,7 +1025,13 @@ export default function ResReport() {
               })}
             </div>
           </div>
-
+          <Button
+            type="button"
+            onClick={exportPDF}
+            className="bg-yellow-400 hover:bg-yellow-700 text-white"
+          >
+            Export PDF
+          </Button>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-1 pb-3">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
               Columns:
@@ -1000,7 +1096,10 @@ export default function ResReport() {
             ))}
           </div>
 
-          <div className="w-full overflow-x-auto rounded-2xl border bg-white">
+          <div
+            ref={tableRef}
+            className="w-full overflow-x-auto rounded-2xl border bg-white"
+          >
             <GenericDataTable
               data={displayedRestaurants}
               actions={false}
