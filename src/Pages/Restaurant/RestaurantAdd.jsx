@@ -106,6 +106,8 @@ const RestaurantAdd = () => {
         iosApp: raw.iosApp || "",
         androidApp: raw.androidApp || "",
         ownerposition: raw.ownerposition || "",
+        firstColor: raw.firstColor || "",
+        secondColor: raw.secondColor || "",
         // ربط قيم الـ Business Plan بالـ inputs المؤقتة بالفورم لتعمل في الـ Edit تلقائياً
         online_commissionRate: onlinePlan.commissionRate || "",
         online_serviceFee: onlinePlan.serviceFee || "",
@@ -286,6 +288,8 @@ const RestaurantAdd = () => {
             "orderLink",
             "iosApp",
             "androidApp",
+            "firstColor",
+            "secondColor",
           ],
           business: [
             "ownerFirstName",
@@ -451,6 +455,22 @@ const RestaurantAdd = () => {
                   <Input
                     {...register("androidApp", { required: false })}
                     placeholder="https://play.google.com/store/..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>First Color</Label>
+                  <Input
+                    {...register("firstColor", { required: false })}
+                    placeholder="#000000 or Black"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Second Color</Label>
+                  <Input
+                    {...register("secondColor", { required: false })}
+                    placeholder="#FFFFFF or White"
                   />
                 </div>
 
