@@ -1,9 +1,17 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import api from "@/api/axios";
-import { Search, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  Briefcase,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+} from "lucide-react";
 
 export default function BusinessPlan() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -18,13 +26,6 @@ export default function BusinessPlan() {
   });
 
   // 2. Data Consolidation — one row per restaurant, no duplicates.
-  // Each restaurant shows up multiple times in the API (once per
-  // platformType row), so we merge all of a restaurant's rows into a
-  // single entry keyed by restaurantId.
-  //
-  // NOTE: platformType from the API comes back as "", "online_order",
-  // "mykeeto", or "food_aggregator" (underscores, lowercase) — matching
-  // is done against those exact values below.
   const consolidatedPlans = useMemo(() => {
     if (!plans || plans.length === 0) return [];
 
@@ -38,6 +39,7 @@ export default function BusinessPlan() {
 
       if (!map.has(currentRestaurantId)) {
         map.set(currentRestaurantId, {
+          id: plan.id || currentRestaurantId, // Preserves the plan ID for editing
           restaurantId: currentRestaurantId,
           restaurantName: plan.restaurantDetails?.name || "Unknown",
           restauranttype: plan.restaurantDetails?.type || "",
@@ -76,7 +78,7 @@ export default function BusinessPlan() {
     return Array.from(map.values());
   }, [plans]);
 
-  // 3. Search filter — matches the restaurant name, case-insensitive.
+  // 3. Search filter
   const filteredPlans = useMemo(() => {
     if (!search.trim()) return consolidatedPlans;
     const q = search.trim().toLowerCase();
@@ -85,9 +87,7 @@ export default function BusinessPlan() {
     );
   }, [consolidatedPlans, search]);
 
-  // 4. Pagination — slice the filtered list into pages of `pageSize`.
-  // Whenever the search text changes the result set size can change, so
-  // we jump back to page 1 to avoid landing on a page that no longer exists.
+  // 4. Pagination
   const totalPages = Math.max(1, Math.ceil(filteredPlans.length / pageSize));
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function BusinessPlan() {
     setCurrentPage(Math.min(Math.max(page, 1), totalPages));
   };
 
-  // Small pill used for the POS Monthly/Quarterly/Yearly checks.
+  // Small badge for POS status checks
   const PosBadge = ({ active }) => (
     <span
       className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
@@ -149,7 +149,7 @@ export default function BusinessPlan() {
       <div className="overflow-x-auto rounded-b-2xl border border-t-0 bg-white">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-slate-50 text-slate-500">
-            {/* Row 1: group headers */}
+            {/* Row 1: Group Headers */}
             <tr>
               <th
                 rowSpan={2}
@@ -183,12 +183,18 @@ export default function BusinessPlan() {
               </th>
               <th
                 colSpan={3}
-                className="px-4 py-2 text-center font-bold border-b"
+                className="px-4 py-2 text-center font-bold border-b border-r"
               >
                 POS
               </th>
+              <th
+                rowSpan={2}
+                className="px-4 py-3 text-center font-bold border-b min-w-[80px]"
+              >
+                Actions
+              </th>
             </tr>
-            {/* Row 2: sub-columns */}
+            {/* Row 2: Sub-columns */}
             <tr className="text-xs uppercase tracking-wide">
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Service Fees
@@ -214,7 +220,7 @@ export default function BusinessPlan() {
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Quarterly
               </th>
-              <th className="px-4 py-2 text-center font-semibold border-b">
+              <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Yearly
               </th>
             </tr>
@@ -224,7 +230,7 @@ export default function BusinessPlan() {
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={11}
+                  colSpan={12}
                   className="px-4 py-10 text-center text-slate-400"
                 >
                   Loading business plans...
@@ -233,7 +239,7 @@ export default function BusinessPlan() {
             ) : filteredPlans.length === 0 ? (
               <tr>
                 <td
-                  colSpan={11}
+                  colSpan={12}
                   className="px-4 py-10 text-center text-slate-400"
                 >
                   No restaurants found.
@@ -275,8 +281,22 @@ export default function BusinessPlan() {
                   <td className="px-4 py-3 text-center border-r">
                     <PosBadge active={p.isQuarterlyActive} />
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3 text-center border-r">
                     <PosBadge active={p.isAnnuallyActive} />
+                  </td>
+                  <td className="px-4 py-3 text-center whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/restaurants/business-plans/edit/${p.restaurantId}`,
+                        )
+                      }
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                      title="Edit Business Plan"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))

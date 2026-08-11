@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
-
 const AddPage = ({
   title,
   apiUrl,
@@ -48,6 +47,10 @@ const AddPage = ({
   children,
   transformPayload,
   bypassIdInEdit = false,
+  customSubmit, // optional: async (payloadToSend, rawFormData) => result.
+  // When provided, this runs instead of the default single PUT/POST — use it
+  // when saving requires more than one API call (e.g. updating several
+  // related rows that each need their own request).
 }) => {
   const isEdit = method === "PUT" || !!initialData?.id;
   const formMethods = useForm({
@@ -62,7 +65,8 @@ const AddPage = ({
   } = formMethods;
   const postMutation = usePost(apiUrl, "post", queryKey);
   const updateMutation = useUpdate(apiUrl, queryKey);
- 
+  const [isCustomSubmitting, setIsCustomSubmitting] = useState(false);
+
   const [openCombobox, setOpenCombobox] = useState({});
 
   // استخدام useRef للاحتفاظ بهوية الـ fields دون التسبب في إعادة تشغيل الـ useEffect
@@ -104,8 +108,21 @@ const AddPage = ({
     }
   }, [initialDataString, reset]); // ✅ الآن التبعية مستقرة تماماً ولن تسبب Loop
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     const payloadToSend = transformPayload ? transformPayload(data) : data;
+
+    if (customSubmit) {
+      setIsCustomSubmitting(true);
+      try {
+        const res = await customSubmit(payloadToSend, data);
+        onSuccessAction?.(res);
+      } catch (err) {
+        console.error("customSubmit failed:", err);
+      } finally {
+        setIsCustomSubmitting(false);
+      }
+      return;
+    }
 
     if (isEdit) {
       // 💡 إذا كانت الخاصية true نرسل الرابط الأصلي صافي، وإلا نتركه null ليقوم الهوك بدمج الـ id تلقائياً
@@ -131,7 +148,8 @@ const AddPage = ({
       });
     }
   };
-  const isLoading = postMutation.isPending || updateMutation.isPending;
+  const isLoading =
+    postMutation.isPending || updateMutation.isPending || isCustomSubmitting;
 
   return (
     <Card className="mx-auto shadow-lg border-none">
@@ -212,9 +230,7 @@ const AddPage = ({
                                 onValueChange={setSearchVal}
                               />
                               <CommandList>
-                                <CommandEmpty>
-                                  {"noResultsFound"}
-                                </CommandEmpty>
+                                <CommandEmpty>{"noResultsFound"}</CommandEmpty>
                                 <CommandGroup>
                                   {filteredOptions?.map((option) => (
                                     <CommandItem
@@ -455,13 +471,11 @@ const AddPage = ({
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                  {"saving"}
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {"saving"}
                 </>
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" />{" "}
-                  {isEdit ? "update" : "save"}
+                  <Save className="mr-2 h-4 w-4" /> {isEdit ? "update" : "save"}
                 </>
               )}
             </Button>
