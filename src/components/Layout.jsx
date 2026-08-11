@@ -17,6 +17,7 @@ import {
 import { useUpdate } from "@/hooks/useUpdate";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
+import { toast } from "sonner";
 
 export default function Layout() {
   const activeModule = useSidebarStore((state) => state.activeModule);
@@ -91,17 +92,16 @@ export default function Layout() {
   // استخراج مصفوفة الإشعارات وحساب العدد الغير مقروء
   // ملحوظة: الـ API بيرجع "data" جوه كل إشعار كـ JSON string مش object،
   // فبنعمل parse ليها هنا مرة واحدة عشان نقدر نستخدم notification.data.orderId عادي
-  const notifications = (notificationsResponse?.data?.data || []).map(
-    (n) => {
-      let parsedData = {};
-      try {
-        parsedData = typeof n.data === "string" ? JSON.parse(n.data) : n.data || {};
-      } catch {
-        parsedData = {};
-      }
-      return { ...n, data: parsedData };
-    },
-  );
+  const notifications = (notificationsResponse?.data?.data || []).map((n) => {
+    let parsedData = {};
+    try {
+      parsedData =
+        typeof n.data === "string" ? JSON.parse(n.data) : n.data || {};
+    } catch {
+      parsedData = {};
+    }
+    return { ...n, data: parsedData };
+  });
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // شغّل الصوت لما unreadCount يزيد عن القيمة السابقة
@@ -115,6 +115,17 @@ export default function Layout() {
     }
     prevUnreadCountRef.current = unreadCount;
   }, [unreadCount]);
+
+  // جلب كل الأوردرات عشان نقدر نلاقي الـ restaurantId بتاع أي أوردر لما نضغط على إشعار
+  // (نفس queryKey اللي في allorders.jsx عشان تشارك نفس الكاش)
+  const { data: allOrders = [] } = useQuery({
+    queryKey: ["superadmin-orders"],
+    queryFn: async () => {
+      const res = await api.get(`/api/superadmin/order/all`);
+      return res.data.data.data;
+    },
+    staleTime: 30000,
+  });
 
   // 2. تحديث الكل كمقروء
   const { mutate: markAllAsRead, isPending: isMarkingAll } = useUpdate(
@@ -266,7 +277,18 @@ export default function Layout() {
                             onClick={() => {
                               const orderId = notification?.data?.orderId;
                               if (orderId) {
-                                navigate(`/orders/details/${orderId}`);
+                                const matchedOrder = allOrders.find(
+                                  (o) => o.internalId === orderId,
+                                );
+                                if (matchedOrder?.restaurantId) {
+                                  navigate(
+                                    `/ordersreport/details/${matchedOrder.restaurantId}/${orderId}`,
+                                  );
+                                } else {
+                                  toast.error(
+                                    "Couldn't find this order's restaurant",
+                                  );
+                                }
                               }
                               if (!notification.isRead) {
                                 handleMarkAsRead(notification.id);
