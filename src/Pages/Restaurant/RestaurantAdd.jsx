@@ -81,8 +81,10 @@ const RestaurantAdd = () => {
 
       // قراءة الـ businessPlans القادمة من السيرفر وتوزيعها على الـ Inputs لصفحة الـ Edit
       const plans = raw.businessPlans || [];
-      const onlinePlan =
-        plans.find((p) => p.platformType === "online_order") || {};
+      const onlineWebPlan =
+        plans.find((p) => p.platformType === "online_order_web") || {};
+      const onlineAppPlan =
+        plans.find((p) => p.platformType === "online_order_app") || {};
       const aggregatorPlan =
         plans.find((p) => p.platformType === "food_aggregator") || {};
       const mykeetoPlan = plans.find((p) => p.platformType === "mykeeto") || {};
@@ -109,8 +111,11 @@ const RestaurantAdd = () => {
         firstColor: raw.firstColor || "",
         secondColor: raw.secondColor || "",
         // ربط قيم الـ Business Plan بالـ inputs المؤقتة بالفورم لتعمل في الـ Edit تلقائياً
-        online_commissionRate: onlinePlan.commissionRate || "",
-        online_serviceFee: onlinePlan.serviceFee || "",
+        online_web_commissionRate: onlineWebPlan.commissionRate || "",
+        online_web_serviceFee: onlineWebPlan.serviceFee || "",
+
+        online_app_commissionRate: onlineAppPlan.commissionRate || "",
+        online_app_serviceFee: onlineAppPlan.serviceFee || "",
 
         aggregator_commissionRate: aggregatorPlan.commissionRate || "",
         aggregator_serviceFee: aggregatorPlan.serviceFee || "",
@@ -186,9 +191,15 @@ const RestaurantAdd = () => {
         // 3. بناء مصفوفة الـ businessPlans المتكاملة لإدراجها بالطلب الرئيسي
         const businessPlans = [
           {
-            platformType: "online_order",
-            commissionRate: formatAmount(data.online_commissionRate),
-            serviceFee: formatAmount(data.online_serviceFee),
+            platformType: "online_order_web",
+            commissionRate: formatAmount(data.online_web_commissionRate),
+            serviceFee: formatAmount(data.online_web_serviceFee),
+            ...subscriptionFields,
+          },
+          {
+            platformType: "online_order_app",
+            commissionRate: formatAmount(data.online_app_commissionRate),
+            serviceFee: formatAmount(data.online_app_serviceFee),
             ...subscriptionFields,
           },
           {
@@ -236,8 +247,10 @@ const RestaurantAdd = () => {
 
         // 5. إزالة الحقول المؤقتة لتنظيف الـ Payload المتجه للسيرفر
         const fieldsToRemove = [
-          "online_commissionRate",
-          "online_serviceFee",
+          "online_web_commissionRate",
+          "online_web_serviceFee",
+          "online_app_commissionRate",
+          "online_app_serviceFee",
           "aggregator_commissionRate",
           "aggregator_serviceFee",
           "mykeeto_commissionRate",
@@ -306,8 +319,10 @@ const RestaurantAdd = () => {
           ],
           images: ["logo", "cover", "taxCertificate"],
           "business-plan": [
-            "online_commissionRate",
-            "online_serviceFee",
+            "online_web_commissionRate",
+            "online_web_serviceFee",
+            "online_app_commissionRate",
+            "online_app_serviceFee",
             "aggregator_commissionRate",
             "aggregator_serviceFee",
             "mykeeto_commissionRate",
@@ -913,11 +928,14 @@ const RestaurantAdd = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b">
-                      <th className="p-3 font-semibold text-gray-600 w-1/4">
+                      <th className="p-3 font-semibold text-gray-600 w-1/5">
                         Platform
                       </th>
                       <th className="p-3 font-semibold text-gray-700 text-center border-l">
-                        Online Order
+                        Online Order (Web)
+                      </th>
+                      <th className="p-3 font-semibold text-gray-700 text-center border-l">
+                        Online Order (App)
                       </th>
                       <th className="p-3 font-semibold text-gray-700 text-center border-l">
                         Aggregator
@@ -936,7 +954,16 @@ const RestaurantAdd = () => {
                         <Input
                           type="number"
                           step="0.01"
-                          {...register("online_commissionRate")}
+                          {...register("online_web_commissionRate")}
+                          className="h-8 text-center"
+                          placeholder="0.00"
+                        />
+                      </td>
+                      <td className="p-2 border-l">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...register("online_app_commissionRate")}
                           className="h-8 text-center"
                           placeholder="0.00"
                         />
@@ -968,7 +995,16 @@ const RestaurantAdd = () => {
                         <Input
                           type="number"
                           step="0.01"
-                          {...register("online_serviceFee")}
+                          {...register("online_web_serviceFee")}
+                          className="h-8 text-center"
+                          placeholder="0.00"
+                        />
+                      </td>
+                      <td className="p-2 border-l">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...register("online_app_serviceFee")}
                           className="h-8 text-center"
                           placeholder="0.00"
                         />

@@ -43,8 +43,10 @@ export default function BusinessPlan() {
           restaurantId: currentRestaurantId,
           restaurantName: plan.restaurantDetails?.name || "Unknown",
           restauranttype: plan.restaurantDetails?.type || "",
-          onlineOrderServiceFees: "0.00",
-          onlineOrderCommission: "0.00",
+          onlineOrderWebServiceFees: "0.00",
+          onlineOrderWebCommission: "0.00",
+          onlineOrderAppServiceFees: "0.00",
+          onlineOrderAppCommission: "0.00",
           myKeetoServiceFees: "0.00",
           myKeetoCommission: "0.00",
           aggregatorServiceFees: "0.00",
@@ -58,9 +60,12 @@ export default function BusinessPlan() {
       const entry = map.get(currentRestaurantId);
       const platform = (plan.platformType || "").toLowerCase().trim();
 
-      if (platform === "online_order") {
-        entry.onlineOrderServiceFees = plan.serviceFee || "0.00";
-        entry.onlineOrderCommission = plan.commissionRate || "0.00";
+      if (platform === "online_order_web" || platform === "online_order") {
+        entry.onlineOrderWebServiceFees = plan.serviceFee || "0.00";
+        entry.onlineOrderWebCommission = plan.commissionRate || "0.00";
+      } else if (platform === "online_order_app") {
+        entry.onlineOrderAppServiceFees = plan.serviceFee || "0.00";
+        entry.onlineOrderAppCommission = plan.commissionRate || "0.00";
       } else if (platform === "mykeeto") {
         entry.myKeetoServiceFees = plan.serviceFee || "0.00";
         entry.myKeetoCommission = plan.commissionRate || "0.00";
@@ -167,7 +172,13 @@ export default function BusinessPlan() {
                 colSpan={2}
                 className="px-4 py-2 text-center font-bold border-b border-r"
               >
-                Online Order
+                Online Order (Web)
+              </th>
+              <th
+                colSpan={2}
+                className="px-4 py-2 text-center font-bold border-b border-r"
+              >
+                Online Order (App)
               </th>
               <th
                 colSpan={2}
@@ -196,24 +207,35 @@ export default function BusinessPlan() {
             </tr>
             {/* Row 2: Sub-columns */}
             <tr className="text-xs uppercase tracking-wide">
+              {/* Online Order Web */}
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Service Fees
               </th>
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Commission
               </th>
+              {/* Online Order App */}
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Service Fees
               </th>
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Commission
               </th>
+              {/* MyKeeto */}
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Service Fees
               </th>
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Commission
               </th>
+              {/* Food Aggregator */}
+              <th className="px-4 py-2 text-center font-semibold border-b border-r">
+                Service Fees
+              </th>
+              <th className="px-4 py-2 text-center font-semibold border-b border-r">
+                Commission
+              </th>
+              {/* POS */}
               <th className="px-4 py-2 text-center font-semibold border-b border-r">
                 Monthly
               </th>
@@ -230,7 +252,7 @@ export default function BusinessPlan() {
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={12}
+                  colSpan={14}
                   className="px-4 py-10 text-center text-slate-400"
                 >
                   Loading business plans...
@@ -239,7 +261,7 @@ export default function BusinessPlan() {
             ) : filteredPlans.length === 0 ? (
               <tr>
                 <td
-                  colSpan={12}
+                  colSpan={14}
                   className="px-4 py-10 text-center text-slate-400"
                 >
                   No restaurants found.
@@ -257,24 +279,35 @@ export default function BusinessPlan() {
                   <td className="px-4 py-3 font-semibold text-slate-700 border-r whitespace-nowrap">
                     {p.restaurantName}
                   </td>
+                  {/* Online Order Web */}
                   <td className="px-4 py-3 text-center font-mono text-slate-600 border-r">
-                    {p.onlineOrderServiceFees} EGP
+                    {p.onlineOrderWebServiceFees} EGP
                   </td>
                   <td className="px-4 py-3 text-center font-mono text-slate-600 border-r">
-                    {p.onlineOrderCommission}%
+                    {p.onlineOrderWebCommission}%
                   </td>
+                  {/* Online Order App */}
+                  <td className="px-4 py-3 text-center font-mono text-slate-600 border-r">
+                    {p.onlineOrderAppServiceFees} EGP
+                  </td>
+                  <td className="px-4 py-3 text-center font-mono text-slate-600 border-r">
+                    {p.onlineOrderAppCommission}%
+                  </td>
+                  {/* MyKeeto */}
                   <td className="px-4 py-3 text-center font-mono text-slate-600 border-r">
                     {p.myKeetoServiceFees} EGP
                   </td>
                   <td className="px-4 py-3 text-center font-mono text-slate-600 border-r">
                     {p.myKeetoCommission}%
                   </td>
+                  {/* Food Aggregator */}
                   <td className="px-4 py-3 text-center font-mono text-slate-600 border-r">
                     {p.aggregatorServiceFees} EGP
                   </td>
                   <td className="px-4 py-3 text-center font-mono text-slate-600 border-r">
                     {p.aggregatorCommission}%
                   </td>
+                  {/* POS */}
                   <td className="px-4 py-3 text-center border-r">
                     <PosBadge active={p.isMonthlyActive} />
                   </td>

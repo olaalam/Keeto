@@ -46,8 +46,10 @@ const BusinessPlanAdd = () => {
 
     const data = {
       restaurantId: "",
-      online_commissionRate: "0.00",
-      online_serviceFee: "0.00",
+      online_web_commissionRate: "0.00",
+      online_web_serviceFee: "0.00",
+      online_app_commissionRate: "0.00",
+      online_app_serviceFee: "0.00",
       aggregator_commissionRate: "0.00",
       aggregator_serviceFee: "0.00",
       mykeeto_commissionRate: "0.00",
@@ -62,7 +64,8 @@ const BusinessPlanAdd = () => {
 
     if (planData) {
       // The restaurant-scoped endpoint returns one row per platformType
-      // (online_order, food_aggregator, mykeeto, pos), so normalize to an array.
+      // (online_order_web, online_order_app, food_aggregator, mykeeto, pos),
+      // so normalize to an array.
       const plans = Array.isArray(planData) ? planData : [planData];
 
       data.restaurantId =
@@ -71,10 +74,14 @@ const BusinessPlanAdd = () => {
       plans.forEach((plan) => {
         const pType = (plan.platformType || "").toLowerCase();
 
-        if (pType === "online_order") {
-          data.online_id = plan.id;
-          data.online_commissionRate = plan.commissionRate || "0.00";
-          data.online_serviceFee = plan.serviceFee || "0.00";
+        if (pType === "online_order_web") {
+          data.online_web_id = plan.id;
+          data.online_web_commissionRate = plan.commissionRate || "0.00";
+          data.online_web_serviceFee = plan.serviceFee || "0.00";
+        } else if (pType === "online_order_app") {
+          data.online_app_id = plan.id;
+          data.online_app_commissionRate = plan.commissionRate || "0.00";
+          data.online_app_serviceFee = plan.serviceFee || "0.00";
         } else if (pType === "food_aggregator") {
           data.aggregator_id = plan.id;
           data.aggregator_commissionRate = plan.commissionRate || "0.00";
@@ -109,7 +116,8 @@ const BusinessPlanAdd = () => {
       // onSubmit). We want that to be an actual business-plan row id — not
       // the restaurant id — so pick the first available platform's plan id.
       data.id =
-        data.online_id ||
+        data.online_web_id ||
+        data.online_app_id ||
         data.aggregator_id ||
         data.mykeeto_id ||
         data.pos_id ||
@@ -192,10 +200,17 @@ const BusinessPlanAdd = () => {
 
           const updates = [
             {
-              id: data.online_id,
+              id: data.online_web_id,
               payload: buildFlatPayload(
-                data.online_commissionRate,
-                data.online_serviceFee,
+                data.online_web_commissionRate,
+                data.online_web_serviceFee,
+              ),
+            },
+            {
+              id: data.online_app_id,
+              payload: buildFlatPayload(
+                data.online_app_commissionRate,
+                data.online_app_serviceFee,
               ),
             },
             {
@@ -239,9 +254,15 @@ const BusinessPlanAdd = () => {
 
         const businessPlans = [
           {
-            platformType: "online_order",
-            commissionRate: formatAmount(data.online_commissionRate),
-            serviceFee: formatAmount(data.online_serviceFee),
+            platformType: "online_order_web",
+            commissionRate: formatAmount(data.online_web_commissionRate),
+            serviceFee: formatAmount(data.online_web_serviceFee),
+            ...subscriptionFields,
+          },
+          {
+            platformType: "online_order_app",
+            commissionRate: formatAmount(data.online_app_commissionRate),
+            serviceFee: formatAmount(data.online_app_serviceFee),
             ...subscriptionFields,
           },
           {
@@ -319,11 +340,14 @@ const BusinessPlanAdd = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b">
-                      <th className="p-3 font-semibold text-gray-600 w-1/4">
+                      <th className="p-3 font-semibold text-gray-600 w-1/5">
                         Platform
                       </th>
                       <th className="p-3 font-semibold text-gray-700 text-center border-l">
-                        Online Order
+                        Online Order (Web)
+                      </th>
+                      <th className="p-3 font-semibold text-gray-700 text-center border-l">
+                        Online Order (App)
                       </th>
                       <th className="p-3 font-semibold text-gray-700 text-center border-l">
                         Aggregator
@@ -342,7 +366,16 @@ const BusinessPlanAdd = () => {
                         <Input
                           type="number"
                           step="0.01"
-                          {...register("online_commissionRate")}
+                          {...register("online_web_commissionRate")}
+                          className="h-8 text-center"
+                          placeholder="0.00"
+                        />
+                      </td>
+                      <td className="p-2 border-l">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...register("online_app_commissionRate")}
                           className="h-8 text-center"
                           placeholder="0.00"
                         />
@@ -374,7 +407,16 @@ const BusinessPlanAdd = () => {
                         <Input
                           type="number"
                           step="0.01"
-                          {...register("online_serviceFee")}
+                          {...register("online_web_serviceFee")}
+                          className="h-8 text-center"
+                          placeholder="0.00"
+                        />
+                      </td>
+                      <td className="p-2 border-l">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...register("online_app_serviceFee")}
                           className="h-8 text-center"
                           placeholder="0.00"
                         />
