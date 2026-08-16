@@ -49,6 +49,8 @@ import {
   Trash2,
   RefreshCw,
   X,
+  Copy,
+  ClipboardPaste,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -184,8 +186,8 @@ const ZoneAdd = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // حالات خاصة بالبحث بواسطة الإحداثيات (lat/lng) مباشرة
-  const [coordSearch, setCoordSearch] = useState({ lat: "", lng: "" });
+  // حالات خاصة بالبحث بواسطة الإحداثيات (lat/lng) مباشرة - حقل واحد "lat, lng"
+  const [coordSearch, setCoordSearch] = useState("");
   const [coordSearchError, setCoordSearchError] = useState("");
 
   // 1. جلب قائمة المدن
@@ -223,7 +225,8 @@ const ZoneAdd = () => {
           raw.coverageAreaRadiusKm !== null
             ? String(raw.coverageAreaRadiusKm)
             : "",
-        coordinates: Array.isArray(raw.coordinates) ? raw.coordinates : [],
+        // coordinates ممكن يكون array (polygon) أو object واحد {lat, lng} (circle) — بنسيبه زي ما هو
+        coordinates: raw.coordinates ?? [],
       };
     },
     enabled: !!id && !state?.zoneData,
@@ -233,22 +236,25 @@ const ZoneAdd = () => {
 
   // تحميل بيانات الموقع الأصلية في حالة التعديل
   useEffect(() => {
-    if (initialData?.coordinates?.length) {
-      // زون اتحفظ كـ polygon (شكل مرسوم بعدة نقط)
+    if (
+      Array.isArray(initialData?.coordinates) &&
+      initialData.coordinates.length
+    ) {
+      // زون اتحفظ كـ polygon (شكل مرسوم بعدة نقط) — array
       setMode("polygon");
       setPoints(initialData.coordinates);
       const c = getCentroid(initialData.coordinates);
       if (c) setMapCenter(c);
     } else if (
-      initialData?.lat !== undefined &&
-      initialData?.lat !== null &&
-      initialData?.lng !== undefined &&
-      initialData?.lng !== null
+      initialData?.coordinates &&
+      !Array.isArray(initialData.coordinates) &&
+      initialData.coordinates.lat !== undefined &&
+      initialData.coordinates.lng !== undefined
     ) {
-      // زون اتحفظ كـ single pin + radius (دائرة)
+      // زون اتحفظ كـ single pin + radius (دائرة) — object واحد {lat, lng}
       const pin = {
-        lat: Number(initialData.lat),
-        lng: Number(initialData.lng),
+        lat: Number(initialData.coordinates.lat),
+        lng: Number(initialData.coordinates.lng),
       };
       setMode("circle");
       setCirclePin(pin);
@@ -284,10 +290,71 @@ const ZoneAdd = () => {
     setPoints((prev) => [...prev, pt]);
   }, []);
 
-  // بيتحقق من صحة قيم lat/lng المدخلة يدويًا ويرجع نقطة صالحة أو null
+  // بيحاول يفكك نص زي "31.2001, 29.9187" أو "31.2001 29.9187" (منسوخ من خرائط جوجل مثلاً) لإحداثيات
+  const parseCoordPairString = (text) => {
+    if (!text) return null;
+    const parts = text
+      .split(/[,\s]+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length < 2) return null;
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    return { lat, lng };
+  };
+
+  // بيسمح بلصق زوج إحداثيات كامل في الحقل، بيتأكد إنه شكل صالح "lat, lng" قبل ما يحطه
+  const handlePasteCoordField = (e) => {
+    const text = e.clipboardData?.getData("text");
+    const pair = parseCoordPairString(text);
+    if (pair) {
+      e.preventDefault();
+      setCoordSearch(`${pair.lat}, ${pair.lng}`);
+      setCoordSearchError("");
+    }
+  };
+
+  // زرار "Paste" منفصل بيقرأ من الـ clipboard مباشرة (مفيد لو الجهاز مش بيدعم onPaste زي بعض المتصفحات على الموبايل)
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const pair = parseCoordPairString(text);
+      if (pair) {
+        setCoordSearch(`${pair.lat}, ${pair.lng}`);
+        setCoordSearchError("");
+      } else {
+        setCoordSearchError(
+          'Clipboard doesn\'t contain a valid "lat, lng" pair',
+        );
+      }
+    } catch (err) {
+      setCoordSearchError("Couldn't read clipboard — paste manually instead");
+    }
+  };
+
+  // بينسخ إحداثيات أي بين على الكليبورد بصيغة "lat, lng"
+  const handleCopyCoords = async (pt) => {
+    try {
+      await navigator.clipboard.writeText(`${pt.lat}, ${pt.lng}`);
+    } catch (err) {
+      // clipboard API ممكن يكون مش متاح — بنتجاهل بهدوء
+    }
+  };
+
+  // بيتحقق من صحة قيمة "lat, lng" المدخلة يدويًا في الحقل الواحد ويرجع نقطة صالحة أو null
   const parseCoordSearch = () => {
-    const lat = parseFloat(coordSearch.lat);
-    const lng = parseFloat(coordSearch.lng);
+    const parts = coordSearch
+      .split(/[,\s]+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length < 2) {
+      setCoordSearchError('Enter coordinates as "latitude, longitude"');
+      return null;
+    }
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
     if (Number.isNaN(lat) || Number.isNaN(lng)) {
       setCoordSearchError("Enter a valid latitude and longitude");
       return null;
@@ -389,33 +456,20 @@ const ZoneAdd = () => {
 
         const watchedRadius = watch("coverageAreaRadiusKm");
 
-        // بيتزامن مع الفورم حسب وضع تحديد المنطقة:
-        // - polygon: بنبعت array النقط كـ "coordinates" ونمسح lat/lng المفردة
-        // - circle: بنبعت lat/lng بتاع البين المفرد بس (من غير أي array نقط) ونمسح coordinates
+        // بيتزامن مع الفورم حسب وضع تحديد المنطقة، وكله بيتخزن في حقل واحد "coordinates":
+        // - polygon: بنبعت array النقط [{lat, lng}, ...]
+        // - circle: بنبعت object واحد {lat, lng} بتاع البين المفرد بس (من غير أي array نقط)
         useEffect(() => {
           if (mode === "circle") {
-            setValue("coordinates", undefined, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-            setValue("lat", circlePin ? circlePin.lat : undefined, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-            setValue("lng", circlePin ? circlePin.lng : undefined, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
+            setValue(
+              "coordinates",
+              circlePin
+                ? { lat: circlePin.lat, lng: circlePin.lng }
+                : undefined,
+              { shouldDirty: true, shouldValidate: true },
+            );
           } else {
             setValue("coordinates", points, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-            setValue("lat", undefined, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-            setValue("lng", undefined, {
               shouldDirty: true,
               shouldValidate: true,
             });
@@ -732,31 +786,24 @@ const ZoneAdd = () => {
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
                   <Input
-                    type="number"
-                    step="any"
-                    placeholder="Latitude"
-                    value={coordSearch.lat}
-                    onChange={(e) =>
-                      setCoordSearch((prev) => ({
-                        ...prev,
-                        lat: e.target.value,
-                      }))
-                    }
-                    className="w-32"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Latitude, Longitude"
+                    value={coordSearch}
+                    onChange={(e) => setCoordSearch(e.target.value)}
+                    onPaste={handlePasteCoordField}
+                    className="w-56"
                   />
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="Longitude"
-                    value={coordSearch.lng}
-                    onChange={(e) =>
-                      setCoordSearch((prev) => ({
-                        ...prev,
-                        lng: e.target.value,
-                      }))
-                    }
-                    className="w-32"
-                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePasteFromClipboard}
+                    title='Paste a "lat, lng" pair from clipboard'
+                  >
+                    <ClipboardPaste className="w-4 h-4 mr-1" />
+                    Paste
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -781,6 +828,11 @@ const ZoneAdd = () => {
                     {mode === "circle" ? "Set Pin" : "Add Pin"}
                   </Button>
                 </div>
+                <p className="text-[11px] text-gray-400">
+                  Tip: enter as "latitude, longitude" — you can paste a full
+                  coordinate pair (e.g. copied from Google Maps) directly, or
+                  use the Paste button.
+                </p>
                 {coordSearchError && (
                   <span className="text-xs text-red-500">
                     {coordSearchError}
@@ -921,6 +973,13 @@ const ZoneAdd = () => {
                             </div>
                             <button
                               type="button"
+                              className="text-primary flex items-center gap-1"
+                              onClick={() => handleCopyCoords(p)}
+                            >
+                              <Copy className="w-3 h-3" /> Copy
+                            </button>
+                            <button
+                              type="button"
                               className="text-red-500 flex items-center gap-1"
                               onClick={() => handleRemovePoint(idx)}
                             >
@@ -961,8 +1020,18 @@ const ZoneAdd = () => {
                       }}
                     >
                       <Popup>
-                        <div className="text-xs font-mono">
-                          {circlePin.lat.toFixed(5)}, {circlePin.lng.toFixed(5)}
+                        <div className="text-xs space-y-1">
+                          <div className="font-mono">
+                            {circlePin.lat.toFixed(5)},{" "}
+                            {circlePin.lng.toFixed(5)}
+                          </div>
+                          <button
+                            type="button"
+                            className="text-primary flex items-center gap-1"
+                            onClick={() => handleCopyCoords(circlePin)}
+                          >
+                            <Copy className="w-3 h-3" /> Copy
+                          </button>
                         </div>
                       </Popup>
                     </Marker>
@@ -994,13 +1063,24 @@ const ZoneAdd = () => {
                       <span>
                         #{idx + 1} — {p.lat.toFixed(6)}, {p.lng.toFixed(6)}
                       </span>
-                      <button
-                        type="button"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleRemovePoint(idx)}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                      <span className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="text-primary hover:opacity-70"
+                          onClick={() => handleCopyCoords(p)}
+                          title="Copy coordinates"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleRemovePoint(idx)}
+                          title="Remove pin"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1050,12 +1130,10 @@ const ZoneAdd = () => {
                 </div>
               </div>
 
-              {/* hidden fields, kept in sync via setValue:
-                  - coordinates: polygon mode array of {lat, lng}
-                  - lat/lng: circle mode single pin coordinates */}
+              {/* hidden coordinates field, kept in sync via setValue:
+                  - polygon mode: array of {lat, lng}
+                  - circle mode: single {lat, lng} object (just the pin) */}
               <input type="hidden" {...register("coordinates")} />
-              <input type="hidden" {...register("lat")} />
-              <input type="hidden" {...register("lng")} />
             </TabsContent>
           </Tabs>
         );
