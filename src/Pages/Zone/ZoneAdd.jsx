@@ -664,7 +664,7 @@ const ZoneAdd = () => {
                     step="0.01"
                     min="0"
                     {...register("deliveryFee", {
-                      required: true,
+                      required: false,
                       valueAsNumber: true,
                       min: 0,
                     })}
@@ -683,7 +683,7 @@ const ZoneAdd = () => {
                     step="0.01"
                     min="0"
                     {...register("minOrderAmount", {
-                      required: true,
+                      required: false,
                       valueAsNumber: true,
                       min: 0,
                     })}
