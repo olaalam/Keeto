@@ -184,6 +184,10 @@ const ZoneAdd = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  // حالات خاصة بالبحث بواسطة الإحداثيات (lat/lng) مباشرة
+  const [coordSearch, setCoordSearch] = useState({ lat: "", lng: "" });
+  const [coordSearchError, setCoordSearchError] = useState("");
+
   // 1. جلب قائمة المدن
   const { data: cities = [], isLoading: isLoadingCities } = useQuery({
     queryKey: ["cities"],
@@ -227,12 +231,28 @@ const ZoneAdd = () => {
 
   const initialData = state?.zoneData || fetchedData;
 
-  // تحميل نقاط الـ polygon الأصلية في حالة التعديل
+  // تحميل بيانات الموقع الأصلية في حالة التعديل
   useEffect(() => {
     if (initialData?.coordinates?.length) {
+      // زون اتحفظ كـ polygon (شكل مرسوم بعدة نقط)
+      setMode("polygon");
       setPoints(initialData.coordinates);
       const c = getCentroid(initialData.coordinates);
       if (c) setMapCenter(c);
+    } else if (
+      initialData?.lat !== undefined &&
+      initialData?.lat !== null &&
+      initialData?.lng !== undefined &&
+      initialData?.lng !== null
+    ) {
+      // زون اتحفظ كـ single pin + radius (دائرة)
+      const pin = {
+        lat: Number(initialData.lat),
+        lng: Number(initialData.lng),
+      };
+      setMode("circle");
+      setCirclePin(pin);
+      setMapCenter(pin);
     }
   }, [initialData]);
 
@@ -264,6 +284,33 @@ const ZoneAdd = () => {
     setPoints((prev) => [...prev, pt]);
   }, []);
 
+  // بيتحقق من صحة قيم lat/lng المدخلة يدويًا ويرجع نقطة صالحة أو null
+  const parseCoordSearch = () => {
+    const lat = parseFloat(coordSearch.lat);
+    const lng = parseFloat(coordSearch.lng);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      setCoordSearchError("Enter a valid latitude and longitude");
+      return null;
+    }
+    if (lat < -90 || lat > 90) {
+      setCoordSearchError("Latitude must be between -90 and 90");
+      return null;
+    }
+    if (lng < -180 || lng > 180) {
+      setCoordSearchError("Longitude must be between -180 and 180");
+      return null;
+    }
+    setCoordSearchError("");
+    return { lat, lng };
+  };
+
+  // بيحرك الخريطة بس لمكان الإحداثيات المدخلة، من غير ما يضيف بين
+  const handleCoordGoTo = () => {
+    const pt = parseCoordSearch();
+    if (!pt) return;
+    setMapCenter(pt);
+  };
+
   // في وضع الدائرة، الكليك بيحرك البين الوحيد بدل ما يضيف نقط جديدة
   const handleMapClick = useCallback(
     (pt) => {
@@ -275,6 +322,14 @@ const ZoneAdd = () => {
     },
     [mode, handleAddPoint],
   );
+
+  // بيحط بين (أو يحرك بين الدائرة) في مكان الإحداثيات المدخلة يدويًا وينقل الخريطة لهناك
+  const handleCoordAddPin = () => {
+    const pt = parseCoordSearch();
+    if (!pt) return;
+    handleMapClick(pt);
+    setMapCenter(pt);
+  };
 
   const handleSwitchMode = (newMode) => {
     if (newMode === mode) return;
@@ -332,26 +387,40 @@ const ZoneAdd = () => {
           }
         }, [activeTab, mapInstance]);
 
-        // كل تغيير في points بيتزامن مع الفورم (coordinates field)
-        useEffect(() => {
-          setValue("coordinates", points, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        }, [points]); // eslint-disable-line react-hooks/exhaustive-deps
-
-        // في وضع الدائرة: كل تغيير في مكان البين أو نصف القطر يعيد رسم
-        // دائرة تقريبية (48 نقطة) ويحطها في points عشان تتخزن كـ coordinates
         const watchedRadius = watch("coverageAreaRadiusKm");
+
+        // بيتزامن مع الفورم حسب وضع تحديد المنطقة:
+        // - polygon: بنبعت array النقط كـ "coordinates" ونمسح lat/lng المفردة
+        // - circle: بنبعت lat/lng بتاع البين المفرد بس (من غير أي array نقط) ونمسح coordinates
         useEffect(() => {
-          if (mode !== "circle") return;
-          if (!circlePin) {
-            setPoints([]);
-            return;
+          if (mode === "circle") {
+            setValue("coordinates", undefined, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            setValue("lat", circlePin ? circlePin.lat : undefined, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            setValue("lng", circlePin ? circlePin.lng : undefined, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+          } else {
+            setValue("coordinates", points, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            setValue("lat", undefined, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            setValue("lng", undefined, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
           }
-          const r = Number(watchedRadius) || 0;
-          setPoints(r > 0 ? circleToPolygon(circlePin, r) : []);
-        }, [mode, circlePin, watchedRadius]); // eslint-disable-line react-hooks/exhaustive-deps
+        }, [points, mode, circlePin]); // eslint-disable-line react-hooks/exhaustive-deps
 
         const handleAutoCalcRadius = () => {
           if (points.length < 1) return;
@@ -656,6 +725,69 @@ const ZoneAdd = () => {
                 )}
               </div>
 
+              {/* SEARCH BY LAT/LNG */}
+              <div className="w-full max-w-md space-y-1">
+                <span className="text-xs font-medium text-gray-600">
+                  Or search by coordinates:
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder="Latitude"
+                    value={coordSearch.lat}
+                    onChange={(e) =>
+                      setCoordSearch((prev) => ({
+                        ...prev,
+                        lat: e.target.value,
+                      }))
+                    }
+                    className="w-32"
+                  />
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder="Longitude"
+                    value={coordSearch.lng}
+                    onChange={(e) =>
+                      setCoordSearch((prev) => ({
+                        ...prev,
+                        lng: e.target.value,
+                      }))
+                    }
+                    className="w-32"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCoordGoTo}
+                  >
+                    <Search className="w-4 h-4 mr-1" />
+                    Go
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCoordAddPin}
+                    title={
+                      mode === "circle"
+                        ? "Set as center pin"
+                        : "Add as coverage pin"
+                    }
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    {mode === "circle" ? "Set Pin" : "Add Pin"}
+                  </Button>
+                </div>
+                {coordSearchError && (
+                  <span className="text-xs text-red-500">
+                    {coordSearchError}
+                  </span>
+                )}
+              </div>
+
               {/* MODE TOGGLE */}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium text-gray-600 mr-1">
@@ -918,8 +1050,12 @@ const ZoneAdd = () => {
                 </div>
               </div>
 
-              {/* hidden coordinates field, kept in sync via setValue */}
+              {/* hidden fields, kept in sync via setValue:
+                  - coordinates: polygon mode array of {lat, lng}
+                  - lat/lng: circle mode single pin coordinates */}
               <input type="hidden" {...register("coordinates")} />
+              <input type="hidden" {...register("lat")} />
+              <input type="hidden" {...register("lng")} />
             </TabsContent>
           </Tabs>
         );
