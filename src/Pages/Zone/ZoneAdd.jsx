@@ -90,30 +90,17 @@ const suggestedRadiusKm = (pts) => {
   return Math.max(...pts.map((p) => haversineKm(c, p)));
 };
 
-// بيحول نقطة مركز + نصف قطر (كم) لمضلع دائري تقريبي (48 ضلع)
-// عشان نقدر نخزنه في نفس شكل الـ coordinates array اللي الـ payload محتاجها
-const circleToPolygon = (center, radiusKm, sides = 48) => {
-  if (!center || !radiusKm || radiusKm <= 0) return [];
-  const R = 6371;
-  const latRad = toRad(center.lat);
-  const lngRad = toRad(center.lng);
-  const angularDist = radiusKm / R;
-  const pts = [];
-  for (let i = 0; i < sides; i++) {
-    const bearing = (i / sides) * 2 * Math.PI;
-    const lat2 = Math.asin(
-      Math.sin(latRad) * Math.cos(angularDist) +
-        Math.cos(latRad) * Math.sin(angularDist) * Math.cos(bearing),
-    );
-    const lng2 =
-      lngRad +
-      Math.atan2(
-        Math.sin(bearing) * Math.sin(angularDist) * Math.cos(latRad),
-        Math.cos(angularDist) - Math.sin(latRad) * Math.sin(lat2),
-      );
-    pts.push({ lat: (lat2 * 180) / Math.PI, lng: (lng2 * 180) / Math.PI });
+// دالة تفكيك واستخراج الإحداثيات سواء كانت stringified JSON أو Object/Array
+const parseCoordinates = (rawCoords) => {
+  if (!rawCoords) return null;
+  if (typeof rawCoords === "string") {
+    try {
+      return JSON.parse(rawCoords);
+    } catch {
+      return null;
+    }
   }
-  return pts;
+  return rawCoords;
 };
 
 // ===== Sub-components خاصة بالخريطة (لازم تكون جوه MapContainer) =====
@@ -133,23 +120,17 @@ const RecenterMap = ({ center, zoom }) => {
     if (center) {
       map.setView([center.lat, center.lng], zoom || map.getZoom());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center]);
   return null;
 };
 
-// بيراقب حجم الـ container ويصلح مشكلة الخريطة اللي بتظهر رمادي/مقطوعة
-// لما Leaflet يتهيأ قبل ما التاب ياخد حجمه الكامل (مشكلة شائعة جدًا مع Tabs)
 const InvalidateOnResize = () => {
   const map = useMap();
   useEffect(() => {
     const container = map.getContainer();
-
-    // إصلاح فوري بعد المهلة اللي بياخدها الـ tab عشان يفتح بالكامل
     const initialFix = setTimeout(() => map.invalidateSize(), 150);
     const secondFix = setTimeout(() => map.invalidateSize(), 400);
 
-    // إصلاح مستمر لو الحاوية اتغير حجمها لأي سبب (فتح/قفل sidebar، تبديل تابات، إلخ)
     const ro = new ResizeObserver(() => {
       map.invalidateSize();
     });
@@ -170,27 +151,21 @@ const ZoneAdd = () => {
   const { id } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
-  const isEdit = !!id;
 
-  // نقاط الـ polygon (coverage area coordinates)
   const [points, setPoints] = useState([]);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [drawEnabled, setDrawEnabled] = useState(true);
 
-  // وضع تحديد المنطقة: "polygon" (ارسم شكل بنقاط متعددة) أو "circle" (بين واحد + نصف قطر)
   const [mode, setMode] = useState("polygon");
-  const [circlePin, setCirclePin] = useState(null); // {lat, lng} — بين واحد بس في وضع الدائرة
+  const [circlePin, setCirclePin] = useState(null);
 
-  // حالات خاصة بالبحث على الخريطة
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // حالات خاصة بالبحث بواسطة الإحداثيات (lat/lng) مباشرة - حقل واحد "lat, lng"
   const [coordSearch, setCoordSearch] = useState("");
   const [coordSearchError, setCoordSearchError] = useState("");
 
-  // 1. جلب قائمة المدن
   const { data: cities = [], isLoading: isLoadingCities } = useQuery({
     queryKey: ["cities"],
     queryFn: async () => {
@@ -199,7 +174,6 @@ const ZoneAdd = () => {
     },
   });
 
-  // 2. جلب بيانات الـ Zone في حالة التعديل
   const { data: fetchedData, isLoading: isFetching } = useQuery({
     queryKey: ["zone", id],
     queryFn: async () => {
@@ -225,8 +199,7 @@ const ZoneAdd = () => {
           raw.coverageAreaRadiusKm !== null
             ? String(raw.coverageAreaRadiusKm)
             : "",
-        // coordinates ممكن يكون array (polygon) أو object واحد {lat, lng} (circle) — بنسيبه زي ما هو
-        coordinates: raw.coordinates ?? [],
+        coordinates: parseCoordinates(raw.coordinates) ?? [],
       };
     },
     enabled: !!id && !state?.zoneData,
@@ -234,35 +207,38 @@ const ZoneAdd = () => {
 
   const initialData = state?.zoneData || fetchedData;
 
-  // تحميل بيانات الموقع الأصلية في حالة التعديل
+  // تحميل بيانات الموقع عند التعديل
   useEffect(() => {
-    if (
-      Array.isArray(initialData?.coordinates) &&
-      initialData.coordinates.length
-    ) {
-      // زون اتحفظ كـ polygon (شكل مرسوم بعدة نقط) — array
-      setMode("polygon");
-      setPoints(initialData.coordinates);
-      const c = getCentroid(initialData.coordinates);
-      if (c) setMapCenter(c);
+    const coords = parseCoordinates(initialData?.coordinates);
+    if (!coords) return;
+
+    if (Array.isArray(coords)) {
+      if (coords.length === 1) {
+        // Single pin inside an array e.g. [{"lat": 30.06, "lng": 31.34}]
+        const pin = { lat: Number(coords[0].lat), lng: Number(coords[0].lng) };
+        setMode("circle");
+        setCirclePin(pin);
+        setMapCenter(pin);
+      } else if (coords.length > 1) {
+        // Multiple points (polygon)
+        setMode("polygon");
+        setPoints(coords);
+        const c = getCentroid(coords);
+        if (c) setMapCenter(c);
+      }
     } else if (
-      initialData?.coordinates &&
-      !Array.isArray(initialData.coordinates) &&
-      initialData.coordinates.lat !== undefined &&
-      initialData.coordinates.lng !== undefined
+      typeof coords === "object" &&
+      coords.lat !== undefined &&
+      coords.lng !== undefined
     ) {
-      // زون اتحفظ كـ single pin + radius (دائرة) — object واحد {lat, lng}
-      const pin = {
-        lat: Number(initialData.coordinates.lat),
-        lng: Number(initialData.coordinates.lng),
-      };
+      // Single pin object e.g. {"lat": 30.06, "lng": 31.34}
+      const pin = { lat: Number(coords.lat), lng: Number(coords.lng) };
       setMode("circle");
       setCirclePin(pin);
       setMapCenter(pin);
     }
   }, [initialData]);
 
-  // دالة البحث باستخدام OpenStreetMap Nominatim API
   const handleMapSearch = async (e) => {
     const value = e.target.value;
     setSearchQuery(value);
@@ -290,7 +266,6 @@ const ZoneAdd = () => {
     setPoints((prev) => [...prev, pt]);
   }, []);
 
-  // بيحاول يفكك نص زي "31.2001, 29.9187" أو "31.2001 29.9187" (منسوخ من خرائط جوجل مثلاً) لإحداثيات
   const parseCoordPairString = (text) => {
     if (!text) return null;
     const parts = text
@@ -305,7 +280,6 @@ const ZoneAdd = () => {
     return { lat, lng };
   };
 
-  // بيسمح بلصق زوج إحداثيات كامل في الحقل، بيتأكد إنه شكل صالح "lat, lng" قبل ما يحطه
   const handlePasteCoordField = (e) => {
     const text = e.clipboardData?.getData("text");
     const pair = parseCoordPairString(text);
@@ -316,7 +290,6 @@ const ZoneAdd = () => {
     }
   };
 
-  // زرار "Paste" منفصل بيقرأ من الـ clipboard مباشرة (مفيد لو الجهاز مش بيدعم onPaste زي بعض المتصفحات على الموبايل)
   const handlePasteFromClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -329,21 +302,19 @@ const ZoneAdd = () => {
           'Clipboard doesn\'t contain a valid "lat, lng" pair',
         );
       }
-    } catch (err) {
+    } catch {
       setCoordSearchError("Couldn't read clipboard — paste manually instead");
     }
   };
 
-  // بينسخ إحداثيات أي بين على الكليبورد بصيغة "lat, lng"
   const handleCopyCoords = async (pt) => {
     try {
       await navigator.clipboard.writeText(`${pt.lat}, ${pt.lng}`);
-    } catch (err) {
-      // clipboard API ممكن يكون مش متاح — بنتجاهل بهدوء
+    } catch {
+      // Ignore fallback
     }
   };
 
-  // بيتحقق من صحة قيمة "lat, lng" المدخلة يدويًا في الحقل الواحد ويرجع نقطة صالحة أو null
   const parseCoordSearch = () => {
     const parts = coordSearch
       .split(/[,\s]+/)
@@ -371,14 +342,12 @@ const ZoneAdd = () => {
     return { lat, lng };
   };
 
-  // بيحرك الخريطة بس لمكان الإحداثيات المدخلة، من غير ما يضيف بين
   const handleCoordGoTo = () => {
     const pt = parseCoordSearch();
     if (!pt) return;
     setMapCenter(pt);
   };
 
-  // في وضع الدائرة، الكليك بيحرك البين الوحيد بدل ما يضيف نقط جديدة
   const handleMapClick = useCallback(
     (pt) => {
       if (mode === "circle") {
@@ -390,7 +359,6 @@ const ZoneAdd = () => {
     [mode, handleAddPoint],
   );
 
-  // بيحط بين (أو يحرك بين الدائرة) في مكان الإحداثيات المدخلة يدويًا وينقل الخريطة لهناك
   const handleCoordAddPin = () => {
     const pt = parseCoordSearch();
     if (!pt) return;
@@ -401,7 +369,6 @@ const ZoneAdd = () => {
   const handleSwitchMode = (newMode) => {
     if (newMode === mode) return;
     setMode(newMode);
-    // نصفي الحالة السابقة عشان منخلطش بين شكل مرسوم يدوي ودائرة
     setPoints([]);
     setCirclePin(null);
   };
@@ -430,7 +397,7 @@ const ZoneAdd = () => {
       title="Zone"
       apiUrl="/api/superadmin/zones"
       queryKey="zones"
-      fields={[]} // تركناها فارغة لنستخدم نظام التوزيع المخصص بالداخل
+      fields={[]}
       initialData={initialData}
       onSuccessAction={() => navigate(-1)}
     >
@@ -446,7 +413,6 @@ const ZoneAdd = () => {
         const [activeTab, setActiveTab] = useState("basic");
         const [mapInstance, setMapInstance] = useState(null);
 
-        // كل ما تفتح تاب "location" نجبر الخريطة تعيد حساب حجمها
         useEffect(() => {
           if (activeTab === "location" && mapInstance) {
             const t = setTimeout(() => mapInstance.invalidateSize(), 150);
@@ -456,11 +422,10 @@ const ZoneAdd = () => {
 
         const watchedRadius = watch("coverageAreaRadiusKm");
 
-        // بيتزامن مع الفورم حسب وضع تحديد المنطقة، وكله بيتخزن في حقل واحد "coordinates":
-        // - polygon: بنبعت array النقط [{lat, lng}, ...]
-        // - circle: بنبعت object واحد {lat, lng} بتاع البين المفرد بس (من غير أي array نقط)
+        // تزامن حالة الإحداثيات مع Form State
         useEffect(() => {
           if (mode === "circle") {
+            // إرسال كائن Pin أحادي فقط { lat, lng } بدون أي إحداثيات polygon تغطية
             setValue(
               "coordinates",
               circlePin
@@ -474,7 +439,7 @@ const ZoneAdd = () => {
               shouldValidate: true,
             });
           }
-        }, [points, mode, circlePin]); // eslint-disable-line react-hooks/exhaustive-deps
+        }, [points, mode, circlePin]);
 
         const handleAutoCalcRadius = () => {
           if (points.length < 1) return;
@@ -485,7 +450,6 @@ const ZoneAdd = () => {
           });
         };
 
-        // خريطة تربط كل حقل بالتاب الخاص به لمعرفة أين يوجد الخطأ
         const fieldsByTab = {
           basic: [
             "name",
@@ -504,16 +468,15 @@ const ZoneAdd = () => {
         const tabHasError = (tabKey) =>
           fieldsByTab[tabKey]?.some((fieldName) => errors[fieldName]);
 
-        // عند فشل الحفظ بسبب حقل مطلوب فاضي في تاب آخر، ننتقل تلقائياً لأول تاب فيه خطأ
         useEffect(() => {
           if (submitCount > 0) {
             const erroredTab = Object.keys(fieldsByTab).find((key) =>
               tabHasError(key),
             );
             if (erroredTab) setActiveTab(erroredTab);
-            else if (points.length < 3) setActiveTab("location");
+            else if (mode === "polygon" && points.length < 3)
+              setActiveTab("location");
           }
-          // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [submitCount, errors]);
 
         return (
@@ -532,7 +495,9 @@ const ZoneAdd = () => {
               <TabsTrigger value="location" className="relative">
                 Zone Location & Map
                 {(tabHasError("location") ||
-                  (submitCount > 0 && points.length < 3)) && (
+                  (submitCount > 0 &&
+                    mode === "polygon" &&
+                    points.length < 3)) && (
                   <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
                 )}
               </TabsTrigger>
@@ -588,7 +553,6 @@ const ZoneAdd = () => {
                 </div>
               </div>
 
-              {/* حقل اختيار المدينة المطور مع ميزة البحث */}
               <div className="space-y-2 flex flex-col">
                 <Label>City *</Label>
                 <Controller
@@ -655,7 +619,6 @@ const ZoneAdd = () => {
                 )}
               </div>
 
-              {/* الإعدادات المالية للمنطقة */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
                   <Label>Delivery Fee *</Label>
@@ -828,11 +791,6 @@ const ZoneAdd = () => {
                     {mode === "circle" ? "Set Pin" : "Add Pin"}
                   </Button>
                 </div>
-                <p className="text-[11px] text-gray-400">
-                  Tip: enter as "latitude, longitude" — you can paste a full
-                  coordinate pair (e.g. copied from Google Maps) directly, or
-                  use the Paste button.
-                </p>
                 {coordSearchError && (
                   <span className="text-xs text-red-500">
                     {coordSearchError}
@@ -907,9 +865,6 @@ const ZoneAdd = () => {
                   </Button>
                   <span className="text-xs text-gray-500 ml-1">
                     {points.length} pin{points.length !== 1 ? "s" : ""}
-                    {points.length > 0 && points.length < 3
-                      ? " — need at least 3 to form a coverage area"
-                      : ""}
                   </span>
                 </div>
               )}
@@ -954,7 +909,6 @@ const ZoneAdd = () => {
                     enabled={mode === "circle" ? true : drawEnabled}
                   />
 
-                  {/* Polygon mode: multiple draggable pins */}
                   {mode === "polygon" &&
                     points.map((p, idx) => (
                       <Marker
@@ -1007,7 +961,6 @@ const ZoneAdd = () => {
                     />
                   )}
 
-                  {/* Circle mode: single draggable center pin + circle overlay */}
                   {mode === "circle" && circlePin && (
                     <Marker
                       position={[circlePin.lat, circlePin.lng]}
@@ -1052,62 +1005,6 @@ const ZoneAdd = () => {
                 </MapContainer>
               </div>
 
-              {/* PINS LIST (manual edit/remove) — polygon mode only */}
-              {mode === "polygon" && points.length > 0 && (
-                <div className="border rounded-lg divide-y max-h-40 overflow-y-auto">
-                  {points.map((p, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between px-3 py-1.5 text-xs font-mono"
-                    >
-                      <span>
-                        #{idx + 1} — {p.lat.toFixed(6)}, {p.lng.toFixed(6)}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="text-primary hover:opacity-70"
-                          onClick={() => handleCopyCoords(p)}
-                          title="Copy coordinates"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          className="text-red-500 hover:text-red-700"
-                          onClick={() => handleRemovePoint(idx)}
-                          title="Remove pin"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {mode === "polygon" && submitCount > 0 && points.length < 3 && (
-                <span className="text-xs text-red-500">
-                  Please add at least 3 pins on the map to define the coverage
-                  area.
-                </span>
-              )}
-
-              {mode === "circle" && submitCount > 0 && !circlePin && (
-                <span className="text-xs text-red-500">
-                  Please place a center pin on the map.
-                </span>
-              )}
-
-              {mode === "circle" &&
-                submitCount > 0 &&
-                circlePin &&
-                !(Number(watchedRadius) > 0) && (
-                  <span className="text-xs text-red-500">
-                    Please set a radius greater than 0.
-                  </span>
-                )}
-
               {/* RADIUS */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
@@ -1122,17 +1019,9 @@ const ZoneAdd = () => {
                     })}
                     placeholder="5.5"
                   />
-                  <p className="text-[11px] text-gray-400">
-                    {mode === "circle"
-                      ? "Drives the circle drawn around your pin — the coverage area updates live as you type."
-                      : "Auto-calculated from the farthest pin to the polygon's center, or set it manually."}
-                  </p>
                 </div>
               </div>
 
-              {/* hidden coordinates field, kept in sync via setValue:
-                  - polygon mode: array of {lat, lng}
-                  - circle mode: single {lat, lng} object (just the pin) */}
               <input type="hidden" {...register("coordinates")} />
             </TabsContent>
           </Tabs>
