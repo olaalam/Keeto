@@ -65,6 +65,8 @@ import RestaurantsReport from "./Pages/ResReport/Resreport";
 import SalesReport from "./Pages/SalesReport/SalesReport";
 import OrdersReport from "./Pages/Orders/allorders";
 import OrdersReportDetails from "./Pages/Orders/orderdetails";
+import Platform from "./Pages/Platform/Platform";
+import PlatformAdd from "./Pages/Platform/PlatformAdd";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -409,15 +411,20 @@ const router = createBrowserRouter([
       {
         path: "ordersreport/details/:restaurantId/:orderId",
         element: <OrdersReportDetails />,
-      }
-      /*   {
-        path: "users/add",
-        element: <UsersAdd />,
       },
       {
-        path: "users/edit/:id",
-        element: <UsersAdd />,
-      } */
+        path: "platform",
+        element: <Platform />,
+      },
+
+      {
+        path: "platform/add",
+        element: <PlatformAdd />,
+      },
+      {
+        path: "platform/edit/:id",
+        element: <PlatformAdd />,
+      }
     ],
   },
   {

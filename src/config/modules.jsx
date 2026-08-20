@@ -193,6 +193,7 @@ export const modules = [
         module: "Coupons",
       },
       { title: "Popup", url: "/popup", icon: Layers, module: "popup" },
+          { title: "Platform", url: "/platform", icon: Layers, module: "platform" },
     ],
   },
   {
