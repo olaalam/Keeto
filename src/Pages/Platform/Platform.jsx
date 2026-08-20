@@ -53,7 +53,7 @@ export default function Platform() {
                 data={platform}
                 isLoading={isLoading}
                 queryKey="platform"
-                deleteApiUrl="/api/restaurant/platform/"
+                deleteApiUrl="/api/superadmin/platform/"
                 onAdd={() => navigate("/platform")}
                 onEdit={(platform) => navigate(`/platform/edit/${platform.id}`)}
             />
