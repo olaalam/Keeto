@@ -26,14 +26,37 @@ import {
   Trash2,
   Plus,
   Search,
-  ChevronLeft,
-  ChevronRight,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import DeleteDialog from "./DeleteDialog";
 import LoadingSpinner from "./LoadingSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios";
 import { toast } from "sonner";
+
+// يبني قائمة أرقام الصفحات مع نقاط "..." للفجوات الكبيرة
+function getPaginationRange(currentPage, totalPages) {
+  const pages = new Set();
+  pages.add(1);
+  pages.add(2);
+  pages.add(totalPages - 1);
+  pages.add(totalPages);
+  for (let p = currentPage - 1; p <= currentPage + 1; p++) pages.add(p);
+
+  const sorted = [...pages]
+    .filter((p) => p >= 1 && p <= totalPages)
+    .sort((a, b) => a - b);
+
+  const result = [];
+  let prev = 0;
+  for (const p of sorted) {
+    if (prev && p - prev > 1) result.push("ellipsis");
+    result.push(p);
+    prev = p;
+  }
+  return result;
+}
 
 export default function GenericDataTable({
   columns,
@@ -348,53 +371,78 @@ export default function GenericDataTable({
       </div>
 
       {/* PAGINATION */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-        <div className="flex items-center m-auto gap-1.5 order-1 sm:order-2">
-          {/* زر الصفحة السابقة */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="h-9 w-9 p-0 rounded-lg border-slate-200"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          {/* توليد أرقام الصفحات */}
-          {Array.from({ length: table.getPageCount() }, (_, i) => (
-            <Button
-              key={i}
-              variant={
-                table.getState().pagination.pageIndex === i
-                  ? "default"
-                  : "outline"
-              }
-              size="sm"
-              onClick={() => table.setPageIndex(i)}
+      {table.getPageCount() > 1 && (
+        <div className="flex items-center justify-center pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-2 max-w-md">
+            {/* زر الصفحة السابقة */}
+            <button
+              type="button"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              aria-label="Previous page"
               className={cn(
-                "h-9 w-9 p-0 rounded-lg border-slate-200 font-semibold text-xs transition-all",
-                table.getState().pagination.pageIndex === i
-                  ? "bg-primary text-white shadow-sm"
-                  : "hover:bg-slate-50",
+                "h-11 w-11 shrink-0 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 transition-colors",
+                table.getCanPreviousPage()
+                  ? "text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  : "text-slate-300 dark:text-slate-600 cursor-not-allowed",
               )}
             >
-              {i + 1}
-            </Button>
-          ))}
+              <ArrowLeft className="h-4 w-4" />
+            </button>
 
-          {/* زر الصفحة التالية */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="h-9 w-9 p-0 rounded-lg border-slate-200"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+            {/* أرقام الصفحات مع نقاط الفجوة */}
+            {getPaginationRange(
+              table.getState().pagination.pageIndex + 1,
+              table.getPageCount(),
+            ).map((item, idx) =>
+              item === "ellipsis" ? (
+                <div
+                  key={`ellipsis-${idx}`}
+                  className="h-11 w-11 shrink-0 flex items-center justify-center rounded-lg text-white text-sm font-bold tracking-widest"
+                  style={{ backgroundColor: "rgb(250, 204, 21)" }}
+                >
+                  ...
+                </div>
+              ) : (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => table.setPageIndex(item - 1)}
+                  className={cn(
+                    "h-11 w-11 shrink-0 flex items-center justify-center rounded-lg text-sm font-semibold transition-colors",
+                    table.getState().pagination.pageIndex === item - 1
+                      ? "text-white"
+                      : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700",
+                  )}
+                  style={
+                    table.getState().pagination.pageIndex === item - 1
+                      ? { backgroundColor: "rgb(250, 204, 21)" }
+                      : undefined
+                  }
+                >
+                  {item}
+                </button>
+              ),
+            )}
+
+            {/* زر الصفحة التالية */}
+            <button
+              type="button"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              aria-label="Next page"
+              className={cn(
+                "h-11 w-11 shrink-0 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 transition-colors",
+                table.getCanNextPage()
+                  ? "text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  : "text-slate-300 dark:text-slate-600 cursor-not-allowed",
+              )}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* DELETE DIALOG */}
       <DeleteDialog

@@ -90,9 +90,15 @@ export default function Order() {
       accessorKey: "dailyOrderNumber",
       header: "Order Number",
       cell: ({ row }) => (
-        <span className="font-medium text-gray-700">
+        <button onClick=
+          {() =>
+            navigate(
+              `/ordersreport/details/${row.original.restaurantId}/${row.original.internalId}`,
+            )
+          } className="font-medium text-blue-700">
           {row.getValue("dailyOrderNumber")}
-        </span>
+          
+        </button>
       ),
     },
     {
