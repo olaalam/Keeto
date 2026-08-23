@@ -34,6 +34,7 @@ import {
   MessageCircle,
   ArrowLeft,
   ChevronRight,
+  MapPin,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -125,6 +126,7 @@ const RESTAURANT_TYPES = ["all", "mega", "super", "A", "B", "C", "C-", "test"];
 // least one identifying column always stays visible.
 const COLUMN_OPTIONS = [
   { id: "restaurantDetails.type", label: "Type" },
+  { id: "restaurantDetails.city", label: "City" },
   { id: "ordersCount", label: "Orders Count" },
   { id: "total_commission", label: "Total Commission" },
   { id: "restaurantDetails.status", label: "Status" },
@@ -214,6 +216,9 @@ export default function ResReport() {
   const [maxOrdersInput, setMaxOrdersInput] = useState("");
   const [orderSort, setOrderSort] = useState("");
   const [selectedTypes, setSelectedTypes] = useState([]);
+  // Holds selected city ids (from the active-cities API) used to filter the
+  // restaurants table. Empty array == "All cities".
+  const [selectedCities, setSelectedCities] = useState([]);
   const [showTable, setShowTable] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   // Tracks which optional columns are hidden. A column is visible unless
@@ -275,6 +280,17 @@ export default function ResReport() {
   const summary = reportData?.summary || {};
   const restaurants = reportData?.restaurants || [];
 
+  // Active cities, used to build the "City" filter buttons and to resolve
+  // each restaurant's city name in the table.
+  const { data: citiesData } = useQuery({
+    queryKey: ["activeCities"],
+    queryFn: async () => {
+      const res = await api.get("/api/superadmin/zones/cities/active");
+      return res.data?.data?.data || res.data?.data || [];
+    },
+  });
+  const cities = citiesData || [];
+
   // Full (unfiltered) split by whether the restaurant has any orders — this
   // mirrors the summary.restaurantsWithOrders / restaurantsWithoutOrders
   // counts shown in the top cards, so clicking a card shows exactly those
@@ -295,6 +311,11 @@ export default function ResReport() {
     if (selectedTypes.length > 0 && !selectedTypes.includes("all")) {
       data = data.filter((r) =>
         selectedTypes.includes(r.restaurantDetails?.type),
+      );
+    }
+    if (selectedCities.length > 0) {
+      data = data.filter((r) =>
+        selectedCities.includes(r.restaurantDetails?.city?.id),
       );
     }
     if (deliveryStatus !== "all") {
@@ -349,6 +370,7 @@ export default function ResReport() {
   }, [
     restaurants,
     selectedTypes,
+    selectedCities,
     minOrders,
     maxOrders,
     orderSort,
@@ -410,11 +432,22 @@ export default function ResReport() {
     setOrderSort((prev) => (prev === dir ? "" : dir));
   }, []);
 
+  const toggleCity = useCallback((cityId) => {
+    if (cityId === "all") setSelectedCities([]);
+    else
+      setSelectedCities((prev) =>
+        prev.includes(cityId)
+          ? prev.filter((c) => c !== cityId)
+          : [...prev, cityId],
+      );
+  }, []);
+
   const hasActiveFilters =
     minOrdersInput !== "" ||
     maxOrdersInput !== "" ||
     orderSort !== "" ||
     selectedTypes.length > 0 ||
+    selectedCities.length > 0 ||
     startDate !== "" ||
     endDate !== "" ||
     deliveryStatus !== "all";
@@ -426,6 +459,7 @@ export default function ResReport() {
     setMaxOrders("");
     setOrderSort("");
     setSelectedTypes([]);
+    setSelectedCities([]);
     setStartDate("");
     setEndDate("");
     setDeliveryStatus("all");
@@ -460,6 +494,26 @@ export default function ResReport() {
               <span className="inline-block px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
                 {type}
               </span>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "restaurantDetails.city",
+        header: () => (
+          <div className="text-center font-bold min-w-[100px]">City</div>
+        ),
+        cell: ({ row }) => {
+          const city = row.original.restaurantDetails?.city;
+          return (
+            <div className="text-center">
+              {city ? (
+                <span className="inline-block px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold">
+                  {city.name}
+                </span>
+              ) : (
+                <span className="text-slate-400 text-xs">-</span>
+              )}
             </div>
           );
         },
@@ -632,6 +686,7 @@ export default function ResReport() {
   const COLUMN_ID_TO_LABEL = {
     "restaurantDetails.name": "Restaurant",
     "restaurantDetails.type": "Type",
+    "restaurantDetails.city": "City",
     ordersCount: "Orders Count",
     total_commission: "Total Commission",
     "restaurantDetails.status": "Status",
@@ -651,6 +706,8 @@ export default function ResReport() {
         return d.name || d.nameAr || "-";
       case "restaurantDetails.type":
         return d.type || "Unknown";
+      case "restaurantDetails.city":
+        return d.city?.name || "-";
       case "ordersCount":
         return String(row.ordersCount ?? 0);
       case "total_commission":
@@ -917,6 +974,37 @@ export default function ResReport() {
                     onClick={() => toggleType(t)}
                   >
                     {t.toUpperCase()}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* City */}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                <MapPin className="w-3.5 h-3.5" />
+                City
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selectedCities.length === 0 ? "default" : "outline"}
+                  onClick={() => toggleCity("all")}
+                >
+                  ALL
+                </Button>
+                {cities.map((city) => (
+                  <Button
+                    key={city.id}
+                    type="button"
+                    size="sm"
+                    variant={
+                      selectedCities.includes(city.id) ? "default" : "outline"
+                    }
+                    onClick={() => toggleCity(city.id)}
+                  >
+                    {city.name}
                   </Button>
                 ))}
               </div>
