@@ -45,6 +45,16 @@ const RestaurantAdd = () => {
 
   const [showFixedFees, setShowFixedFees] = useState(false);
 
+  // بعض الـ APIs بترجع الـ Array على مستويات مختلفة (data.data.data / data.data / data)
+  // الدالة دي بتدور على أول Array موجود عشان الكود ميعتمدش على شكل واحد بس
+  const extractList = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data?.data)) return payload.data.data;
+    if (Array.isArray(payload?.data?.data?.data)) return payload.data.data.data;
+    return [];
+  };
+
   // جلب البيانات الخاصة بالقوائم المنسدلة (المطابخ مثلاً)
   const { data: selectData, isLoading: isLoadingSelect } = useQuery({
     queryKey: ["restaurantSelectData"],
@@ -59,7 +69,16 @@ const RestaurantAdd = () => {
     queryKey: ["activeSales"],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/restaurants/sales/active");
-      return res.data.data.data;
+      return extractList(res.data);
+    },
+  });
+
+  // جلب قائمة الـ Cities النشطة لاختيار المدينة الخاصة بالمطعم
+  const { data: citiesData, isLoading: isLoadingCities } = useQuery({
+    queryKey: ["activeCities"],
+    queryFn: async () => {
+      const res = await api.get("/api/superadmin/zones/cities/active");
+      return extractList(res.data);
     },
   });
 
@@ -97,6 +116,7 @@ const RestaurantAdd = () => {
         ...raw,
         cuisineId: initialCuisineIds,
         zoneId: String(raw.zoneId || ""),
+        cityId: raw.cityId ? String(raw.cityId) : "",
         salesId: raw.salesId ? String(raw.salesId) : "",
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
@@ -137,7 +157,10 @@ const RestaurantAdd = () => {
 
   const initialData = state?.restaurantData || fetchedData;
 
-  if (id && (isFetching || isLoadingSelect || isLoadingSales))
+  if (
+    id &&
+    (isFetching || isLoadingSelect || isLoadingSales || isLoadingCities)
+  )
     return <LoadingSpinner />;
 
   return (
@@ -316,6 +339,7 @@ const RestaurantAdd = () => {
             "taxNumber",
             "taxExpireDate",
             "status",
+            "cityId",
           ],
           images: ["logo", "cover", "taxCertificate"],
           "business-plan": [
@@ -723,6 +747,37 @@ const RestaurantAdd = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>City *</Label>
+                  <Controller
+                    name="cityId"
+                    control={control}
+                    rules={{ required: true }}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select City" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Array.isArray(citiesData) ? citiesData : []).map(
+                            (c) => (
+                              <SelectItem key={c.id} value={String(c.id)}>
+                                {c.name}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.cityId && (
+                    <p className="text-xs text-red-500">City is required</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
                   <Label>Sales Representative</Label>
                   <Controller
                     name="salesId"
@@ -736,11 +791,13 @@ const RestaurantAdd = () => {
                           <SelectValue placeholder="Select Sales" />
                         </SelectTrigger>
                         <SelectContent>
-                          {salesData?.map((s) => (
-                            <SelectItem key={s.id} value={String(s.id)}>
-                              {s.name}
-                            </SelectItem>
-                          ))}
+                          {(Array.isArray(salesData) ? salesData : []).map(
+                            (s) => (
+                              <SelectItem key={s.id} value={String(s.id)}>
+                                {s.name}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     )}
