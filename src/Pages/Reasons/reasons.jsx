@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 export default function Reasons() {
   const navigate = useNavigate();
 
-  const { data: reasons= [], isLoading } = useQuery({
+  const { data: reasons = [], isLoading } = useQuery({
     queryKey: ["reasons"],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/select-reasons");
@@ -17,12 +17,13 @@ export default function Reasons() {
 
   const columns = [
     { accessorKey: "name", header: "Name" },
-
+    { accessorKey: "nameAr", header: "Name Arabic" },
+    { accessorKey: "nameFr", header: "Name Franco" },
     { accessorKey: "type", header: "Type" },
     {
       accessorKey: "status",
       header: "status",
-     
+
     },
   ];
 

@@ -26,6 +26,14 @@ const ReasonAdd = () => {
         id: rawData.id, // مهم
         name:
           typeof rawData.name === "object" ? rawData.name.name : rawData.name,
+        name_ar:
+          typeof rawData.nameAr === "object"
+            ? rawData.nameAr.nameAr
+            : rawData.nameAr,
+        name_fr:
+          typeof rawData.nameFr === "object"
+            ? rawData.nameFr.nameFr
+            : rawData.nameFr,
         type:
           typeof rawData.type === "object" ? rawData.type.type : rawData.type,
       }
@@ -33,6 +41,8 @@ const ReasonAdd = () => {
 
   const reasonFields = [
     { name: "name", label: "name", required: true },
+    {name:"name_ar", label:"name_ar", required:true},
+    {name:"name_fr", label:"name_fr", required:true},
     {
       name: "type",
       label: "type",
