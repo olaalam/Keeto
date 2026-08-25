@@ -14,22 +14,9 @@ export const useUpdate = (url, onSuccessKey) => {
       const { data } = await api.put(targetUrl, payload);
       return data;
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       if (onSuccessKey) {
-        // Invalidate the list query (e.g. ["restaurants"]).
         queryClient.invalidateQueries({ queryKey: [onSuccessKey] });
-      }
-      // Also invalidate ANY cached query tied to this specific record's id
-      // (e.g. ["restaurant", id]) — the detail query used by edit pages
-      // usually has a different key than the list query, and if it isn't
-      // invalidated too, the edit page keeps showing stale data after a
-      // successful save even though the backend was updated correctly.
-      if (variables?.id) {
-        queryClient.invalidateQueries({
-          predicate: (query) =>
-            Array.isArray(query.queryKey) &&
-            query.queryKey.includes(variables.id),
-        });
       }
       toast.success("success");
     },
