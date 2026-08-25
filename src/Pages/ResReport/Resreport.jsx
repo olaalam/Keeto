@@ -979,34 +979,69 @@ export default function ResReport() {
               </div>
             </div>
 
-            {/* City */}
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                <MapPin className="w-3.5 h-3.5" />
-                City
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={selectedCities.length === 0 ? "default" : "outline"}
-                  onClick={() => toggleCity("all")}
+            {/* Grouping City and Delivery Status in a grid for better desktop fit */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* City */}
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  <MapPin className="w-3.5 h-3.5" />
+                  City
+                </label>
+                <select
+                  className="flex h-9 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  value={
+                    selectedCities.length === 0 ? "all" : selectedCities[0]
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "all") {
+                      setSelectedCities([]);
+                    } else {
+                      setSelectedCities([val]);
+                    }
+                  }}
                 >
-                  ALL
-                </Button>
-                {cities.map((city) => (
+                  <option value="all">ALL</option>
+                  {cities.map((city) => (
+                    <option key={city.id} value={city.id}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Delivery status filter */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">
+                  Delivery Status
+                </label>
+                <div className="flex flex-wrap gap-2">
                   <Button
-                    key={city.id}
-                    type="button"
+                    size="sm"
+                    variant={deliveryStatus === "all" ? "default" : "outline"}
+                    onClick={() => setDeliveryStatus("all")}
+                  >
+                    All
+                  </Button>
+                  <Button
                     size="sm"
                     variant={
-                      selectedCities.includes(city.id) ? "default" : "outline"
+                      deliveryStatus === "delivered" ? "default" : "outline"
                     }
-                    onClick={() => toggleCity(city.id)}
+                    onClick={() => setDeliveryStatus("delivered")}
                   >
-                    {city.name}
+                    Delivered
                   </Button>
-                ))}
+                  <Button
+                    size="sm"
+                    variant={
+                      deliveryStatus === "non-delivered" ? "default" : "outline"
+                    }
+                    onClick={() => setDeliveryStatus("non-delivered")}
+                  >
+                    Non Delivered
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
