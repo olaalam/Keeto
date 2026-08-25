@@ -18,6 +18,21 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import {
   CalendarRange,
   Filter,
   ArrowUp,
@@ -35,6 +50,8 @@ import {
   ArrowLeft,
   ChevronRight,
   MapPin,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -219,6 +236,8 @@ export default function ResReport() {
   // Holds selected city ids (from the active-cities API) used to filter the
   // restaurants table. Empty array == "All cities".
   const [selectedCities, setSelectedCities] = useState([]);
+  // Controls the open/closed state of the searchable city multi-select dropdown.
+  const [cityPopoverOpen, setCityPopoverOpen] = useState(false);
   const [showTable, setShowTable] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   // Tracks which optional columns are hidden. A column is visible unless
@@ -980,34 +999,92 @@ export default function ResReport() {
             </div>
 
             {/* City */}
-            <div>
+            <div className="min-w-0">
               <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 <MapPin className="w-3.5 h-3.5" />
                 City
               </label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={selectedCities.length === 0 ? "default" : "outline"}
-                  onClick={() => toggleCity("all")}
-                >
-                  ALL
-                </Button>
-                {cities.map((city) => (
+              <Popover open={cityPopoverOpen} onOpenChange={setCityPopoverOpen}>
+                <PopoverTrigger asChild>
                   <Button
-                    key={city.id}
                     type="button"
-                    size="sm"
-                    variant={
-                      selectedCities.includes(city.id) ? "default" : "outline"
-                    }
-                    onClick={() => toggleCity(city.id)}
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={cityPopoverOpen}
+                    className="w-full h-auto min-h-9 justify-between font-normal py-1.5"
                   >
-                    {city.name}
+                    <span className="flex flex-1 flex-wrap items-center gap-1 min-w-0 text-left">
+                      {selectedCities.length === 0 ? (
+                        <span className="text-slate-500">All cities</span>
+                      ) : selectedCities.length <= 2 ? (
+                        cities
+                          .filter((city) => selectedCities.includes(city.id))
+                          .map((city) => (
+                            <Badge
+                              key={city.id}
+                              variant="secondary"
+                              className="rounded-md font-normal truncate max-w-[120px]"
+                            >
+                              {city.name}
+                            </Badge>
+                          ))
+                      ) : (
+                        <Badge
+                          variant="secondary"
+                          className="rounded-md font-normal"
+                        >
+                          {selectedCities.length} cities selected
+                        </Badge>
+                      )}
+                    </span>
+                    <ChevronsUpDown className="w-4 h-4 shrink-0 opacity-50 ml-2" />
                   </Button>
-                ))}
-              </div>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="p-0 w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)]"
+                  align="start"
+                >
+                  <Command>
+                    <CommandInput placeholder="Search city..." />
+                    <CommandList className="max-h-56">
+                      <CommandEmpty>No city found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="all"
+                          onSelect={() => toggleCity("all")}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedCities.length === 0
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          All cities
+                        </CommandItem>
+                        {cities.map((city) => (
+                          <CommandItem
+                            key={city.id}
+                            value={city.name}
+                            onSelect={() => toggleCity(city.id)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedCities.includes(city.id)
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                            {city.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           {/* Delivery status filter */}

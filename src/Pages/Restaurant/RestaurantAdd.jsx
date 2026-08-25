@@ -143,6 +143,9 @@ const RestaurantAdd = () => {
         mykeeto_commissionRate: mykeetoPlan.commissionRate || "",
         mykeeto_serviceFee: mykeetoPlan.serviceFee || "",
 
+        aggregatorStatus: aggregatorPlan.aggregatorStatus !== "inactive",
+        mykeetoStatus: mykeetoPlan.mykeetoStatus !== "inactive",
+
         isMonthlyActive: activePlanSource.isMonthlyActive || false,
         monthlyAmount: activePlanSource.monthlyAmount || "",
         isQuarterlyActive: activePlanSource.isQuarterlyActive || false,
@@ -229,12 +232,14 @@ const RestaurantAdd = () => {
             platformType: "food_aggregator",
             commissionRate: formatAmount(data.aggregator_commissionRate),
             serviceFee: formatAmount(data.aggregator_serviceFee),
+            aggregatorStatus: data.aggregatorStatus ? "active" : "inactive",
             ...subscriptionFields,
           },
           {
             platformType: "mykeeto",
             commissionRate: formatAmount(data.mykeeto_commissionRate),
             serviceFee: formatAmount(data.mykeeto_serviceFee),
+            mykeetoStatus: data.mykeetoStatus ? "active" : "inactive",
             ...subscriptionFields,
           },
           {
@@ -278,6 +283,8 @@ const RestaurantAdd = () => {
           "aggregator_serviceFee",
           "mykeeto_commissionRate",
           "mykeeto_serviceFee",
+          "aggregatorStatus",
+          "mykeetoStatus",
           "isMonthlyActive",
           "monthlyAmount",
           "isQuarterlyActive",
@@ -351,6 +358,8 @@ const RestaurantAdd = () => {
             "aggregator_serviceFee",
             "mykeeto_commissionRate",
             "mykeeto_serviceFee",
+            "aggregatorStatus",
+            "mykeetoStatus",
             "isMonthlyActive",
             "monthlyAmount",
             "isQuarterlyActive",
@@ -995,10 +1004,34 @@ const RestaurantAdd = () => {
                         Online Order (App)
                       </th>
                       <th className="p-3 font-semibold text-gray-700 text-center border-l">
-                        Aggregator
+                        <div className="flex items-center justify-center gap-2">
+                          <span>Aggregator</span>
+                          <Controller
+                            name="aggregatorStatus"
+                            control={control}
+                            render={({ field }) => (
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            )}
+                          />
+                        </div>
                       </th>
                       <th className="p-3 font-semibold text-gray-700 text-center border-l">
-                        Mykeeto
+                        <div className="flex items-center justify-center gap-2">
+                          <span>Mykeeto</span>
+                          <Controller
+                            name="mykeetoStatus"
+                            control={control}
+                            render={({ field }) => (
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            )}
+                          />
+                        </div>
                       </th>
                     </tr>
                   </thead>
