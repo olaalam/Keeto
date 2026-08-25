@@ -99,13 +99,10 @@ const RestaurantAdd = () => {
       }
 
       // قراءة الـ businessPlans القادمة من السيرفر وتوزيعها على الـ Inputs لصفحة الـ Edit
+      // العقد الفعلي للـ API فيه 3 خطط بس: online_order / pos / mykeeto
       const plans = raw.businessPlans || [];
-      const onlineWebPlan =
-        plans.find((p) => p.platformType === "online_order_web") || {};
-      const onlineAppPlan =
-        plans.find((p) => p.platformType === "online_order_app") || {};
-      const aggregatorPlan =
-        plans.find((p) => p.platformType === "food_aggregator") || {};
+      const onlineOrderPlan =
+        plans.find((p) => p.platformType === "online_order") || {};
       const mykeetoPlan = plans.find((p) => p.platformType === "mykeeto") || {};
       const posPlan = plans.find((p) => p.platformType === "pos") || {};
 
@@ -131,17 +128,21 @@ const RestaurantAdd = () => {
         firstColor: raw.firstColor || "",
         secondColor: raw.secondColor || "",
         // ربط قيم الـ Business Plan بالـ inputs المؤقتة بالفورم لتعمل في الـ Edit تلقائياً
-        online_web_commissionRate: onlineWebPlan.commissionRate || "",
-        online_web_serviceFee: onlineWebPlan.serviceFee || "",
-
-        online_app_commissionRate: onlineAppPlan.commissionRate || "",
-        online_app_serviceFee: onlineAppPlan.serviceFee || "",
-
-        aggregator_commissionRate: aggregatorPlan.commissionRate || "",
-        aggregator_serviceFee: aggregatorPlan.serviceFee || "",
+        online_order_commissionRate: onlineOrderPlan.commissionRate || "",
+        online_order_serviceFee: onlineOrderPlan.serviceFee || "",
 
         mykeeto_commissionRate: mykeetoPlan.commissionRate || "",
         mykeeto_serviceFee: mykeetoPlan.serviceFee || "",
+
+        // aggregatorStatus/mykeetoStatus live on BOTH the online_order and
+        // mykeeto plan entries per the confirmed API contract. Prefer
+        // whichever entry actually has the field set.
+        aggregator_status:
+          (onlineOrderPlan.aggregatorStatus ?? mykeetoPlan.aggregatorStatus) ===
+          "active",
+        mykeeto_status:
+          (onlineOrderPlan.mykeetoStatus ?? mykeetoPlan.mykeetoStatus) ===
+          "active",
 
         isMonthlyActive: activePlanSource.isMonthlyActive || false,
         monthlyAmount: activePlanSource.monthlyAmount || "",
@@ -212,29 +213,20 @@ const RestaurantAdd = () => {
         };
 
         // 3. بناء مصفوفة الـ businessPlans المتكاملة لإدراجها بالطلب الرئيسي
+        // العقد الفعلي: 3 خطط بس (online_order / pos / mykeeto) —
+        // aggregatorStatus و mykeetoStatus لازم يتبعتوا سوا على خطتي
+        // online_order و mykeeto زي ما موجود بالضبط في الـ API الحقيقي.
+        const statusFields = {
+          aggregatorStatus: data.aggregator_status ? "active" : "inactive",
+          mykeetoStatus: data.mykeeto_status ? "active" : "inactive",
+        };
+
         const businessPlans = [
           {
-            platformType: "online_order_web",
-            commissionRate: formatAmount(data.online_web_commissionRate),
-            serviceFee: formatAmount(data.online_web_serviceFee),
-            ...subscriptionFields,
-          },
-          {
-            platformType: "online_order_app",
-            commissionRate: formatAmount(data.online_app_commissionRate),
-            serviceFee: formatAmount(data.online_app_serviceFee),
-            ...subscriptionFields,
-          },
-          {
-            platformType: "food_aggregator",
-            commissionRate: formatAmount(data.aggregator_commissionRate),
-            serviceFee: formatAmount(data.aggregator_serviceFee),
-            ...subscriptionFields,
-          },
-          {
-            platformType: "mykeeto",
-            commissionRate: formatAmount(data.mykeeto_commissionRate),
-            serviceFee: formatAmount(data.mykeeto_serviceFee),
+            platformType: "online_order",
+            commissionRate: formatAmount(data.online_order_commissionRate),
+            serviceFee: formatAmount(data.online_order_serviceFee),
+            ...statusFields,
             ...subscriptionFields,
           },
           {
@@ -242,6 +234,13 @@ const RestaurantAdd = () => {
             commissionRate: "0.00",
             serviceFee: "0.00",
             isOn: data.pos_isOn !== undefined ? data.pos_isOn : true,
+            ...subscriptionFields,
+          },
+          {
+            platformType: "mykeeto",
+            commissionRate: formatAmount(data.mykeeto_commissionRate),
+            serviceFee: formatAmount(data.mykeeto_serviceFee),
+            ...statusFields,
             ...subscriptionFields,
           },
         ];
@@ -270,14 +269,12 @@ const RestaurantAdd = () => {
 
         // 5. إزالة الحقول المؤقتة لتنظيف الـ Payload المتجه للسيرفر
         const fieldsToRemove = [
-          "online_web_commissionRate",
-          "online_web_serviceFee",
-          "online_app_commissionRate",
-          "online_app_serviceFee",
-          "aggregator_commissionRate",
-          "aggregator_serviceFee",
+          "online_order_commissionRate",
+          "online_order_serviceFee",
           "mykeeto_commissionRate",
           "mykeeto_serviceFee",
+          "aggregator_status",
+          "mykeeto_status",
           "isMonthlyActive",
           "monthlyAmount",
           "isQuarterlyActive",
@@ -343,14 +340,12 @@ const RestaurantAdd = () => {
           ],
           images: ["logo", "cover", "taxCertificate"],
           "business-plan": [
-            "online_web_commissionRate",
-            "online_web_serviceFee",
-            "online_app_commissionRate",
-            "online_app_serviceFee",
-            "aggregator_commissionRate",
-            "aggregator_serviceFee",
+            "online_order_commissionRate",
+            "online_order_serviceFee",
             "mykeeto_commissionRate",
             "mykeeto_serviceFee",
+            "aggregator_status",
+            "mykeeto_status",
             "isMonthlyActive",
             "monthlyAmount",
             "isQuarterlyActive",
@@ -989,13 +984,7 @@ const RestaurantAdd = () => {
                         Platform
                       </th>
                       <th className="p-3 font-semibold text-gray-700 text-center border-l">
-                        Online Order (Web)
-                      </th>
-                      <th className="p-3 font-semibold text-gray-700 text-center border-l">
-                        Online Order (App)
-                      </th>
-                      <th className="p-3 font-semibold text-gray-700 text-center border-l">
-                        Aggregator
+                        Online Order
                       </th>
                       <th className="p-3 font-semibold text-gray-700 text-center border-l">
                         Mykeeto
@@ -1011,25 +1000,7 @@ const RestaurantAdd = () => {
                         <Input
                           type="number"
                           step="0.01"
-                          {...register("online_web_commissionRate")}
-                          className="h-8 text-center"
-                          placeholder="0.00"
-                        />
-                      </td>
-                      <td className="p-2 border-l">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          {...register("online_app_commissionRate")}
-                          className="h-8 text-center"
-                          placeholder="0.00"
-                        />
-                      </td>
-                      <td className="p-2 border-l">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          {...register("aggregator_commissionRate")}
+                          {...register("online_order_commissionRate")}
                           className="h-8 text-center"
                           placeholder="0.00"
                         />
@@ -1044,6 +1015,44 @@ const RestaurantAdd = () => {
                         />
                       </td>
                     </tr>
+                    <tr className="border-b">
+                      <td className="p-3 font-medium text-gray-600 bg-gray-50/50">
+                        Aggregator Status
+                      </td>
+                      <td className="p-2 border-l" colSpan={2}>
+                        <div className="flex items-center justify-center">
+                          <Controller
+                            name="aggregator_status"
+                            control={control}
+                            render={({ field }) => (
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            )}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-3 font-medium text-gray-600 bg-gray-50/50">
+                        Mykeeto Status
+                      </td>
+                      <td className="p-2 border-l" colSpan={2}>
+                        <div className="flex items-center justify-center">
+                          <Controller
+                            name="mykeeto_status"
+                            control={control}
+                            render={({ field }) => (
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            )}
+                          />
+                        </div>
+                      </td>
+                    </tr>
                     <tr>
                       <td className="p-3 font-medium text-gray-600 bg-gray-50/50">
                         Service Fee
@@ -1052,25 +1061,7 @@ const RestaurantAdd = () => {
                         <Input
                           type="number"
                           step="0.01"
-                          {...register("online_web_serviceFee")}
-                          className="h-8 text-center"
-                          placeholder="0.00"
-                        />
-                      </td>
-                      <td className="p-2 border-l">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          {...register("online_app_serviceFee")}
-                          className="h-8 text-center"
-                          placeholder="0.00"
-                        />
-                      </td>
-                      <td className="p-2 border-l">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          {...register("aggregator_serviceFee")}
+                          {...register("online_order_serviceFee")}
                           className="h-8 text-center"
                           placeholder="0.00"
                         />
