@@ -224,7 +224,10 @@ const TYPE_COLORS = {
 };
 
 export default function ResReport() {
-  const [startDate, setStartDate] = useState("");
+  // Date filter defaults to today (YYYY-MM-DD, matching <input type="date">)
+  // so the report loads scoped to today's orders instead of "all time".
+  const getTodayDateString = () => new Date().toISOString().split("T")[0];
+  const [startDate, setStartDate] = useState(getTodayDateString);
   const [endDate, setEndDate] = useState("");
   const [minOrders, setMinOrders] = useState("");
   const [maxOrders, setMaxOrders] = useState("");
@@ -467,7 +470,7 @@ export default function ResReport() {
     orderSort !== "" ||
     selectedTypes.length > 0 ||
     selectedCities.length > 0 ||
-    startDate !== "" ||
+    startDate !== getTodayDateString() ||
     endDate !== "" ||
     deliveryStatus !== "all";
 
@@ -803,12 +806,24 @@ export default function ResReport() {
 
       <div className="bg-white border rounded-2xl p-4 flex flex-wrap gap-4 items-center">
         <CalendarRange className="w-4 h-4 shrink-0" />
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="w-full sm:w-40"
-        />
+        <div className="relative w-full sm:w-40">
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full pr-7"
+          />
+          {startDate !== "" && (
+            <button
+              type="button"
+              onClick={() => setStartDate("")}
+              title="Clear start date"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <Input
           type="date"
           value={endDate}
