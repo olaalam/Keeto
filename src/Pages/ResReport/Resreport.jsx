@@ -396,10 +396,10 @@ function RestaurantCompareTable({ compareIds, versusIds, restaurants }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 text-center">
               Group members
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 justify-center">
               {groupList.map((r) => (
                 <span
                   key={r.restaurantDetails?.id}
@@ -413,10 +413,10 @@ function RestaurantCompareTable({ compareIds, versusIds, restaurants }) {
             </div>
           </div>
           <div>
-            <p className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-1.5">
+            <p className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-1.5 text-center">
               Versus group members
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 justify-center">
               {versusList.map((r) => (
                 <span
                   key={r.restaurantDetails?.id}
