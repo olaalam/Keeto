@@ -223,6 +223,269 @@ const TYPE_COLORS = {
   },
 };
 
+// Renders the inline restaurant comparison used by ResReport. Two modes:
+//  - Flat side-by-side: every selected restaurant gets its own column.
+//  - Group vs one: when `versusId` is set, every other selected restaurant
+//    is aggregated into a single "Group" column (sum + average) and
+//    compared against that one restaurant.
+function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
+  const findRestaurant = (id) =>
+    restaurants.find((r) => r.restaurantDetails?.id === id);
+
+  const numericFormat = {
+    ordersCount: (v) => v,
+    total_commission: (v) =>
+      `${Number(v).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} EGP`,
+    signupUsersCount: (v) => v,
+  };
+
+  const numericRows = [
+    {
+      key: "ordersCount",
+      label: "Orders Count",
+      getValue: (r) => r.ordersCount ?? 0,
+    },
+    {
+      key: "total_commission",
+      label: "Total Commission",
+      getValue: (r) => r.total_commission ?? 0,
+    },
+    {
+      key: "signupUsersCount",
+      label: "Signup Users Count",
+      getValue: (r) => r.signupUsersCount ?? 0,
+    },
+  ];
+
+  const textRows = [
+    {
+      key: "type",
+      label: "Type",
+      getValue: (r) => r.restaurantDetails?.type || "Unknown",
+    },
+    {
+      key: "city",
+      label: "City",
+      getValue: (r) => r.restaurantDetails?.city?.name || "-",
+    },
+    {
+      key: "status",
+      label: "Status",
+      getValue: (r) => r.restaurantDetails?.status || "-",
+    },
+    {
+      key: "deliverystatus",
+      label: "Delivery Status",
+      getValue: (r) =>
+        r.restaurantDetails?.deliverystatus === "delivered"
+          ? "Delivered"
+          : "Not Delivered",
+    },
+  ];
+
+  // --- Group vs one ---
+  if (versusId && compareIds.includes(versusId)) {
+    const versusRestaurant = findRestaurant(versusId);
+    const groupList = compareIds
+      .filter((id) => id !== versusId)
+      .map(findRestaurant)
+      .filter(Boolean);
+
+    if (!versusRestaurant || groupList.length === 0) {
+      return (
+        <p className="text-xs text-slate-400 italic">
+          Pick at least one more restaurant for the group.
+        </p>
+      );
+    }
+
+    const versusD = versusRestaurant.restaurantDetails || {};
+
+    return (
+      <div className="space-y-4">
+        <table className="w-full text-sm border-collapse min-w-[480px]">
+          <thead>
+            <tr>
+              <th className="text-left p-2 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase w-40">
+                Metric
+              </th>
+              <th className="p-2 border-b border-slate-100 text-center min-w-[170px]">
+                <span className="font-bold text-slate-800">
+                  Group ({groupList.length} restaurant
+                  {groupList.length !== 1 ? "s" : ""})
+                </span>
+              </th>
+              <th className="p-2 border-b border-slate-100 text-center min-w-[170px]">
+                <div className="flex flex-col items-center gap-1">
+                  {versusD.logo && (
+                    <img
+                      src={versusD.logo}
+                      alt={versusD.name}
+                      className="w-10 h-10 rounded-lg object-cover border border-slate-200"
+                    />
+                  )}
+                  <span className="font-bold text-amber-700">
+                    {versusD.name || versusD.nameAr || "-"}
+                  </span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {numericRows.map((row) => {
+              const groupTotal = groupList.reduce(
+                (sum, r) => sum + (row.getValue(r) || 0),
+                0,
+              );
+              const groupAvg = groupTotal / groupList.length;
+              const versusVal = row.getValue(versusRestaurant) || 0;
+              const format = numericFormat[row.key];
+              const groupWins = groupTotal > versusVal;
+              const versusWins = versusVal > groupTotal;
+              return (
+                <tr key={row.key}>
+                  <td className="p-2 border-b border-slate-50 text-xs font-bold text-slate-500 uppercase">
+                    {row.label}
+                  </td>
+                  <td
+                    className={`p-2 border-b border-slate-50 text-center font-mono font-semibold rounded-lg ${
+                      groupWins
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "text-slate-700"
+                    }`}
+                  >
+                    {format(groupTotal)}
+                    <span className="block text-[10px] font-normal text-slate-400 normal-case">
+                      avg {format(Math.round(groupAvg * 100) / 100)} /
+                      restaurant
+                    </span>
+                  </td>
+                  <td
+                    className={`p-2 border-b border-slate-50 text-center font-mono font-semibold rounded-lg ${
+                      versusWins
+                        ? "bg-amber-50 text-amber-700"
+                        : "text-slate-700"
+                    }`}
+                  >
+                    {format(versusVal)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+            Group members
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {groupList.map((r) => {
+              const d = r.restaurantDetails || {};
+              return (
+                <span
+                  key={d.id}
+                  className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-medium"
+                >
+                  {d.name || d.nameAr || "-"}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Flat side-by-side ---
+  const compareList = compareIds.map(findRestaurant).filter(Boolean);
+
+  return (
+    <table className="w-full text-sm border-collapse min-w-[560px]">
+      <thead>
+        <tr>
+          <th className="text-left p-2 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase w-36">
+            Metric
+          </th>
+          {compareList.map((r) => {
+            const d = r.restaurantDetails || {};
+            return (
+              <th
+                key={d.id}
+                className="p-2 border-b border-slate-100 text-center align-top min-w-[150px]"
+              >
+                <div className="flex flex-col items-center gap-1.5">
+                  {d.logo && (
+                    <img
+                      src={d.logo}
+                      alt={d.name}
+                      className="w-10 h-10 rounded-lg object-cover border border-slate-200"
+                    />
+                  )}
+                  <span
+                    className="font-bold text-slate-800 truncate max-w-[140px]"
+                    title={d.name}
+                  >
+                    {d.name || d.nameAr || "-"}
+                  </span>
+                </div>
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
+      <tbody>
+        {numericRows.map((row) => {
+          const values = compareList.map((r) => row.getValue(r));
+          const maxVal = Math.max(...values);
+          const format = numericFormat[row.key];
+          return (
+            <tr key={row.key}>
+              <td className="p-2 border-b border-slate-50 text-xs font-bold text-slate-500 uppercase">
+                {row.label}
+              </td>
+              {compareList.map((r, i) => {
+                const v = values[i];
+                const isBest = maxVal > 0 && v === maxVal;
+                return (
+                  <td
+                    key={r.restaurantDetails?.id}
+                    className={`p-2 border-b border-slate-50 text-center font-mono font-semibold rounded-lg ${
+                      isBest
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "text-slate-700"
+                    }`}
+                  >
+                    {format(v)}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
+        {textRows.map((row) => (
+          <tr key={row.key}>
+            <td className="p-2 border-b border-slate-50 text-xs font-bold text-slate-500 uppercase">
+              {row.label}
+            </td>
+            {compareList.map((r) => (
+              <td
+                key={r.restaurantDetails?.id}
+                className="p-2 border-b border-slate-50 text-center capitalize text-slate-700"
+              >
+                {row.getValue(r)}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default function ResReport() {
   // Date filter defaults to today (YYYY-MM-DD, matching <input type="date">)
   // so the report loads scoped to today's orders instead of "all time".
@@ -278,6 +541,32 @@ export default function ResReport() {
   // Remembers which list (if any) the currently open detail popup was opened
   // from, so we can offer a "Back to list" link instead of just closing.
   const [detailOpenedFromList, setDetailOpenedFromList] = useState(null);
+
+  // --- Restaurant comparison ---
+  // Holds restaurantDetails.id values checked in the table for comparison.
+  // Supports 1 vs 1, many vs one, or a flat side-by-side view, up to
+  // MAX_COMPARE selected restaurants. When `versusId` is set, that one
+  // restaurant is compared against the aggregated totals of everyone else
+  // selected (the "group").
+  const [compareIds, setCompareIds] = useState([]);
+  const [versusId, setVersusId] = useState(null);
+  const MAX_COMPARE = 6;
+
+  const toggleCompareSelect = useCallback((id) => {
+    if (!id) return;
+    setCompareIds((prev) => {
+      if (prev.includes(id)) {
+        setVersusId((v) => (v === id ? null : v));
+        return prev.filter((x) => x !== id);
+      }
+      if (prev.length >= MAX_COMPARE) return prev;
+      return [...prev, id];
+    });
+  }, []);
+
+  const setAsVersus = useCallback((id) => {
+    setVersusId((prev) => (prev === id ? null : id));
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setMinOrders(minOrdersInput), 300);
@@ -490,6 +779,35 @@ export default function ResReport() {
   const restaurantColumns = useMemo(
     () => [
       {
+        id: "compare_select",
+        header: () => (
+          <div className="text-center font-bold w-10" title="Select to compare">
+            Cmp
+          </div>
+        ),
+        cell: ({ row }) => {
+          const id = row.original.restaurantDetails?.id;
+          const checked = compareIds.includes(id);
+          const disabled = !checked && compareIds.length >= MAX_COMPARE;
+          return (
+            <div className="text-center">
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={disabled}
+                onChange={() => toggleCompareSelect(id)}
+                title={
+                  disabled
+                    ? `You can compare up to ${MAX_COMPARE} restaurants at once`
+                    : "Select for comparison"
+                }
+                className="w-4 h-4 accent-blue-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+              />
+            </div>
+          );
+        },
+      },
+      {
         accessorKey: "restaurantDetails.name",
         header: "Restaurant",
         cell: ({ row }) => (
@@ -653,7 +971,7 @@ export default function ResReport() {
         ),
       },
     ],
-    [],
+    [compareIds, toggleCompareSelect],
   );
 
   const toggleColumnVisibility = useCallback((id) => {
@@ -698,7 +1016,8 @@ export default function ResReport() {
       restaurantColumns
         .filter((col) => {
           const id = col.id ?? col.accessorKey;
-          if (id === "restaurantDetails.name") return true;
+          if (id === "restaurantDetails.name" || id === "compare_select")
+            return true;
           return columnVisibility[id] !== false;
         })
         .concat(customColumnDefs),
@@ -756,7 +1075,9 @@ export default function ResReport() {
   // the API or screenshotting the DOM.
   const exportPDF = () => {
     try {
-      const columnIds = visibleColumns.map((col) => col.id ?? col.accessorKey);
+      const columnIds = visibleColumns
+        .map((col) => col.id ?? col.accessorKey)
+        .filter((id) => id !== "compare_select");
 
       const head = [
         columnIds.map((id) => {
@@ -1286,6 +1607,92 @@ export default function ResReport() {
               columns={visibleColumns}
             />
           </div>
+
+          {/* Inline restaurant comparison — populated by the "Cmp" checkboxes
+              in the table above. Supports a flat side-by-side view, or,
+              once one restaurant is marked "Versus", a group-of-many vs
+              that one restaurant view. Renders on the page, not a popup. */}
+          {compareIds.length > 0 && (
+            <div className="bg-white border rounded-2xl p-4 sm:p-5 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
+                  <Tag className="w-4 h-4" />
+                  Compare Restaurants ({compareIds.length})
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCompareIds([]);
+                    setVersusId(null);
+                  }}
+                  className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                  Clear selection
+                </button>
+              </div>
+
+              {/* Chips: each selected restaurant, with a toggle to mark it
+                  as the "versus" side instead of part of the group. */}
+              <div className="flex flex-wrap gap-2">
+                {compareIds.map((id) => {
+                  const r = restaurants.find(
+                    (x) => x.restaurantDetails?.id === id,
+                  );
+                  const d = r?.restaurantDetails || {};
+                  const isVersus = versusId === id;
+                  return (
+                    <span
+                      key={id}
+                      className={`flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium border ${
+                        isVersus
+                          ? "bg-amber-50 border-amber-300 text-amber-700"
+                          : "bg-slate-100 border-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {d.name || d.nameAr || "-"}
+                      <button
+                        type="button"
+                        onClick={() => setAsVersus(id)}
+                        title={
+                          isVersus
+                            ? "Currently the 'versus' side — click to unset"
+                            : "Compare the rest of the group against this one"
+                        }
+                        className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
+                          isVersus
+                            ? "bg-amber-400 text-white"
+                            : "bg-white text-slate-500 hover:text-blue-600 border border-slate-200"
+                        }`}
+                      >
+                        {isVersus ? "Versus" : "vs?"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleCompareSelect(id)}
+                        className="rounded-full hover:bg-black/10 p-0.5"
+                        aria-label={`Remove ${d.name} from comparison`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+
+              {compareIds.length < 2 ? (
+                <p className="text-xs text-slate-400 italic">
+                  Select at least one more restaurant to compare.
+                </p>
+              ) : (
+                <RestaurantCompareTable
+                  compareIds={compareIds}
+                  versusId={versusId}
+                  restaurants={restaurants}
+                />
+              )}
+            </div>
+          )}
         </>
       )}
 

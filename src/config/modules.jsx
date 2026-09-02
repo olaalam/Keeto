@@ -61,6 +61,7 @@ export const modules = [
         module: "Roles",
       },
       { title: "Keeto Users", url: "/users", icon: KeetoIcon, module: "Users" },
+       { title: "Blocked Users", url: "/blocked-users", icon: KeetoIcon, module: "Users" },
       { title: "Policy", url: "/policy", icon: FileText, module: "policy" },
       {
         title: "Reasons",

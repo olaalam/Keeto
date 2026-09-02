@@ -67,6 +67,7 @@ import OrdersReport from "./Pages/Orders/allorders";
 import OrdersReportDetails from "./Pages/Orders/orderdetails";
 import Platform from "./Pages/Platform/Platform";
 import PlatformAdd from "./Pages/Platform/PlatformAdd";
+import BlockedUsers from "./Pages/BlockedUsers/blockeduseres";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -380,9 +381,14 @@ const router = createBrowserRouter([
         path: "sales/add",
         element: <SalesAdd />,
       },
+
       {
         path: "sales/edit/:id",
         element: <SalesAdd />,
+      },
+      {
+        path: "blocked-users",
+        element: <BlockedUsers />,
       },
       {
         path: "branches",

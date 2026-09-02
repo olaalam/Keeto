@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useReactTable,
@@ -70,6 +70,7 @@ export default function GenericDataTable({
   isLoading,
   actions = true,
   highlightedId,
+  inactiveStatusValue = "inactive",
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteId, setDeleteId] = useState(null);
@@ -158,7 +159,7 @@ export default function GenericDataTable({
                             : "unpaid"
                           : checked
                             ? "active"
-                            : "inactive"
+                            : inactiveStatusValue
                         : checked;
 
                     updateStatusMutation.mutate({ id: rowId, newStatus });
@@ -222,6 +223,7 @@ export default function GenericDataTable({
     actions,
     editApiUrl,
     updateStatusMutation.isPending,
+    inactiveStatusValue,
   ]);
 
   const table = useReactTable({
@@ -240,6 +242,20 @@ export default function GenericDataTable({
       },
     },
   });
+
+  // `autoResetPageIndex` is intentionally false above (so toggling a row's
+  // status switch doesn't yank you back to page 1 while the query
+  // refetches). But that means when the caller narrows `data` via filters
+  // (fewer rows -> fewer pages), the pageIndex can be left pointing past
+  // the end, and the table just renders empty rows — the filter did apply,
+  // it just isn't visible. Clamp back onto the last valid page whenever the
+  // current page no longer exists.
+  const pageCount = table.getPageCount();
+  useEffect(() => {
+    if (pageCount > 0 && pagination.pageIndex > pageCount - 1) {
+      setPagination((prev) => ({ ...prev, pageIndex: pageCount - 1 }));
+    }
+  }, [pageCount, pagination.pageIndex]);
 
   return (
     <div className="space-y-6 w-full">
