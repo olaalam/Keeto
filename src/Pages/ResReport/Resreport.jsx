@@ -225,10 +225,12 @@ const TYPE_COLORS = {
 
 // Renders the inline restaurant comparison used by ResReport. Two modes:
 //  - Flat side-by-side: every selected restaurant gets its own column.
-//  - Group vs one: when `versusId` is set, every other selected restaurant
-//    is aggregated into a single "Group" column (sum + average) and
-//    compared against that one restaurant.
-function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
+//  - Group vs group: when `versusIds` has at least one entry, everything
+//    else selected is aggregated into a "Group" column (sum + average) and
+//    compared against the aggregated totals of the "versus" side. Either
+//    side can hold one or several restaurants — a side with just one
+//    restaurant renders its logo/name instead of a generic group label.
+function RestaurantCompareTable({ compareIds, versusIds, restaurants }) {
   const findRestaurant = (id) =>
     restaurants.find((r) => r.restaurantDetails?.id === id);
 
@@ -286,51 +288,61 @@ function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
     },
   ];
 
-  // --- Group vs one ---
-  if (versusId && compareIds.includes(versusId)) {
-    const versusRestaurant = findRestaurant(versusId);
+  const hasVersusSide = versusIds && versusIds.length > 0;
+
+  if (hasVersusSide) {
+    const versusList = versusIds.map(findRestaurant).filter(Boolean);
     const groupList = compareIds
-      .filter((id) => id !== versusId)
+      .filter((id) => !versusIds.includes(id))
       .map(findRestaurant)
       .filter(Boolean);
 
-    if (!versusRestaurant || groupList.length === 0) {
+    if (versusList.length === 0 || groupList.length === 0) {
       return (
         <p className="text-xs text-slate-400 italic">
-          Pick at least one more restaurant for the group.
+          Pick at least one restaurant on each side to compare.
         </p>
       );
     }
 
-    const versusD = versusRestaurant.restaurantDetails || {};
+    const renderSideHeader = (list, label, textClass) => {
+      if (list.length === 1) {
+        const d = list[0].restaurantDetails || {};
+        return (
+          <div className="flex flex-col items-center gap-1">
+            {d.logo && (
+              <img
+                src={d.logo}
+                alt={d.name}
+                className="w-10 h-10 rounded-lg object-cover border border-slate-200"
+              />
+            )}
+            <span className={`font-bold ${textClass}`}>
+              {d.name || d.nameAr || "-"}
+            </span>
+          </div>
+        );
+      }
+      return (
+        <span className={`font-bold ${textClass}`}>
+          {label} ({list.length} restaurants)
+        </span>
+      );
+    };
 
     return (
       <div className="space-y-4">
-        <table className="w-full text-sm border-collapse min-w-[480px]">
-          <thead>
+        <table className="w-full text-sm border-collapse border border-slate-300 min-w-[480px]">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="text-left p-2 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase w-40">
+              <th className="text-left p-3 border border-slate-300 text-xs font-bold text-slate-500 uppercase w-40">
                 Metric
               </th>
-              <th className="p-2 border-b border-slate-100 text-center min-w-[170px]">
-                <span className="font-bold text-slate-800">
-                  Group ({groupList.length} restaurant
-                  {groupList.length !== 1 ? "s" : ""})
-                </span>
+              <th className="p-3 border border-slate-300 text-center min-w-[170px]">
+                {renderSideHeader(groupList, "Group", "text-slate-800")}
               </th>
-              <th className="p-2 border-b border-slate-100 text-center min-w-[170px]">
-                <div className="flex flex-col items-center gap-1">
-                  {versusD.logo && (
-                    <img
-                      src={versusD.logo}
-                      alt={versusD.name}
-                      className="w-10 h-10 rounded-lg object-cover border border-slate-200"
-                    />
-                  )}
-                  <span className="font-bold text-amber-700">
-                    {versusD.name || versusD.nameAr || "-"}
-                  </span>
-                </div>
+              <th className="p-3 border border-slate-300 text-center min-w-[170px]">
+                {renderSideHeader(versusList, "Versus Group", "text-amber-700")}
               </th>
             </tr>
           </thead>
@@ -341,36 +353,40 @@ function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
                 0,
               );
               const groupAvg = groupTotal / groupList.length;
-              const versusVal = row.getValue(versusRestaurant) || 0;
+              const versusTotal = versusList.reduce(
+                (sum, r) => sum + (row.getValue(r) || 0),
+                0,
+              );
+              const versusAvg = versusTotal / versusList.length;
               const format = numericFormat[row.key];
-              const groupWins = groupTotal > versusVal;
-              const versusWins = versusVal > groupTotal;
+              const groupWins = groupTotal > versusTotal;
+              const versusWins = versusTotal > groupTotal;
               return (
-                <tr key={row.key}>
-                  <td className="p-2 border-b border-slate-50 text-xs font-bold text-slate-500 uppercase">
+                <tr key={row.key} className="hover:bg-slate-50/50">
+                  <td className="p-3 border border-slate-300 text-xs font-bold text-slate-600 uppercase bg-slate-50/50">
                     {row.label}
                   </td>
                   <td
-                    className={`p-2 border-b border-slate-50 text-center font-mono font-semibold rounded-lg ${
-                      groupWins
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "text-slate-700"
-                    }`}
+                    className={`p-3 border border-slate-300 text-center font-mono font-semibold ${groupWins ? "bg-emerald-50/50 text-emerald-700" : "text-slate-700"}`}
                   >
                     {format(groupTotal)}
-                    <span className="block text-[10px] font-normal text-slate-400 normal-case">
-                      avg {format(Math.round(groupAvg * 100) / 100)} /
-                      restaurant
-                    </span>
+                    {groupList.length > 1 && (
+                      <span className="block text-[10px] font-normal text-slate-500 normal-case mt-1">
+                        avg {format(Math.round(groupAvg * 100) / 100)} /
+                        restaurant
+                      </span>
+                    )}
                   </td>
                   <td
-                    className={`p-2 border-b border-slate-50 text-center font-mono font-semibold rounded-lg ${
-                      versusWins
-                        ? "bg-amber-50 text-amber-700"
-                        : "text-slate-700"
-                    }`}
+                    className={`p-3 border border-slate-300 text-center font-mono font-semibold ${versusWins ? "bg-amber-50/50 text-amber-700" : "text-slate-700"}`}
                   >
-                    {format(versusVal)}
+                    {format(versusTotal)}
+                    {versusList.length > 1 && (
+                      <span className="block text-[10px] font-normal text-slate-500 normal-case mt-1">
+                        avg {format(Math.round(versusAvg * 100) / 100)} /
+                        restaurant
+                      </span>
+                    )}
                   </td>
                 </tr>
               );
@@ -378,36 +394,53 @@ function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
           </tbody>
         </table>
 
-        <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">
-            Group members
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {groupList.map((r) => {
-              const d = r.restaurantDetails || {};
-              return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+              Group members
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {groupList.map((r) => (
                 <span
-                  key={d.id}
+                  key={r.restaurantDetails?.id}
                   className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-medium"
                 >
-                  {d.name || d.nameAr || "-"}
+                  {r.restaurantDetails?.name ||
+                    r.restaurantDetails?.nameAr ||
+                    "-"}
                 </span>
-              );
-            })}
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-1.5">
+              Versus group members
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {versusList.map((r) => (
+                <span
+                  key={r.restaurantDetails?.id}
+                  className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-xs font-medium"
+                >
+                  {r.restaurantDetails?.name ||
+                    r.restaurantDetails?.nameAr ||
+                    "-"}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // --- Flat side-by-side ---
   const compareList = compareIds.map(findRestaurant).filter(Boolean);
 
   return (
-    <table className="w-full text-sm border-collapse min-w-[560px]">
-      <thead>
+    <table className="w-full text-sm border-collapse border border-slate-300 min-w-[560px]">
+      <thead className="bg-slate-50">
         <tr>
-          <th className="text-left p-2 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase w-36">
+          <th className="text-left p-3 border border-slate-300 text-xs font-bold text-slate-500 uppercase w-36">
             Metric
           </th>
           {compareList.map((r) => {
@@ -415,7 +448,7 @@ function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
             return (
               <th
                 key={d.id}
-                className="p-2 border-b border-slate-100 text-center align-top min-w-[150px]"
+                className="p-3 border border-slate-300 text-center align-top min-w-[150px]"
               >
                 <div className="flex flex-col items-center gap-1.5">
                   {d.logo && (
@@ -443,8 +476,8 @@ function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
           const maxVal = Math.max(...values);
           const format = numericFormat[row.key];
           return (
-            <tr key={row.key}>
-              <td className="p-2 border-b border-slate-50 text-xs font-bold text-slate-500 uppercase">
+            <tr key={row.key} className="hover:bg-slate-50/50">
+              <td className="p-3 border border-slate-300 text-xs font-bold text-slate-600 uppercase bg-slate-50/50">
                 {row.label}
               </td>
               {compareList.map((r, i) => {
@@ -453,11 +486,7 @@ function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
                 return (
                   <td
                     key={r.restaurantDetails?.id}
-                    className={`p-2 border-b border-slate-50 text-center font-mono font-semibold rounded-lg ${
-                      isBest
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "text-slate-700"
-                    }`}
+                    className={`p-3 border border-slate-300 text-center font-mono font-semibold ${isBest ? "bg-emerald-50/50 text-emerald-700" : "text-slate-700"}`}
                   >
                     {format(v)}
                   </td>
@@ -467,14 +496,14 @@ function RestaurantCompareTable({ compareIds, versusId, restaurants }) {
           );
         })}
         {textRows.map((row) => (
-          <tr key={row.key}>
-            <td className="p-2 border-b border-slate-50 text-xs font-bold text-slate-500 uppercase">
+          <tr key={row.key} className="hover:bg-slate-50/50">
+            <td className="p-3 border border-slate-300 text-xs font-bold text-slate-600 uppercase bg-slate-50/50">
               {row.label}
             </td>
             {compareList.map((r) => (
               <td
                 key={r.restaurantDetails?.id}
-                className="p-2 border-b border-slate-50 text-center capitalize text-slate-700"
+                className="p-3 border border-slate-300 text-center capitalize text-slate-700"
               >
                 {row.getValue(r)}
               </td>
@@ -544,28 +573,28 @@ export default function ResReport() {
 
   // --- Restaurant comparison ---
   // Holds restaurantDetails.id values checked in the table for comparison.
-  // Supports 1 vs 1, many vs one, or a flat side-by-side view, up to
-  // MAX_COMPARE selected restaurants. When `versusId` is set, that one
-  // restaurant is compared against the aggregated totals of everyone else
-  // selected (the "group").
+  // No cap on how many can be selected. Supports a flat side-by-side view,
+  // or a group-vs-group view once at least one restaurant is marked
+  // "Versus" — everything else selected is aggregated into the "group"
+  // and compared against the aggregated "versus" side.
   const [compareIds, setCompareIds] = useState([]);
-  const [versusId, setVersusId] = useState(null);
-  const MAX_COMPARE = 6;
+  const [versusIds, setVersusIds] = useState([]);
 
   const toggleCompareSelect = useCallback((id) => {
     if (!id) return;
     setCompareIds((prev) => {
       if (prev.includes(id)) {
-        setVersusId((v) => (v === id ? null : v));
+        setVersusIds((v) => v.filter((x) => x !== id));
         return prev.filter((x) => x !== id);
       }
-      if (prev.length >= MAX_COMPARE) return prev;
       return [...prev, id];
     });
   }, []);
 
   const setAsVersus = useCallback((id) => {
-    setVersusId((prev) => (prev === id ? null : id));
+    setVersusIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   }, []);
 
   useEffect(() => {
@@ -788,20 +817,14 @@ export default function ResReport() {
         cell: ({ row }) => {
           const id = row.original.restaurantDetails?.id;
           const checked = compareIds.includes(id);
-          const disabled = !checked && compareIds.length >= MAX_COMPARE;
           return (
             <div className="text-center">
               <input
                 type="checkbox"
                 checked={checked}
-                disabled={disabled}
                 onChange={() => toggleCompareSelect(id)}
-                title={
-                  disabled
-                    ? `You can compare up to ${MAX_COMPARE} restaurants at once`
-                    : "Select for comparison"
-                }
-                className="w-4 h-4 accent-blue-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                title="Select for comparison"
+                className="w-4 h-4 accent-blue-600 cursor-pointer"
               />
             </div>
           );
@@ -1623,7 +1646,7 @@ export default function ResReport() {
                   type="button"
                   onClick={() => {
                     setCompareIds([]);
-                    setVersusId(null);
+                    setVersusIds([]);
                   }}
                   className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
                 >
@@ -1632,15 +1655,16 @@ export default function ResReport() {
                 </button>
               </div>
 
-              {/* Chips: each selected restaurant, with a toggle to mark it
-                  as the "versus" side instead of part of the group. */}
+              {/* Chips: each selected restaurant, by name, with a toggle to
+                  move it to the "versus" side instead of the group. More
+                  than one restaurant can be marked "Versus" at once. */}
               <div className="flex flex-wrap gap-2">
                 {compareIds.map((id) => {
                   const r = restaurants.find(
                     (x) => x.restaurantDetails?.id === id,
                   );
                   const d = r?.restaurantDetails || {};
-                  const isVersus = versusId === id;
+                  const isVersus = versusIds.includes(id);
                   return (
                     <span
                       key={id}
@@ -1656,8 +1680,8 @@ export default function ResReport() {
                         onClick={() => setAsVersus(id)}
                         title={
                           isVersus
-                            ? "Currently the 'versus' side — click to unset"
-                            : "Compare the rest of the group against this one"
+                            ? "Currently on the 'versus' side — click to move back to the group"
+                            : "Move to the 'versus' side"
                         }
                         className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
                           isVersus
@@ -1685,11 +1709,13 @@ export default function ResReport() {
                   Select at least one more restaurant to compare.
                 </p>
               ) : (
-                <RestaurantCompareTable
-                  compareIds={compareIds}
-                  versusId={versusId}
-                  restaurants={restaurants}
-                />
+                <div className="overflow-x-auto pb-2">
+                  <RestaurantCompareTable
+                    compareIds={compareIds}
+                    versusIds={versusIds}
+                    restaurants={restaurants}
+                  />
+                </div>
               )}
             </div>
           )}
