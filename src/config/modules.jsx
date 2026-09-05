@@ -24,6 +24,7 @@ import {
   HelpCircle,
   TrendingUp,
   ShoppingBag,
+  Star,
 } from "lucide-react";
 import keetoImage from "../../public/WhatsApp Image 2026-05-18 at 11.27.30 AM.jpeg";
 
@@ -195,6 +196,7 @@ export const modules = [
       },
       { title: "Popup", url: "/popup", icon: Layers, module: "popup" },
           { title: "Platform", url: "/platform", icon: Layers, module: "platform" },
+          {title: "Ratings", url: "/ratings", icon: Star, module: "ratings" },
     ],
   },
   {

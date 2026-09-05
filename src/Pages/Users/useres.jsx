@@ -13,13 +13,31 @@ export default function Users() {
   const [restaurantId, setRestaurantId] = useState("");
   const [status, setStatus] = useState("blocked");
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["users"],
+  // Pagination state for the users table
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const {
+    data: usersResponse,
+    isLoading,
+  } = useQuery({
+    queryKey: ["users", page, limit],
     queryFn: async () => {
-      const res = await api.get("/api/superadmin/keeto-users");
-      return res.data.data.data;
+      const res = await api.get("/api/superadmin/keeto-users", {
+        params: { page, limit },
+      });
+      return res.data.data;
     },
+    keepPreviousData: true,
   });
+
+  const users = usersResponse?.data || [];
+  const pagination = usersResponse?.pagination || {
+    total: 0,
+    page,
+    limit,
+    totalPages: 1,
+  };
 
   // Restaurants list for the "Restaurant Block" select dropdown
   const { data: restaurants = [], isLoading: isRestaurantsLoading } = useQuery({
@@ -155,6 +173,13 @@ export default function Users() {
         deleteApiUrl="/api/superadmin/keeto-users"
         editApiUrl="/api/superadmin/keeto-users"
         inactiveStatusValue="blocked"
+        // Server-side pagination
+        serverPagination={pagination}
+        onPageChange={setPage}
+        onLimitChange={(newLimit) => {
+          setLimit(newLimit);
+          setPage(1); // reset to first page when page size changes
+        }}
       />
 
       {/* Modal to Block/Unblock user for a specific Restaurant */}

@@ -71,16 +71,35 @@ export default function GenericDataTable({
   actions = true,
   highlightedId,
   inactiveStatusValue = "inactive",
+  // Server-side pagination (optional). When `serverPagination` is passed,
+  // the table assumes `data` is already just the current page (fetched
+  // from the API) and stops slicing/paginating it client-side. Instead it
+  // calls back to the parent, which is responsible for refetching.
+  // Shape: { page (1-based), limit, total, totalPages }
+  serverPagination,
+  onPageChange,
+  onLimitChange,
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteId, setDeleteId] = useState(null);
   const navigate = useNavigate();
+
+  const isServerPaginated = !!serverPagination;
 
   const queryClient = useQueryClient();
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 15,
   });
+
+  // When server-paginated, the table's pagination state is derived from
+  // the parent's `serverPagination` prop instead of local state.
+  const effectivePagination = isServerPaginated
+    ? {
+        pageIndex: (serverPagination.page || 1) - 1,
+        pageSize: serverPagination.limit || 15,
+      }
+    : pagination;
 
   // Mutation لتحديث الـ Status فوراً عند تغيير السويتش
   const updateStatusMutation = useMutation({
@@ -229,10 +248,27 @@ export default function GenericDataTable({
   const table = useReactTable({
     data: sortedData,
     columns: tableColumns,
-    state: { globalFilter, pagination },
+    state: { globalFilter, pagination: effectivePagination },
     onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
+    onPaginationChange: isServerPaginated
+      ? (updater) => {
+          const next =
+            typeof updater === "function"
+              ? updater(effectivePagination)
+              : updater;
+          if (next.pageIndex !== effectivePagination.pageIndex) {
+            onPageChange?.(next.pageIndex + 1); // convert back to 1-based
+          }
+          if (next.pageSize !== effectivePagination.pageSize) {
+            onLimitChange?.(next.pageSize);
+          }
+        }
+      : setPagination,
     autoResetPageIndex: false,
+    manualPagination: isServerPaginated,
+    pageCount: isServerPaginated
+      ? serverPagination.totalPages ?? -1
+      : undefined,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -249,13 +285,15 @@ export default function GenericDataTable({
   // (fewer rows -> fewer pages), the pageIndex can be left pointing past
   // the end, and the table just renders empty rows — the filter did apply,
   // it just isn't visible. Clamp back onto the last valid page whenever the
-  // current page no longer exists.
+  // current page no longer exists. Skipped when server-paginated, since
+  // the parent owns the page index there.
   const pageCount = table.getPageCount();
   useEffect(() => {
+    if (isServerPaginated) return;
     if (pageCount > 0 && pagination.pageIndex > pageCount - 1) {
       setPagination((prev) => ({ ...prev, pageIndex: pageCount - 1 }));
     }
-  }, [pageCount, pagination.pageIndex]);
+  }, [pageCount, pagination.pageIndex, isServerPaginated]);
 
   return (
     <div className="space-y-6 w-full">
@@ -273,6 +311,10 @@ export default function GenericDataTable({
             <p className="text-xs text-slate-400 font-medium">
               Manage and monitor{" "}
               <span className="font-semibold text-primary">{title}</span>
+              {isServerPaginated &&
+                typeof serverPagination.total === "number" && (
+                  <> · {serverPagination.total.toLocaleString()} total</>
+                )}
             </p>
           </div>
         </div>
@@ -282,11 +324,15 @@ export default function GenericDataTable({
           <div className="relative w-full sm:w-64">
             <Search className="absolute top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 left-3" />
             <Input
-              placeholder="Search..."
+              placeholder={
+                isServerPaginated ? "Search this page..." : "Search..."
+              }
               value={globalFilter ?? ""}
               onChange={(e) => {
                 setGlobalFilter(e.target.value);
-                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                if (!isServerPaginated) {
+                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                }
               }}
               className="h-10 rounded-xl border-slate-200 bg-white shadow-sm focus-visible:ring-primary transition-all text-sm pl-9 pr-4"
             />

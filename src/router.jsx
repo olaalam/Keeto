@@ -68,6 +68,7 @@ import OrdersReportDetails from "./Pages/Orders/orderdetails";
 import Platform from "./Pages/Platform/Platform";
 import PlatformAdd from "./Pages/Platform/PlatformAdd";
 import BlockedUsers from "./Pages/BlockedUsers/blockeduseres";
+import Ratings from "./Pages/Ratings/ratings";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -430,7 +431,12 @@ const router = createBrowserRouter([
       {
         path: "platform/edit/:id",
         element: <PlatformAdd />,
-      }
+      },
+      {
+        path: "ratings",
+        element: <Ratings />,
+      },
+     
     ],
   },
   {

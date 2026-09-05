@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
@@ -36,7 +36,11 @@ export default function Order() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [selectedDate, setSelectedDate] = useState("");
+  // Filters -> sent as query params to GET /api/superadmin/order/all
+  const [statusFilter, setStatusFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   // Holds which order the cancel-reason dialog is currently open for.
   // Needs both restaurantId and orderId since the update endpoint is
   // scoped per-restaurant: /api/superadmin/order/{restaurantId}/{orderId}/status
@@ -47,11 +51,18 @@ export default function Order() {
   });
 
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ["superadmin-orders"],
+    queryKey: ["superadmin-orders", statusFilter, startDate, endDate],
     queryFn: async () => {
-      const res = await api.get(`/api/superadmin/order/all`);
+      const res = await api.get(`/api/superadmin/order/all`, {
+        params: {
+          status: statusFilter || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+        },
+      });
       return res.data.data.data;
     },
+    keepPreviousData: true,
   });
 
   const updateStatusMutation = useMutation({
@@ -85,19 +96,26 @@ export default function Order() {
     }
   };
 
+  const clearFilters = () => {
+    setStatusFilter("");
+    setStartDate("");
+    setEndDate("");
+  };
+
   const columns = [
     {
       accessorKey: "dailyOrderNumber",
       header: "Order Number",
       cell: ({ row }) => (
-        <button onClick=
-          {() =>
+        <button
+          onClick={() =>
             navigate(
               `/ordersreport/details/${row.original.restaurantId}/${row.original.internalId}`,
             )
-          } className="font-medium text-blue-700">
+          }
+          className="font-medium text-blue-700"
+        >
           {row.getValue("dailyOrderNumber")}
-          
         </button>
       ),
     },
@@ -218,40 +236,62 @@ export default function Order() {
     },
   ];
 
-  const filteredOrders = useMemo(() => {
-    if (!selectedDate) return orders;
-    return orders.filter((order) => {
-      if (!order.orderDate) return false;
-      const orderDate = new Date(order.orderDate).toISOString().split("T")[0];
-      return orderDate === selectedDate;
-    });
-  }, [orders, selectedDate]);
-
   return (
     <div className="container mx-auto py-10">
-      <div className="flex items-center gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-        <label className="text-sm font-bold text-slate-700">
-          Filter by Date:
-        </label>
-        <Input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="w-48 h-10"
-        />
-        <Button
-          variant="outline"
-          onClick={() => setSelectedDate("")}
-          className="h-10"
-        >
-          Clear Filter
-        </Button>
+      <div className="flex flex-wrap items-center gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-bold text-slate-700">Status:</label>
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={(value) =>
+              setStatusFilter(value === "all" ? "" : value)
+            }
+          >
+            <SelectTrigger className="w-[180px] h-10">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {orderStatuses.map((status) => (
+                <SelectItem key={status} value={status} className="capitalize">
+                  {formatStatusLabel(status)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-bold text-slate-700">From:</label>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-44 h-10"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-bold text-slate-700">To:</label>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-44 h-10"
+          />
+        </div>
+
+        {(statusFilter || startDate || endDate) && (
+          <Button variant="outline" onClick={clearFilters} className="h-10">
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       <GenericDataTable
         title="Orders Management"
         columns={columns}
-        data={filteredOrders}
+        data={orders}
         isLoading={isLoading}
         queryKey="superadmin-orders"
         actions={false}

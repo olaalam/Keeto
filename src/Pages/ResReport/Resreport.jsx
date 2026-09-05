@@ -144,6 +144,7 @@ const RESTAURANT_TYPES = ["all", "mega", "super", "A", "B", "C", "C-", "test"];
 const COLUMN_OPTIONS = [
   { id: "restaurantDetails.type", label: "Type" },
   { id: "restaurantDetails.city", label: "City" },
+  { id: "restaurantDetails.cuisines", label: "Cuisines" },
   { id: "ordersCount", label: "Orders Count" },
   { id: "total_commission", label: "Total Commission" },
   { id: "restaurantDetails.status", label: "Status" },
@@ -882,6 +883,41 @@ export default function ResReport() {
         },
       },
       {
+        accessorKey: "restaurantDetails.cuisines",
+        header: () => (
+          <div className="text-center font-bold min-w-[160px]">Cuisines</div>
+        ),
+        cell: ({ row }) => {
+          const cuisines = row.original.restaurantDetails?.cuisines || [];
+          if (cuisines.length === 0) {
+            return <div className="text-center text-slate-400 text-xs">-</div>;
+          }
+          return (
+            <div className="text-center">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs">
+                    View ({cuisines.length})
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3" align="center">
+                  <div className="flex flex-wrap gap-1.5 justify-center">
+                    {cuisines.map((c) => (
+                      <span
+                        key={c.id}
+                        className="inline-block px-2 py-0.5 rounded-lg bg-violet-50 text-violet-700 text-xs font-semibold whitespace-nowrap"
+                      >
+                        {c.name}
+                      </span>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          );
+        },
+      },
+      {
         accessorKey: "ordersCount",
         header: () => (
           <div className="text-right font-bold min-w-[100px]">Orders Count</div>
@@ -1051,6 +1087,7 @@ export default function ResReport() {
     "restaurantDetails.name": "Restaurant",
     "restaurantDetails.type": "Type",
     "restaurantDetails.city": "City",
+    "restaurantDetails.cuisines": "Cuisines",
     ordersCount: "Orders Count",
     total_commission: "Total Commission",
     "restaurantDetails.status": "Status",
@@ -1072,6 +1109,8 @@ export default function ResReport() {
         return d.type || "Unknown";
       case "restaurantDetails.city":
         return d.city?.name || "-";
+      case "restaurantDetails.cuisines":
+        return (d.cuisines || []).map((c) => c.name).join(", ") || "-";
       case "ordersCount":
         return String(row.ordersCount ?? 0);
       case "total_commission":
@@ -1190,7 +1229,7 @@ export default function ResReport() {
       {!showTable ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
-            onClick={() => setShowTable(true)}
+            onClick={() => setRestaurantListMode("with")}
             className="w-full text-left"
           >
             <Card
