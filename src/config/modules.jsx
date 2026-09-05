@@ -105,6 +105,12 @@ export const modules = [
     icon: Utensils,
     items: [
       {
+        title: "Restaurants",
+        url: "/restaurants",
+        icon: Utensils,
+        module: "Restaurants",
+      },
+      {
         title: "Categories",
         url: "/categories",
         icon: Layers,
@@ -115,12 +121,6 @@ export const modules = [
         url: "/sub-categories",
         icon: Library,
         module: "Subcategories",
-      },
-      {
-        title: "Restaurants",
-        url: "/restaurants",
-        icon: Utensils,
-        module: "Restaurants",
       },
       { title: "Foods", url: "/foods", icon: Beef, module: "Food" },
       {
