@@ -585,6 +585,12 @@ export default function SalesReport() {
                 <DialogTitle className="text-xl font-bold text-slate-800 text-center">
                   {displayData.name}
                 </DialogTitle>
+                <div className="flex justify-center mt-3">
+                  <span className="inline-flex items-center gap-2 text-lg font-extrabold text-amber-700 bg-amber-50 border border-amber-100 px-5 py-2 rounded-full">
+                    <Coins className="w-5 h-5" />
+                    Total Points: {displayData.totalPoints ?? 0}
+                  </span>
+                </div>
                 {/*   <DialogDescription className="text-center mt-1">
                   ID:{" "}
                   <span className="font-mono text-xs text-slate-400">
@@ -764,6 +770,11 @@ export default function SalesReport() {
                                         {typeById[restaurant.id]}
                                       </span>
                                     )}
+                                  {typeof restaurant.points === "number" && (
+                                    <span className="text-xs font-bold font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
+                                      {restaurant.points} pts
+                                    </span>
+                                  )}
                                   {restaurant.status && (
                                     <span
                                       className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${

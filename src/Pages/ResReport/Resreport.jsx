@@ -1820,6 +1820,18 @@ export default function ResReport() {
                                   {d.nameAr}
                                 </p>
                               )}
+                              {d.cuisines && d.cuisines.length > 0 ? (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {d.cuisines.map((c) => (
+                                    <span
+                                      key={c.id}
+                                      className="inline-block px-2 py-0.5 rounded-lg bg-violet-50 text-violet-700 text-[10px] font-semibold whitespace-nowrap"
+                                    >
+                                      {c.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-600">
@@ -1827,17 +1839,6 @@ export default function ResReport() {
                               </span>
                               <span className="text-xs font-bold font-mono text-slate-600">
                                 {r.ordersCount ?? 0} orders
-                              </span>
-                              <span
-                                className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${
-                                  d.deliverystatus === "delivered"
-                                    ? "bg-emerald-50 text-emerald-600"
-                                    : "bg-slate-100 text-slate-500"
-                                }`}
-                              >
-                                {d.deliverystatus === "delivered"
-                                  ? "Delivered"
-                                  : "Not Delivered"}
                               </span>
                               <ChevronRight className="w-4 h-4 text-slate-400" />
                             </div>
