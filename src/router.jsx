@@ -69,6 +69,7 @@ import Platform from "./Pages/Platform/Platform";
 import PlatformAdd from "./Pages/Platform/PlatformAdd";
 import BlockedUsers from "./Pages/BlockedUsers/blockeduseres";
 import Ratings from "./Pages/Ratings/ratings";
+import PendingOrders from "./Pages/Orders/Pendingorders";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -435,6 +436,10 @@ const router = createBrowserRouter([
       {
         path: "ratings",
         element: <Ratings />,
+      },
+      {
+        path: "pending",
+        element: <PendingOrders />,
       },
      
     ],
