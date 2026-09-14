@@ -51,6 +51,8 @@ import Mykeetresturant from "./Pages/Restaurant/mykeetresturant";
 import Invoice from "./Pages/Restaurant/invoice";
 import InvoiceAdd from "./Pages/Restaurant/InvoiceAdd";
 import Users from "./Pages/Users/useres";
+import CustomerProfile from "./Pages/Users/CustomerProfile";
+import UserEdit from "./Pages/Users/UserEdit";
 import Reasons from "./Pages/Reasons/reasons";
 import ReasonAdd from "./Pages/Reasons/reasonsadd";
 import Discount from "./Pages/Discount/discount";
@@ -69,6 +71,9 @@ import Platform from "./Pages/Platform/Platform";
 import PlatformAdd from "./Pages/Platform/PlatformAdd";
 import BlockedUsers from "./Pages/BlockedUsers/blockeduseres";
 import Ratings from "./Pages/Ratings/ratings";
+import RestaurantRatingRequestsPage from "./Pages/Ratings/RestaurantRatingRequests";
+import RestaurantGroupsPage from "./Pages/Restaurant/RestaurantGroups";
+import RestaurantGroupsAddPage from "./Pages/Restaurant/RestaurantGroupsAdd";
 import PendingOrders from "./Pages/Orders/Pendingorders";
 const router = createBrowserRouter([
   {
@@ -186,6 +191,18 @@ const router = createBrowserRouter([
       {
         path: "restaurants",
         element: <Restaurant />,
+      },
+      {
+        path: "restaurant-groups",
+        element: <RestaurantGroupsPage />,
+      },
+      {
+        path: "restaurant-groups/add",
+        element: <RestaurantGroupsAddPage />,
+      },
+      {
+        path: "restaurant-groups/edit/:id",
+        element: <RestaurantGroupsAddPage />,
       },
       {
         path: "restaurants/add",
@@ -340,6 +357,14 @@ const router = createBrowserRouter([
         element: <Users />,
       },
       {
+        path: "users/edit/:id",
+        element: <UserEdit />,
+      },
+      {
+        path: "users/:id",
+        element: <CustomerProfile />,
+      },
+      {
         path: "reasons",
         element: <Reasons />,
       },
@@ -438,10 +463,13 @@ const router = createBrowserRouter([
         element: <Ratings />,
       },
       {
+        path: "ratings/requests",
+        element: <RestaurantRatingRequestsPage />,
+      },
+      {
         path: "pending",
         element: <PendingOrders />,
       },
-     
     ],
   },
   {

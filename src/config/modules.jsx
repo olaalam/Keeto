@@ -118,6 +118,12 @@ export const modules = [
         module: "Restaurants",
       },
       {
+        title: "Restaurant Groups",
+        url: "/restaurant-groups",
+        icon: Utensils,
+        module: "Restaurants",
+      },
+      {
         title: "Categories",
         url: "/categories",
         icon: Layers,
@@ -216,6 +222,7 @@ export const modules = [
       { title: "Popup", url: "/popup", icon: Layers, module: "popup" },
       { title: "Platform", url: "/platform", icon: Layers, module: "platform" },
       { title: "Ratings", url: "/ratings", icon: Star, module: "ratings" },
+      { title: "Rating Requests", url: "/ratings/requests", icon: Star, module: "ratings" },
     ],
   },
   {

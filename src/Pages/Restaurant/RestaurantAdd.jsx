@@ -322,6 +322,7 @@ const RestaurantAdd = () => {
             "nameAr",
             "nameFr",
             "email",
+            "callcenterphone",
             "password",
             "type",
             "cuisineId",
@@ -466,6 +467,15 @@ const RestaurantAdd = () => {
                     {...register("email", { required: true })}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Call Center Phone</Label>
+                  <Input
+                    type="text"
+                    {...register("callcenterphone", { required: false })}
+                    placeholder="Call Center Phone"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label>Likes *</Label>
                   <Input

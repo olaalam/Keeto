@@ -4,6 +4,7 @@ import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
 import { useNavigate } from "react-router-dom";
 import { usePost } from "@/hooks/usePost";
+import { Eye } from "lucide-react";
 
 export default function Users() {
   const navigate = useNavigate();
@@ -17,10 +18,7 @@ export default function Users() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const {
-    data: usersResponse,
-    isLoading,
-  } = useQuery({
+  const { data: usersResponse, isLoading } = useQuery({
     queryKey: ["users", page, limit],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/keeto-users", {
@@ -75,6 +73,23 @@ export default function Users() {
   };
 
   const columns = [
+    {
+      id: "view",
+      header: "",
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <button
+            type="button"
+            onClick={() => navigate(`/users/${user.id || user._id}`)}
+            title="View profile"
+            className="text-gray-400 hover:text-blue-600 transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        );
+      },
+    },
     { accessorKey: "name", header: "name" },
 
     {
@@ -173,16 +188,15 @@ export default function Users() {
         deleteApiUrl="/api/superadmin/keeto-users"
         editApiUrl="/api/superadmin/keeto-users"
         inactiveStatusValue="blocked"
-        // Server-side pagination
         serverPagination={pagination}
         onPageChange={setPage}
         onLimitChange={(newLimit) => {
           setLimit(newLimit);
-          setPage(1); // reset to first page when page size changes
+          setPage(1);
         }}
+        onEdit={(user) => navigate(`/users/edit/${user.id || user._id}`, { state: { userData: user } })}
       />
 
-      {/* Modal to Block/Unblock user for a specific Restaurant */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
@@ -249,6 +263,7 @@ export default function Users() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
