@@ -194,7 +194,11 @@ export default function Users() {
           setLimit(newLimit);
           setPage(1);
         }}
-        onEdit={(user) => navigate(`/users/edit/${user.id || user._id}`, { state: { userData: user } })}
+        onEdit={(user) =>
+          navigate(`/users/edit/${user.id || user._id}`, {
+            state: { userData: user },
+          })
+        }
       />
 
       {selectedUser && (
@@ -263,7 +267,6 @@ export default function Users() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
