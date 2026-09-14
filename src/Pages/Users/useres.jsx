@@ -14,15 +14,16 @@ export default function Users() {
   const [restaurantId, setRestaurantId] = useState("");
   const [status, setStatus] = useState("blocked");
 
-  // Pagination state for the users table
+  // Pagination and search state for the users table
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
 
   const { data: usersResponse, isLoading } = useQuery({
-    queryKey: ["users", page, limit],
+    queryKey: ["users", page, limit, search],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/keeto-users", {
-        params: { page, limit },
+        params: { page, limit, search: search || undefined },
       });
       return res.data.data;
     },
@@ -192,6 +193,10 @@ export default function Users() {
         onPageChange={setPage}
         onLimitChange={(newLimit) => {
           setLimit(newLimit);
+          setPage(1);
+        }}
+        onSearch={(nextSearch) => {
+          setSearch(nextSearch);
           setPage(1);
         }}
         onEdit={(user) =>

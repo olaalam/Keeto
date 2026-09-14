@@ -1,6 +1,17 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { PieChart, Pie, Cell } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useGet } from "@/hooks/useGet";
 import {
   ArrowLeft,
@@ -53,7 +64,7 @@ function formatDate(dateStr) {
 
 function formatMoney(value) {
   const num = Number(value || 0);
-  return `$${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `EGP ${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // API returns sources as "online_order_web" / "online_order_app"
@@ -301,8 +312,7 @@ export default function CustomerProfile() {
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-white">
                     <tr className="text-left text-sm text-gray-500 border-b border-gray-100">
-                      <th className="py-3 px-4 font-medium">#</th>
-                      <th className="py-3 px-4 font-medium">Order ID</th>
+                      <th className="py-3 px-4 font-medium">Daily Order #</th>
                       <th className="py-3 px-4 font-medium">Date</th>
                       <th className="py-3 px-4 font-medium">Restaurant</th>
                       <th className="py-3 px-4 font-medium">Source</th>
@@ -317,11 +327,8 @@ export default function CustomerProfile() {
                         key={order.orderNumber || idx}
                         className="border-b border-gray-100 last:border-0"
                       >
-                        <td className="py-3.5 px-4 text-gray-500">
-                          {recentOrders.length - idx}
-                        </td>
                         <td className="py-3.5 px-4 font-medium text-gray-900 whitespace-nowrap">
-                          {order.orderNumber}
+                          {order.dailyOrderNumber || "—"}
                         </td>
                         <td className="py-3.5 px-4 text-gray-500 whitespace-nowrap">
                           {formatDate(order.createdAt)}
@@ -431,51 +438,36 @@ export default function CustomerProfile() {
                 No restaurant data yet.
               </div>
             ) : (
-              <table className="w-full text-sm mt-5">
-                <thead>
-                  <tr className="text-left text-sm text-gray-500 border-b border-gray-100">
-                    <th className="py-2.5 pr-4 font-medium">Restaurant</th>
-                    <th className="py-2.5 pr-4 font-medium">Orders</th>
-                    <th className="py-2.5 pr-4 font-medium">Spent</th>
-                    <th className="py-2.5 pr-4 font-medium">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {restaurants.map((r, idx) => {
-                    const pct = stats.totalOrders
-                      ? ((r.orderCount / stats.totalOrders) * 100).toFixed(1)
-                      : "0.0";
-                    return (
-                      <tr
-                        key={r.id || idx}
-                        className="border-b border-gray-100 last:border-0"
-                      >
-                        <td className="py-3 pr-4">
-                          <span className="flex items-center gap-2 text-gray-900 font-semibold">
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{
-                                backgroundColor:
-                                  RESTAURANT_COLORS[
-                                    idx % RESTAURANT_COLORS.length
-                                  ],
-                              }}
-                            />
-                            {r.name}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 text-gray-700">
-                          {r.orderCount || 0}
-                        </td>
-                        <td className="py-3 pr-4 text-gray-700 whitespace-nowrap">
-                          {formatMoney(r.totalSpent)}
-                        </td>
-                        <td className="py-3 pr-4 text-gray-700">{pct}%</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="mt-5 h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={restaurants}
+                    layout="vertical"
+                    margin={{ top: 8, right: 16, left: 22, bottom: 8 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" allowDecimals={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={72}
+                      tick={{ fontSize: 11, fill: "#475569" }}
+                    />
+                    <Tooltip
+                      formatter={(value) => [
+                        `${value} order${value === 1 ? "" : "s"}`,
+                        "Orders",
+                      ]}
+                    />
+                    <Bar
+                      dataKey="orderCount"
+                      name="Orders"
+                      radius={[0, 6, 6, 0]}
+                      fill="#8b5cf6"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
         </div>

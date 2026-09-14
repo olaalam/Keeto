@@ -4,22 +4,29 @@ import api from "@/api/axios";
 import { toast } from "sonner";
 import GenericDataTable from "@/components/GenericDataTable";
 import { useGet } from "@/hooks/useGet";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 export default function RestaurantRatingRequestsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [activeTab, setActiveTab] = useState("requests");
   const [filters, setFilters] = useState({
-    status: "",
     targetType: "",
     restaurantId: "",
   });
 
+  const tabStatusMap = {
+    requests: "pending",
+    approved: "approved",
+    rejected: "rejected",
+  };
+
   const params = {
     page,
     limit,
-    ...(filters.status ? { status: filters.status } : {}),
+    status: tabStatusMap[activeTab],
     ...(filters.targetType ? { targetType: filters.targetType } : {}),
     ...(filters.restaurantId ? { restaurantId: filters.restaurantId } : {}),
   };
@@ -300,18 +307,6 @@ export default function RestaurantRatingRequestsPage() {
             ))}
           </select>
           <select
-            value={filters.status}
-            onChange={(e) =>
-              setFilters((current) => ({ ...current, status: e.target.value }))
-            }
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-          >
-            <option value="">All status</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          <select
             value={filters.targetType}
             onChange={(e) =>
               setFilters((current) => ({
@@ -328,6 +323,36 @@ export default function RestaurantRatingRequestsPage() {
           </select>
         </div>
       </div>
+
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value);
+          setPage(1);
+        }}
+        className="mb-4"
+      >
+        <TabsList className="rounded-xl bg-slate-100 p-1">
+          <TabsTrigger
+            value="requests"
+            className="rounded-lg px-5 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+          >
+            Requests
+          </TabsTrigger>
+          <TabsTrigger
+            value="approved"
+            className="rounded-lg px-5 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+          >
+            Approved
+          </TabsTrigger>
+          <TabsTrigger
+            value="rejected"
+            className="rounded-lg px-5 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+          >
+            Rejected
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <GenericDataTable
         title="Rating Requests"

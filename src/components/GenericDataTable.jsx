@@ -79,6 +79,7 @@ export default function GenericDataTable({
   serverPagination,
   onPageChange,
   onLimitChange,
+  onSearch,
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteId, setDeleteId] = useState(null);
@@ -267,7 +268,7 @@ export default function GenericDataTable({
     autoResetPageIndex: false,
     manualPagination: isServerPaginated,
     pageCount: isServerPaginated
-      ? serverPagination.totalPages ?? -1
+      ? (serverPagination.totalPages ?? -1)
       : undefined,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -329,7 +330,11 @@ export default function GenericDataTable({
               }
               value={globalFilter ?? ""}
               onChange={(e) => {
-                setGlobalFilter(e.target.value);
+                const nextValue = e.target.value;
+                setGlobalFilter(nextValue);
+                if (isServerPaginated) {
+                  onSearch?.(nextValue);
+                }
                 if (!isServerPaginated) {
                   setPagination((prev) => ({ ...prev, pageIndex: 0 }));
                 }
