@@ -51,7 +51,7 @@ import Mykeetresturant from "./Pages/Restaurant/mykeetresturant";
 import Invoice from "./Pages/Restaurant/invoice";
 import InvoiceAdd from "./Pages/Restaurant/InvoiceAdd";
 import Users from "./Pages/Users/useres";
-import CustomerProfile from "./Pages/Users/CustomerProfile";
+import CustomerProfile from "./Pages/Users/Customerprofile";
 import UserEdit from "./Pages/Users/UserEdit";
 import Reasons from "./Pages/Reasons/reasons";
 import ReasonAdd from "./Pages/Reasons/reasonsadd";
