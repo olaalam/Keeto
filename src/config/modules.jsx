@@ -77,6 +77,7 @@ export const modules = [
         module: "Reasons",
       },
       { title: "Sales", url: "/sales", icon: TrendingUp, module: "Admins" },
+      {title:"Order Delay", url:"/order-delay", icon:ShoppingBag, module:"Orders"},
     ],
   },
   {

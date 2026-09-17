@@ -75,6 +75,8 @@ import RestaurantRatingRequestsPage from "./Pages/Ratings/RestaurantRatingReques
 import RestaurantGroupsPage from "./Pages/Restaurant/RestaurantGroups";
 import RestaurantGroupsAddPage from "./Pages/Restaurant/RestaurantGroupsAdd";
 import PendingOrders from "./Pages/Orders/Pendingorders";
+import OrderDelay from "./Pages/orderdelay/orderdelay";
+import OrderdelayAdd from "./Pages/orderdelay/orderdelayAdd";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -470,6 +472,18 @@ const router = createBrowserRouter([
         path: "pending",
         element: <PendingOrders />,
       },
+      {
+        path: "order-delay",
+        element: <OrderDelay />,
+      },
+      {
+        path:"order-delay/add",
+        element:<OrderdelayAdd />,
+      },
+      {
+        path:"order-delay/edit/:id",
+        element:<OrderdelayAdd />,
+      }
     ],
   },
   {
