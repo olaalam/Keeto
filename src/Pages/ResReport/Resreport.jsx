@@ -568,6 +568,10 @@ export default function ResReport() {
   // "with" -> restaurants that have orders, "without" -> restaurants with no orders.
   // We deliberately do NOT add a per-type list here (per request) — only these two.
   const [restaurantListMode, setRestaurantListMode] = useState(null);
+  // Controls the "Canceled Orders" list popup, opened from its card.
+  const [showCanceledOrders, setShowCanceledOrders] = useState(false);
+  // Filter tab inside that popup: "all" | "restaurant" | "user"
+  const [canceledOrdersFilter, setCanceledOrdersFilter] = useState("all");
   // Remembers which list (if any) the currently open detail popup was opened
   // from, so we can offer a "Back to list" link instead of just closing.
   const [detailOpenedFromList, setDetailOpenedFromList] = useState(null);
@@ -620,6 +624,9 @@ export default function ResReport() {
 
   const summary = reportData?.summary || {};
   const restaurants = reportData?.restaurants || [];
+  // Canceled orders list from the API — each entry has orderId,
+  // restaurantId, restaurantName and cancelType ("user" or "restaurant").
+  const canceledOrdersList = reportData?.canceledOrders || [];
 
   // Active cities, used to build the "City" filter buttons and to resolve
   // each restaurant's city name in the table.
@@ -1259,13 +1266,18 @@ export default function ResReport() {
             borderColor="border-emerald-500"
             bgColor="bg-emerald-50 text-emerald-600"
           />
-          <Card
-            title="Canceled Orders"
-            value={summary.canceledOrders ?? 0}
-            icon={XCircle}
-            borderColor="border-rose-500"
-            bgColor="bg-rose-50 text-rose-600"
-          />
+          <button
+            onClick={() => setShowCanceledOrders(true)}
+            className="w-full text-left"
+          >
+            <Card
+              title="Canceled Orders"
+              value={summary.canceledOrders ?? 0}
+              icon={XCircle}
+              borderColor="border-rose-500"
+              bgColor="bg-rose-50 text-rose-600"
+            />
+          </button>
 
           <button
             onClick={() => setRestaurantListMode("without")}
@@ -1849,6 +1861,107 @@ export default function ResReport() {
                     <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
                       <p className="text-sm text-slate-500">
                         No restaurants in this list.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Canceled orders list popup — opened from the "Canceled Orders" card */}
+      <Dialog
+        open={showCanceledOrders}
+        onOpenChange={(open) => {
+          setShowCanceledOrders(open);
+          if (!open) setCanceledOrdersFilter("all");
+        }}
+      >
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-2xl p-0">
+          {(() => {
+            const restaurantCanceledCount = canceledOrdersList.filter(
+              (o) => o.cancelType === "restaurant",
+            ).length;
+            const userCanceledCount = canceledOrdersList.filter(
+              (o) => o.cancelType === "user",
+            ).length;
+            const filteredList =
+              canceledOrdersFilter === "all"
+                ? canceledOrdersList
+                : canceledOrdersList.filter(
+                    (o) => o.cancelType === canceledOrdersFilter,
+                  );
+
+            const filterTabs = [
+              { id: "all", label: "All", count: canceledOrdersList.length },
+              {
+                id: "restaurant",
+                label: "By Restaurant",
+                count: restaurantCanceledCount,
+              },
+              { id: "user", label: "By User", count: userCanceledCount },
+            ];
+
+            return (
+              <>
+                <DialogHeader className="bg-slate-50 p-5 border-b border-slate-100">
+                  <DialogTitle className="text-lg font-bold text-slate-800">
+                    Canceled Orders ({canceledOrdersList.length})
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="flex gap-2 px-4 pt-4">
+                  {filterTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setCanceledOrdersFilter(tab.id)}
+                      className={`flex-1 rounded-xl border px-3 py-2 text-center transition-colors ${
+                        canceledOrdersFilter === tab.id
+                          ? "bg-rose-50 border-rose-300 text-rose-700"
+                          : "bg-slate-50 border-slate-100 text-slate-500 hover:border-slate-200"
+                      }`}
+                    >
+                      <p className="text-sm font-bold font-mono">
+                        {tab.count}
+                      </p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide">
+                        {tab.label}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="p-4 space-y-2">
+                  {filteredList.length > 0 ? (
+                    filteredList.map((o) => (
+                      <div
+                        key={o.orderId}
+                        className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-800 truncate">
+                            {o.restaurantName || "-"}
+                          </p>
+                         
+                        </div>
+                        <span
+                          className={`shrink-0 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${
+                            o.cancelType === "user"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-rose-50 text-rose-600"
+                          }`}
+                        >
+                          Canceled by {o.cancelType || "unknown"}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      <p className="text-sm text-slate-500">
+                        No canceled orders in this list.
                       </p>
                     </div>
                   )}
