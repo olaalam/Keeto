@@ -33,9 +33,59 @@ import { Badge } from "@/components/ui/badge";
 
 import { Button } from "@/components/ui/button";
 import { Controller } from "react-hook-form";
-import { ChevronsUpDown, Check, X, Save } from "lucide-react";
+import { ChevronsUpDown, Check, X, Save, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+
+// مزودو الدفع المتاحون في الـ Custom Gateway وكل واحد بالمفاتيح الخاصة به
+const PAYMENT_PROVIDERS = [
+  {
+    provider: "KASHIER",
+    label: "Kashier",
+    title: "Kashier Custom Gateway",
+    fields: [
+      { key: "mid", label: "Merchant ID (MID)" },
+      { key: "apiKey", label: "API Key", secret: true },
+      { key: "secretKey", label: "Secret Key", secret: true },
+    ],
+  },
+  {
+    provider: "PAYMOB",
+    label: "Paymob",
+    title: "Paymob Custom Gateway",
+    fields: [
+      { key: "apiKey", label: "API Key", secret: true },
+      { key: "integrationId", label: "Integration ID" },
+      { key: "iframeId", label: "Iframe ID" },
+      { key: "hmac", label: "HMAC", secret: true },
+    ],
+  },
+];
+
+// يدمج الـ paymentCredentials القادمة من السيرفر مع قالب المزودين،
+// ويضمن إن كارت واحد فقط يكون isActive
+const buildCredentials = (saved) => {
+  const list = Array.isArray(saved) ? saved : [];
+  let activeTaken = false;
+  return PAYMENT_PROVIDERS.map((p) => {
+    const found = list.find(
+      (c) => String(c?.provider || "").toUpperCase() === p.provider,
+    );
+    const isActive = !!found?.isActive && !activeTaken;
+    if (isActive) activeTaken = true;
+    const credentials = {};
+    p.fields.forEach((f) => {
+      credentials[f.key] = found?.credentials?.[f.key] ?? "";
+    });
+    return {
+      provider: p.provider,
+      title: found?.title || p.title,
+      environment: found?.environment || "LIVE",
+      credentials,
+      isActive,
+    };
+  });
+};
 
 const RestaurantAdd = () => {
   const { id } = useParams();
@@ -153,6 +203,11 @@ const RestaurantAdd = () => {
         isAnnuallyActive: activePlanSource.isAnnuallyActive || false,
         annuallyAmount: activePlanSource.annuallyAmount || "",
         pos_isOn: posPlan.isOn !== undefined ? posPlan.isOn : true,
+        // Online Payment: الافتراضي enabled + System
+        enableOnlinePayment: raw.enableOnlinePayment ?? true,
+        paymentSystemActive:
+          String(raw.paymentGatewayType || "").toUpperCase() !== "CUSTOM",
+        paymentCredentials: buildCredentials(raw.paymentCredentials),
       };
     },
     enabled: !!id && !state?.restaurantData,
@@ -251,6 +306,15 @@ const RestaurantAdd = () => {
           },
         ];
 
+        // Online Payment: لو System بنبعت مصفوفة فاضية، ولو Custom بنبعت الكارت المختار بس
+        const systemActive =
+          data.paymentSystemActive ??
+          String(data.paymentGatewayType || "").toUpperCase() !== "CUSTOM";
+        const paymentGatewayType = systemActive ? "System" : "Custom";
+        const paymentCredentials = systemActive
+          ? []
+          : buildCredentials(data.paymentCredentials).filter((c) => c.isActive);
+
         // 4. بناء الكائن النهائي المطابق تماماً للـ API الخاص بك
         const formattedData = {
           ...data,
@@ -264,6 +328,9 @@ const RestaurantAdd = () => {
           iosApp: data.iosApp || "",
           androidApp: data.androidApp || "",
           businessPlans: businessPlans, // الـ Array مفرودة هنا وجاهزة للإرسال في الـ Create والـ Edit
+          enableOnlinePayment: data.enableOnlinePayment ?? true,
+          paymentGatewayType,
+          paymentCredentials,
         };
 
         if (isEdit) {
@@ -292,6 +359,7 @@ const RestaurantAdd = () => {
           "isAnnuallyActive",
           "annuallyAmount",
           "pos_isOn",
+          "paymentSystemActive",
         ];
         fieldsToRemove.forEach((f) => delete formattedData[f]);
 
@@ -312,6 +380,61 @@ const RestaurantAdd = () => {
         const watchMonthly = watch("isMonthlyActive");
         const watchQuarterly = watch("isQuarterlyActive");
         const watchAnnually = watch("isAnnuallyActive");
+
+        // Online Payment (الافتراضي: enabled + System)
+        const onlineEnabled = watch("enableOnlinePayment") ?? true;
+        // Keeto (System) وأي Custom gateway ممنوع يتفعلوا مع بعض
+        const systemActive =
+          watch("paymentSystemActive") ??
+          String(watch("paymentGatewayType") || "").toUpperCase() !== "CUSTOM";
+        const credentials = buildCredentials(watch("paymentCredentials")).map(
+          (c) => (systemActive ? { ...c, isActive: false } : c),
+        );
+        const anySelected = systemActive || credentials.some((c) => c.isActive);
+
+        const setPayment = (name, value) =>
+          setValue(name, value, { shouldDirty: true });
+
+        const updateCredential = (provider, patch) =>
+          setPayment(
+            "paymentCredentials",
+            credentials.map((c) =>
+              c.provider === provider ? { ...c, ...patch } : c,
+            ),
+          );
+
+        const updateCredentialField = (provider, key, value) =>
+          setPayment(
+            "paymentCredentials",
+            credentials.map((c) =>
+              c.provider === provider
+                ? { ...c, credentials: { ...c.credentials, [key]: value } }
+                : c,
+            ),
+          );
+
+        // اختيار كارت Custom = تفعيله وتعطيل Keeto والباقي
+        const selectCredential = (provider, on) => {
+          if (on) setPayment("paymentSystemActive", false);
+          setPayment(
+            "paymentCredentials",
+            credentials.map((c) => ({
+              ...c,
+              isActive: c.provider === provider ? on : false,
+            })),
+          );
+        };
+
+        // تفعيل Keeto = تعطيل كل الـ Custom cards، وتقدر تطفيه من غير ما تختار حاجة
+        const toggleSystem = (on) => {
+          setPayment("paymentSystemActive", on);
+          if (on) {
+            setPayment(
+              "paymentCredentials",
+              credentials.map((c) => ({ ...c, isActive: false })),
+            );
+          }
+        };
 
         const [activeTab, setActiveTab] = useState("basic");
 
@@ -401,7 +524,7 @@ const RestaurantAdd = () => {
             onValueChange={setActiveTab}
             className="w-full mt-4"
           >
-            <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger type="button" value="basic" className="relative">
                 General Info
                 {tabHasError("basic") && (
@@ -429,6 +552,13 @@ const RestaurantAdd = () => {
                 {tabHasError("business-plan") && (
                   <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
                 )}
+              </TabsTrigger>
+              <TabsTrigger
+                type="button"
+                value="online-payment"
+                className="relative"
+              >
+                Online Payment
               </TabsTrigger>
             </TabsList>
 
@@ -1257,6 +1387,180 @@ const RestaurantAdd = () => {
                     </div>
                   </div>
                 </div>
+              )}
+            </TabsContent>
+
+            {/* 5. Online Payment Tab */}
+            <TabsContent
+              value="online-payment"
+              forceMount
+              className="space-y-6 data-[state=inactive]:hidden"
+            >
+              <div className="flex items-center justify-between border rounded-lg p-4 bg-white">
+                <div>
+                  <Label className="text-sm font-semibold">
+                    Enable Online Payment
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Allow customers to pay online for this restaurant.
+                  </p>
+                </div>
+                <Controller
+                  name="enableOnlinePayment"
+                  control={control}
+                  defaultValue={true}
+                  render={({ field }) => (
+                    <Switch
+                      checked={field.value ?? true}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
+
+              {onlineEnabled && (
+                <>
+                  {/* Keeto (System) */}
+                  <div
+                    className={cn(
+                      "flex items-center justify-between border rounded-lg p-4 bg-white transition-opacity",
+                      systemActive && "border-primary ring-1 ring-primary/30",
+                      anySelected && !systemActive && "opacity-50",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center">
+                        <CreditCard className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold">
+                          Keeto (System)
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Payments are processed through Keeto's system gateway.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-gray-500">
+                        {systemActive ? "Selected" : "Select"}
+                      </span>
+                      <Switch
+                        checked={systemActive}
+                        onCheckedChange={toggleSystem}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Custom Gateways
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {credentials.map((cred) => {
+                      const meta = PAYMENT_PROVIDERS.find(
+                        (p) => p.provider === cred.provider,
+                      );
+                      const dimmed = anySelected && !cred.isActive;
+                      return (
+                        <div
+                          key={cred.provider}
+                          className={cn(
+                            "border rounded-lg p-4 bg-white space-y-4 transition-opacity",
+                            cred.isActive &&
+                              "border-primary ring-1 ring-primary/30",
+                            dimmed && "opacity-50",
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-bold text-gray-800">
+                              {meta.label}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-gray-500">
+                                {cred.isActive ? "Selected" : "Select"}
+                              </span>
+                              <Switch
+                                checked={cred.isActive}
+                                onCheckedChange={(v) =>
+                                  selectCredential(cred.provider, v)
+                                }
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-gray-500">
+                                Title
+                              </Label>
+                              <Input
+                                value={cred.title}
+                                disabled={!cred.isActive}
+                                onChange={(e) =>
+                                  updateCredential(cred.provider, {
+                                    title: e.target.value,
+                                  })
+                                }
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-gray-500">
+                                Environment
+                              </Label>
+                              <Select
+                                value={cred.environment}
+                                disabled={!cred.isActive}
+                                onValueChange={(v) =>
+                                  updateCredential(cred.provider, {
+                                    environment: v,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="LIVE">Live</SelectItem>
+                                  <SelectItem value="TEST">Test</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {meta.fields.map((f) => (
+                              <div key={f.key} className="space-y-1">
+                                <Label className="text-[11px] text-gray-500">
+                                  {f.label}
+                                </Label>
+                                <Input
+                                  type={f.secret ? "password" : "text"}
+                                  autoComplete="off"
+                                  value={cred.credentials[f.key]}
+                                  disabled={!cred.isActive}
+                                  onChange={(e) =>
+                                    updateCredentialField(
+                                      cred.provider,
+                                      f.key,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="h-9"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {!anySelected && (
+                    <p className="text-xs text-amber-600">
+                      No gateway is selected. Select Keeto or one of the custom
+                      gateways.
+                    </p>
+                  )}
+                </>
               )}
             </TabsContent>
           </Tabs>
