@@ -210,7 +210,7 @@ const SettingAdd = () => {
                   { name: "homeDelivery", label: "Home Delivery" },
                   { name: "takeaway", label: "Takeaway" },
                   { name: "orderSubscription", label: "Order Subscription" },
-                  { name: "instantOrder", label: "Instant Order" },
+                  { name: "instantOrder", label: "Closing Order Now" },
                   { name: "halalTagStatus", label: "Halal Tag Status" },
                   { name: "dineIn", label: "Dine In" },
                   { name: "canEditOrder", label: "Can Edit Order" },
