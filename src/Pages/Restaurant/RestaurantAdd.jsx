@@ -60,6 +60,24 @@ const PAYMENT_PROVIDERS = [
       { key: "hmac", label: "HMAC", secret: true },
     ],
   },
+  {
+    provider: "GEIDEA",
+    label: "Geidea",
+    title: "Visa-Master",
+    fields: [
+      { key: "name", label: "Name", default: "Visa-Master" },
+      { key: "publicKey", label: "Public Key" },
+      { key: "apiPassword", label: "API Password", secret: true },
+      {
+        key: "environment",
+        label: "Region",
+        type: "select",
+        default: "Egypt",
+        options: ["Egypt", "KSA", "UAE"],
+      },
+      { key: "logoUrl", label: "Logo URL" },
+    ],
+  },
 ];
 
 // يدمج الـ paymentCredentials القادمة من السيرفر مع قالب المزودين،
@@ -75,16 +93,127 @@ const buildCredentials = (saved) => {
     if (isActive) activeTaken = true;
     const credentials = {};
     p.fields.forEach((f) => {
-      credentials[f.key] = found?.credentials?.[f.key] ?? "";
+      credentials[f.key] = found?.credentials?.[f.key] ?? f.default ?? "";
     });
-    return {
+    const result = {
       provider: p.provider,
       title: found?.title || p.title,
       environment: found?.environment || "LIVE",
       credentials,
       isActive,
     };
+    // Geidea بيحتاج logoUrl كمان على مستوى الـ gateway نفسه
+    if (p.provider === "GEIDEA") {
+      result.logoUrl = found?.logoUrl ?? credentials.logoUrl ?? "";
+    }
+    return result;
   });
+};
+
+// UI-only: Amount / Periodic options shown once under "Custom Gateways".
+// State is local for now; connect it to the backend / form later.
+const WEEK_DAYS = [
+  "Saturday",
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+];
+
+const GatewayExtras = () => {
+  const [amountOn, setAmountOn] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [periodicOn, setPeriodicOn] = useState(false);
+  const [periodType, setPeriodType] = useState("weekly");
+  const [weekDay, setWeekDay] = useState("");
+  const [monthDate, setMonthDate] = useState("");
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Amount (disabled while Periodic is on) */}
+      <div
+        className={cn(
+          "border rounded-lg p-4 bg-white space-y-3 transition-opacity",
+          periodicOn && "opacity-50",
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold text-gray-800">Amount</Label>
+          <Switch
+            checked={amountOn}
+            disabled={periodicOn}
+            onCheckedChange={setAmountOn}
+          />
+        </div>
+        {amountOn && (
+          <Input
+            type="number"
+            min="0"
+            placeholder="Enter amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="h-9"
+          />
+        )}
+      </div>
+
+      {/* Periodic (disabled while Amount is on) */}
+      <div
+        className={cn(
+          "border rounded-lg p-4 bg-white space-y-3 transition-opacity",
+          amountOn && "opacity-50",
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold text-gray-800">
+            Periodic
+          </Label>
+          <Switch
+            checked={periodicOn}
+            disabled={amountOn}
+            onCheckedChange={setPeriodicOn}
+          />
+        </div>
+        {periodicOn && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select value={periodType} onValueChange={setPeriodType}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {periodType === "weekly" ? (
+              <Select value={weekDay} onValueChange={setWeekDay}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select day" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEEK_DAYS.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                type="date"
+                value={monthDate}
+                onChange={(e) => setMonthDate(e.target.value)}
+                className="h-9"
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const RestaurantAdd = () => {
@@ -408,7 +537,13 @@ const RestaurantAdd = () => {
             "paymentCredentials",
             credentials.map((c) =>
               c.provider === provider
-                ? { ...c, credentials: { ...c.credentials, [key]: value } }
+                ? {
+                  ...c,
+                  ...(c.provider === "GEIDEA" && key === "logoUrl"
+                    ? { logoUrl: value }
+                    : {}),
+                  credentials: { ...c.credentials, [key]: value },
+                }
                 : c,
             ),
           );
@@ -1396,31 +1531,31 @@ const RestaurantAdd = () => {
               forceMount
               className="space-y-6 data-[state=inactive]:hidden"
             >
-              <div className="flex items-center justify-between border rounded-lg p-4 bg-white">
-                <div>
-                  <Label className="text-sm font-semibold">
-                    Enable Online Payment
-                  </Label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Allow customers to pay online for this restaurant.
-                  </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                <div className="flex items-center justify-between border rounded-lg p-4 bg-white">
+                  <div>
+                    <Label className="text-sm font-semibold">
+                      Enable Online Payment
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Allow customers to pay online for this restaurant.
+                    </p>
+                  </div>
+                  <Controller
+                    name="enableOnlinePayment"
+                    control={control}
+                    defaultValue={true}
+                    render={({ field }) => (
+                      <Switch
+                        checked={field.value ?? true}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
                 </div>
-                <Controller
-                  name="enableOnlinePayment"
-                  control={control}
-                  defaultValue={true}
-                  render={({ field }) => (
-                    <Switch
-                      checked={field.value ?? true}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-              </div>
 
-              {onlineEnabled && (
-                <>
-                  {/* Keeto (System) */}
+                {onlineEnabled && (
+                  /* Keeto (System) */
                   <div
                     className={cn(
                       "flex items-center justify-between border rounded-lg p-4 bg-white transition-opacity",
@@ -1451,10 +1586,16 @@ const RestaurantAdd = () => {
                       />
                     </div>
                   </div>
+                )}
+              </div>
 
+              {onlineEnabled && (
+                <>
                   <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Custom Gateways
                   </div>
+
+                  <GatewayExtras />
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {credentials.map((cred) => {
@@ -1468,7 +1609,7 @@ const RestaurantAdd = () => {
                           className={cn(
                             "border rounded-lg p-4 bg-white space-y-4 transition-opacity",
                             cred.isActive &&
-                              "border-primary ring-1 ring-primary/30",
+                            "border-primary ring-1 ring-primary/30",
                             dimmed && "opacity-50",
                           )}
                         >
@@ -1532,20 +1673,45 @@ const RestaurantAdd = () => {
                                 <Label className="text-[11px] text-gray-500">
                                   {f.label}
                                 </Label>
-                                <Input
-                                  type={f.secret ? "password" : "text"}
-                                  autoComplete="off"
-                                  value={cred.credentials[f.key]}
-                                  disabled={!cred.isActive}
-                                  onChange={(e) =>
-                                    updateCredentialField(
-                                      cred.provider,
-                                      f.key,
-                                      e.target.value,
-                                    )
-                                  }
-                                  className="h-9"
-                                />
+                                {f.type === "select" ? (
+                                  <Select
+                                    value={cred.credentials[f.key]}
+                                    disabled={!cred.isActive}
+                                    onValueChange={(v) =>
+                                      updateCredentialField(
+                                        cred.provider,
+                                        f.key,
+                                        v,
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="h-9">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {f.options.map((o) => (
+                                        <SelectItem key={o} value={o}>
+                                          {o}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input
+                                    type={f.secret ? "password" : "text"}
+                                    autoComplete="off"
+                                    value={cred.credentials[f.key]}
+                                    disabled={!cred.isActive}
+                                    onChange={(e) =>
+                                      updateCredentialField(
+                                        cred.provider,
+                                        f.key,
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="h-9"
+                                  />
+                                )}
                               </div>
                             ))}
                           </div>
