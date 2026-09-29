@@ -58,6 +58,8 @@ const PAYMENT_PROVIDERS = [
       { key: "integrationId", label: "Integration ID" },
       { key: "iframeId", label: "Iframe ID" },
       { key: "hmac", label: "HMAC", secret: true },
+      { key: "secretKey", label: "Secret Key", secret: true },
+      { key: "publicKey", label: "Public Key" },
     ],
   },
   {
