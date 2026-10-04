@@ -80,6 +80,10 @@ export default function GenericDataTable({
   onPageChange,
   onLimitChange,
   onSearch,
+  // By default rows are sorted by createdAt (newest first). Pass
+  // `sortByDate={false}` to keep the order of `data` exactly as given
+  // (e.g. when the parent already sorts the rows itself).
+  sortByDate = true,
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteId, setDeleteId] = useState(null);
@@ -122,12 +126,13 @@ export default function GenericDataTable({
   // ترتيب البيانات بناءً على تاريخ الإنشاء
   const sortedData = useMemo(() => {
     if (!Array.isArray(data)) return [];
+    if (!sortByDate) return data;
     return [...data].sort((a, b) => {
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bTime - aTime;
     });
-  }, [data]);
+  }, [data, sortByDate]);
 
   // بناء الأعمدة والعمليات
   const tableColumns = useMemo(() => {

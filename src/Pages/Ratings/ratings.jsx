@@ -122,8 +122,83 @@ function RestaurantSelect({
   );
 }
 
+function RatingMultiSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="border rounded-lg px-3 py-1.5 text-sm bg-transparent dark:border-slate-800 min-w-[150px] text-left"
+      >
+        {value.length
+          ? `${value.length} rating${value.length === 1 ? "" : "s"} selected`
+          : "All Ratings"}
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 min-w-[150px] bg-white dark:bg-slate-950 border dark:border-slate-800 rounded-lg shadow-lg p-2">
+          {[1, 2, 3, 4, 5].map((rating) => (
+            <label
+              key={rating}
+              className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={value.includes(rating)}
+                onChange={(e) => {
+                  onChange(
+                    (e.target.checked
+                      ? [...value, rating]
+                      : value.filter(
+                          (selectedRating) => selectedRating !== rating,
+                        )
+                    ).sort((a, b) => a - b),
+                  );
+                }}
+                className="accent-primary"
+              />
+              {rating} {rating === 1 ? "Star" : "Stars"}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function renderComment(comment, onClick) {
+  const text = typeof comment === "string" ? comment.trim() : "";
+  if (!text) return "-";
+
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(text)}
+      title="Click to view full comment"
+      className="block max-w-[240px] truncate text-left hover:text-primary hover:underline"
+    >
+      {text}
+    </button>
+  );
+}
+
 export default function Rating() {
   const navigate = useNavigate();
+  const [selectedComment, setSelectedComment] = useState("");
 
   // =========================================================
   // TAB 1: GENERAL RATINGS -> GET /api/superadmin/ratings/all
@@ -132,17 +207,65 @@ export default function Rating() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [generalRestaurantId, setGeneralRestaurantId] = useState("");
-  const [generalRating, setGeneralRating] = useState("");
+  const [generalRating, setGeneralRating] = useState([]);
 
   const { data: ratingsResponse, isLoading: isTableLoading } = useQuery({
     queryKey: ["ratings-all", page, limit, generalRestaurantId, generalRating],
     queryFn: async () => {
+      const baseParams = generalRestaurantId
+        ? { restaurantId: generalRestaurantId }
+        : {};
+
+      // Several ratings selected (e.g. 1 & 4): fetch each rating separately, in
+      // ascending order, so ALL the 1-star rows come first and then ALL the
+      // 4-star rows. Sorting only the current page can't do this because the
+      // server paginates before we get the rows.
+      if (generalRating.length > 1) {
+        const fetchAllForRating = async (rating) => {
+          const rows = [];
+          let currentPage = 1;
+          let totalPages = 1;
+          do {
+            const res = await api.get("/api/superadmin/ratings/all", {
+              params: { ...baseParams, rating, page: currentPage, limit: 100 },
+            });
+            const payload = res.data.data;
+            rows.push(...(payload?.data || []));
+            totalPages = payload?.pagination?.totalPages || 1;
+            currentPage += 1;
+          } while (currentPage <= totalPages);
+          return rows;
+        };
+
+        const ordered = [...generalRating].sort((a, b) => a - b);
+        const groups = await Promise.all(ordered.map(fetchAllForRating));
+        const allRows = groups.flat();
+
+        const total = allRows.length;
+        const start = (page - 1) * limit;
+        return {
+          data: allRows.slice(start, start + limit),
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.max(1, Math.ceil(total / limit)),
+          },
+          averageRating: total
+            ? (
+                allRows.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) /
+                total
+              ).toFixed(1)
+            : 0,
+        };
+      }
+
       const res = await api.get("/api/superadmin/ratings/all", {
         params: {
           page,
           limit,
-          ...(generalRestaurantId ? { restaurantId: generalRestaurantId } : {}),
-          ...(generalRating ? { rating: generalRating } : {}),
+          ...baseParams,
+          ...(generalRating.length ? { rating: generalRating[0] } : {}),
         },
       });
       return res.data.data;
@@ -151,6 +274,10 @@ export default function Rating() {
   });
 
   const generalRatingsList = ratingsResponse?.data || [];
+  const sortedGeneralRatingsList = [...generalRatingsList].sort(
+    (first, second) =>
+      (Number(first.rating) || 0) - (Number(second.rating) || 0),
+  );
   const generalPagination = ratingsResponse?.pagination || {
     total: 0,
     page,
@@ -302,7 +429,12 @@ export default function Rating() {
       header: "Rating",
       cell: ({ row }) => renderStars(Number(row.original.rating) || 0),
     },
-    { accessorKey: "comment", header: "Comment" },
+    {
+      accessorKey: "comment",
+      header: "Comment",
+      cell: ({ row }) =>
+        renderComment(row.original.comment, setSelectedComment),
+    },
     {
       accessorKey: "createdAt",
       header: "Date",
@@ -418,7 +550,12 @@ export default function Rating() {
       header: "Rating",
       cell: ({ row }) => renderStars(Number(row.original.rating) || 0),
     },
-    { accessorKey: "ratingComment", header: "Comment" },
+    {
+      accessorKey: "ratingComment",
+      header: "Comment",
+      cell: ({ row }) =>
+        renderComment(row.original.ratingComment, setSelectedComment),
+    },
     {
       accessorKey: "orderCreatedAt",
       header: "Date",
@@ -486,34 +623,22 @@ export default function Rating() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <label
-                htmlFor="general-rating-filter"
-                className="text-sm font-medium text-slate-500"
-              >
+              <span className="text-sm font-medium text-slate-500">
                 Rating:
-              </label>
-              <select
-                id="general-rating-filter"
+              </span>
+              <RatingMultiSelect
                 value={generalRating}
-                onChange={(e) => {
-                  setGeneralRating(e.target.value);
+                onChange={(ratings) => {
+                  setGeneralRating(ratings);
                   setPage(1);
                 }}
-                className="border rounded-lg px-3 py-1.5 text-sm bg-transparent dark:border-slate-800"
-              >
-                <option value="">All Ratings</option>
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <option key={rating} value={rating}>
-                    {rating} {rating === 1 ? "Star" : "Stars"}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-            {(generalRestaurantId || generalRating) && (
+            {(generalRestaurantId || generalRating.length > 0) && (
               <button
                 onClick={() => {
                   setGeneralRestaurantId("");
-                  setGeneralRating("");
+                  setGeneralRating([]);
                   setPage(1);
                 }}
                 className="text-xs text-primary font-semibold hover:underline"
@@ -526,9 +651,10 @@ export default function Rating() {
           <GenericDataTable
             title=""
             columns={generalColumns}
-            data={generalRatingsList}
+            data={sortedGeneralRatingsList}
             isLoading={isTableLoading}
             actions={false}
+            sortByDate={false}
             // Server-side pagination, same pattern as the Users page
             serverPagination={generalPagination}
             onPageChange={setPage}
@@ -620,6 +746,38 @@ export default function Rating() {
           />
         </TabsContent>
       </Tabs>
+
+      {selectedComment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setSelectedComment("")}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="full-comment-title"
+            className="bg-white dark:bg-slate-950 rounded-2xl border shadow-lg w-full max-w-lg p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 id="full-comment-title" className="text-lg font-bold">
+                Full Comment
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedComment("")}
+                aria-label="Close full comment"
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm whitespace-pre-wrap break-words text-slate-700 dark:text-slate-200">
+              {selectedComment}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Edit Rating Modal */}
       {editingRow && (
