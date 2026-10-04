@@ -112,25 +112,110 @@ const buildCredentials = (saved) => {
   });
 };
 
-// UI-only: Amount / Periodic options shown once under "Custom Gateways".
-// State is local for now; connect it to the backend / form later.
+// Visa switch condition (Amount / Periodic) shown once under "Custom Gateways".
+// Periodic is represented by either a weekday or a day of the month in the API.
 const WEEK_DAYS = [
-  "Saturday",
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
+  "saturday",
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
 ];
 
-const GatewayExtras = () => {
-  const [amountOn, setAmountOn] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [periodicOn, setPeriodicOn] = useState(false);
-  const [periodType, setPeriodType] = useState("weekly");
-  const [weekDay, setWeekDay] = useState("");
-  const [monthDate, setMonthDate] = useState("");
+const getVisaSwitchFormFields = (raw = {}) => {
+  const savedVisaSwitch = raw.visaSwitch || {};
+  let visaSwitchConditionType =
+    savedVisaSwitch.conditionType || raw.visaSwitchConditionType || "none";
+  let visaSwitchDayOfWeek =
+    savedVisaSwitch.dayOfWeek ?? raw.visaSwitchDayOfWeek ?? "";
+  let visaSwitchDayOfMonth =
+    savedVisaSwitch.dayOfMonth ?? raw.visaSwitchDayOfMonth ?? "";
+  const legacySwitchDate =
+    savedVisaSwitch.switchDate ?? raw.visaSwitchDate ?? "";
+
+  if (visaSwitchConditionType === "date") {
+    if (/^\d{4}-\d{2}-\d{2}/.test(String(legacySwitchDate))) {
+      visaSwitchConditionType = "day_of_month";
+      visaSwitchDayOfMonth = String(legacySwitchDate).slice(8, 10);
+    } else {
+      visaSwitchConditionType = "day_of_week";
+      visaSwitchDayOfWeek = legacySwitchDate;
+    }
+  }
+
+  return {
+    visaSwitchConditionType,
+    visaSwitchApplied:
+      savedVisaSwitch.applied ??
+      raw.visaSwitchApplied ??
+      visaSwitchConditionType !== "none",
+    visaSwitchAmountThreshold:
+      savedVisaSwitch.amountThreshold ?? raw.visaSwitchAmountThreshold ?? "",
+    visaSwitchDayOfWeek:
+      typeof visaSwitchDayOfWeek === "string"
+        ? visaSwitchDayOfWeek.toLowerCase()
+        : visaSwitchDayOfWeek,
+    visaSwitchDayOfMonth,
+  };
+};
+
+const GatewayExtras = ({ watch, setValue }) => {
+  const conditionType = watch("visaSwitchConditionType") || "none";
+  const conditionApplied =
+    watch("visaSwitchApplied") ?? conditionType !== "none";
+  const amountValue = watch("visaSwitchAmountThreshold");
+  const dayOfWeek = watch("visaSwitchDayOfWeek");
+  const dayOfMonth = watch("visaSwitchDayOfMonth");
+
+  const amountOn = conditionApplied && conditionType === "amount";
+  const periodicOn =
+    conditionApplied &&
+    ["day_of_week", "day_of_month"].includes(conditionType);
+
+  const [periodType, setPeriodType] = useState(
+    conditionType === "day_of_month" ? "monthly" : "weekly",
+  );
+
+  useEffect(() => {
+    if (conditionType === "day_of_week") setPeriodType("weekly");
+    if (conditionType === "day_of_month") setPeriodType("monthly");
+  }, [conditionType]);
+
+  const setField = (name, value) =>
+    setValue(name, value, { shouldDirty: true });
+
+  const toggleAmount = (on) => {
+    setField("visaSwitchApplied", on);
+    if (on) {
+      setField("visaSwitchConditionType", "amount");
+      setField("visaSwitchDayOfWeek", "");
+      setField("visaSwitchDayOfMonth", "");
+    }
+  };
+
+  const togglePeriodic = (on) => {
+    setField("visaSwitchApplied", on);
+    if (on) {
+      setField(
+        "visaSwitchConditionType",
+        periodType === "weekly" ? "day_of_week" : "day_of_month",
+      );
+      setField("visaSwitchAmountThreshold", "");
+    }
+  };
+
+  const changePeriodType = (type) => {
+    setPeriodType(type);
+    setField(
+      "visaSwitchConditionType",
+      type === "weekly" ? "day_of_week" : "day_of_month",
+    );
+    setField("visaSwitchApplied", true);
+    setField("visaSwitchDayOfWeek", "");
+    setField("visaSwitchDayOfMonth", "");
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -146,7 +231,7 @@ const GatewayExtras = () => {
           <Switch
             checked={amountOn}
             disabled={periodicOn}
-            onCheckedChange={setAmountOn}
+            onCheckedChange={toggleAmount}
           />
         </div>
         {amountOn && (
@@ -154,8 +239,10 @@ const GatewayExtras = () => {
             type="number"
             min="0"
             placeholder="Enter amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            value={amountValue ?? ""}
+            onChange={(e) =>
+              setField("visaSwitchAmountThreshold", e.target.value)
+            }
             className="h-9"
           />
         )}
@@ -175,12 +262,12 @@ const GatewayExtras = () => {
           <Switch
             checked={periodicOn}
             disabled={amountOn}
-            onCheckedChange={setPeriodicOn}
+            onCheckedChange={togglePeriodic}
           />
         </div>
         {periodicOn && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select value={periodType} onValueChange={setPeriodType}>
+            <Select value={periodType} onValueChange={changePeriodType}>
               <SelectTrigger className="h-9">
                 <SelectValue />
               </SelectTrigger>
@@ -191,23 +278,30 @@ const GatewayExtras = () => {
             </Select>
 
             {periodType === "weekly" ? (
-              <Select value={weekDay} onValueChange={setWeekDay}>
+              <Select
+                value={dayOfWeek || ""}
+                onValueChange={(v) => setField("visaSwitchDayOfWeek", v)}
+              >
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select day" />
                 </SelectTrigger>
                 <SelectContent>
                   {WEEK_DAYS.map((d) => (
                     <SelectItem key={d} value={d}>
-                      {d}
+                      {d.charAt(0).toUpperCase() + d.slice(1)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             ) : (
               <Input
-                type="date"
-                value={monthDate}
-                onChange={(e) => setMonthDate(e.target.value)}
+                type="number"
+                min="1"
+                max="31"
+                step="1"
+                placeholder="Day of month (1-31)"
+                value={dayOfMonth ?? ""}
+                onChange={(e) => setField("visaSwitchDayOfMonth", e.target.value)}
                 className="h-9"
               />
             )}
@@ -292,7 +386,6 @@ const RestaurantAdd = () => {
 
       // أخذ قيم الاشتراكات من أي خطة متاحة أو من الـ POS
       const activePlanSource = plans.length > 0 ? plans[0] : {};
-
       return {
         ...raw,
         cuisineId: initialCuisineIds,
@@ -339,12 +432,19 @@ const RestaurantAdd = () => {
         paymentSystemActive:
           String(raw.paymentGatewayType || "").toUpperCase() !== "CUSTOM",
         paymentCredentials: buildCredentials(raw.paymentCredentials),
+        // Visa switch: support both the new day keys and the legacy switchDate response.
+        ...getVisaSwitchFormFields(raw),
       };
     },
     enabled: !!id && !state?.restaurantData,
   });
 
-  const initialData = state?.restaurantData || fetchedData;
+  const initialData = state?.restaurantData
+    ? {
+        ...state.restaurantData,
+        ...getVisaSwitchFormFields(state.restaurantData),
+      }
+    : fetchedData;
 
   if (
     id &&
@@ -446,6 +546,38 @@ const RestaurantAdd = () => {
           ? []
           : buildCredentials(data.paymentCredentials).filter((c) => c.isActive);
 
+        // Visa switch condition: send only the value for the selected condition.
+        const visaSwitchConditionType = [
+          "amount",
+          "day_of_week",
+          "day_of_month",
+        ].includes(
+          data.visaSwitchConditionType,
+        )
+          ? data.visaSwitchConditionType
+          : "none";
+        const amountThreshold = Number(data.visaSwitchAmountThreshold);
+        const visaSwitchAmountThreshold =
+          visaSwitchConditionType === "amount" &&
+            data.visaSwitchAmountThreshold !== "" &&
+            data.visaSwitchAmountThreshold != null &&
+            Number.isFinite(amountThreshold)
+            ? amountThreshold.toFixed(2)
+            : null;
+        const visaSwitchDayOfWeek =
+          visaSwitchConditionType === "day_of_week" && data.visaSwitchDayOfWeek
+            ? data.visaSwitchDayOfWeek
+            : null;
+        const dayOfMonth = Number(data.visaSwitchDayOfMonth);
+        const visaSwitchDayOfMonth =
+          visaSwitchConditionType === "day_of_month" &&
+            data.visaSwitchDayOfMonth !== "" &&
+            data.visaSwitchDayOfMonth != null &&
+            Number.isInteger(dayOfMonth) &&
+            dayOfMonth >= 1 &&
+            dayOfMonth <= 31
+            ? dayOfMonth
+            : null;
         // 4. بناء الكائن النهائي المطابق تماماً للـ API الخاص بك
         const formattedData = {
           ...data,
@@ -462,6 +594,12 @@ const RestaurantAdd = () => {
           enableOnlinePayment: data.enableOnlinePayment ?? true,
           paymentGatewayType,
           paymentCredentials,
+          visaSwitchApplied:
+            data.visaSwitchApplied ?? visaSwitchConditionType !== "none",
+          visaSwitchConditionType,
+          visaSwitchAmountThreshold,
+          visaSwitchDayOfWeek,
+          visaSwitchDayOfMonth,
         };
 
         if (isEdit) {
@@ -491,6 +629,8 @@ const RestaurantAdd = () => {
           "annuallyAmount",
           "pos_isOn",
           "paymentSystemActive",
+          "visaSwitch", // الـ nested object بتاع الـ GET، بنبعت بداله المفاتيح المسطحة
+          "visaSwitchDate",
         ];
         fieldsToRemove.forEach((f) => delete formattedData[f]);
 
@@ -1597,7 +1737,7 @@ const RestaurantAdd = () => {
                     Custom Gateways
                   </div>
 
-                  <GatewayExtras />
+                  <GatewayExtras watch={watch} setValue={setValue} />
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {credentials.map((cred) => {
