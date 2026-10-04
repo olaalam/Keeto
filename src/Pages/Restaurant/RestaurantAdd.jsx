@@ -145,19 +145,60 @@ const getVisaSwitchFormFields = (raw = {}) => {
     }
   }
 
+  const normalizedDayOfWeek =
+    typeof visaSwitchDayOfWeek === "string"
+      ? visaSwitchDayOfWeek.toLowerCase()
+      : visaSwitchDayOfWeek;
+
+  // Periodic data "exists" if a weekday or a day of the month is saved.
+  const hasWeekData =
+    normalizedDayOfWeek !== "" &&
+    normalizedDayOfWeek != null &&
+    normalizedDayOfWeek !== 0;
+  const hasMonthData =
+    visaSwitchDayOfMonth !== "" &&
+    visaSwitchDayOfMonth != null &&
+    Number(visaSwitchDayOfMonth) > 0;
+  const hasPeriodicData = hasWeekData || hasMonthData;
+
+  if (hasPeriodicData) {
+    // Keep the saved periodic type if it has data, otherwise infer it from the data.
+    if (
+      !(
+        (visaSwitchConditionType === "day_of_week" && hasWeekData) ||
+        (visaSwitchConditionType === "day_of_month" && hasMonthData)
+      )
+    ) {
+      visaSwitchConditionType = hasWeekData ? "day_of_week" : "day_of_month";
+    }
+  }
+
+  const isPeriodicType = ["day_of_week", "day_of_month"].includes(
+    visaSwitchConditionType,
+  );
+  const savedVisaSwitchApplied =
+    savedVisaSwitch.applied ?? raw.visaSwitchApplied;
+
+  let visaSwitchApplied;
+  if (hasPeriodicData) {
+    // Periodic data exists -> switch is ON (user can still turn it off).
+    visaSwitchApplied = true;
+  } else if (isPeriodicType) {
+    // Periodic type without any week/month value -> switch is OFF.
+    visaSwitchApplied = false;
+  } else if (typeof savedVisaSwitchApplied === "boolean") {
+    visaSwitchApplied = savedVisaSwitchApplied;
+  } else {
+    visaSwitchApplied = visaSwitchConditionType !== "none";
+  }
+
   return {
     visaSwitchConditionType,
-    visaSwitchApplied:
-      savedVisaSwitch.applied ??
-      raw.visaSwitchApplied ??
-      visaSwitchConditionType !== "none",
+    visaSwitchApplied,
     visaSwitchAmountThreshold:
       savedVisaSwitch.amountThreshold ?? raw.visaSwitchAmountThreshold ?? "",
-    visaSwitchDayOfWeek:
-      typeof visaSwitchDayOfWeek === "string"
-        ? visaSwitchDayOfWeek.toLowerCase()
-        : visaSwitchDayOfWeek,
-    visaSwitchDayOfMonth,
+    visaSwitchDayOfWeek: normalizedDayOfWeek ?? "",
+    visaSwitchDayOfMonth: visaSwitchDayOfMonth ?? "",
   };
 };
 
@@ -170,9 +211,10 @@ const GatewayExtras = ({ watch, setValue }) => {
   const dayOfMonth = watch("visaSwitchDayOfMonth");
 
   const amountOn = conditionApplied && conditionType === "amount";
-  const periodicOn =
-    conditionApplied &&
-    ["day_of_week", "day_of_month"].includes(conditionType);
+  const periodicSelected = ["day_of_week", "day_of_month"].includes(
+    conditionType,
+  );
+  const periodicEnabled = conditionApplied && periodicSelected;
 
   const [periodType, setPeriodType] = useState(
     conditionType === "day_of_month" ? "monthly" : "weekly",
@@ -223,14 +265,14 @@ const GatewayExtras = ({ watch, setValue }) => {
       <div
         className={cn(
           "border rounded-lg p-4 bg-white space-y-3 transition-opacity",
-          periodicOn && "opacity-50",
+          periodicEnabled && "opacity-50",
         )}
       >
         <div className="flex items-center justify-between">
           <Label className="text-sm font-semibold text-gray-800">Amount</Label>
           <Switch
             checked={amountOn}
-            disabled={periodicOn}
+            disabled={periodicEnabled}
             onCheckedChange={toggleAmount}
           />
         </div>
@@ -259,13 +301,18 @@ const GatewayExtras = ({ watch, setValue }) => {
           <Label className="text-sm font-semibold text-gray-800">
             Periodic
           </Label>
-          <Switch
-            checked={periodicOn}
-            disabled={amountOn}
-            onCheckedChange={togglePeriodic}
-          />
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-gray-500">
+              {periodicEnabled ? "Enabled" : "Disabled"}
+            </span>
+            <Switch
+              checked={periodicEnabled}
+              disabled={amountOn}
+              onCheckedChange={togglePeriodic}
+            />
+          </div>
         </div>
-        {periodicOn && (
+        {periodicEnabled && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select value={periodType} onValueChange={changePeriodType}>
               <SelectTrigger className="h-9">
@@ -280,7 +327,10 @@ const GatewayExtras = ({ watch, setValue }) => {
             {periodType === "weekly" ? (
               <Select
                 value={dayOfWeek || ""}
-                onValueChange={(v) => setField("visaSwitchDayOfWeek", v)}
+                onValueChange={(v) => {
+                  setField("visaSwitchDayOfWeek", v);
+                  setField("visaSwitchApplied", true);
+                }}
               >
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select day" />
@@ -301,7 +351,12 @@ const GatewayExtras = ({ watch, setValue }) => {
                 step="1"
                 placeholder="Day of month (1-31)"
                 value={dayOfMonth ?? ""}
-                onChange={(e) => setField("visaSwitchDayOfMonth", e.target.value)}
+                onChange={(e) => {
+                  setField("visaSwitchDayOfMonth", e.target.value);
+                  if (e.target.value !== "") {
+                    setField("visaSwitchApplied", true);
+                  }
+                }}
                 className="h-9"
               />
             )}
@@ -547,21 +602,20 @@ const RestaurantAdd = () => {
           : buildCredentials(data.paymentCredentials).filter((c) => c.isActive);
 
         // Visa switch condition: send only the value for the selected condition.
-        const visaSwitchConditionType = [
-          "amount",
-          "day_of_week",
-          "day_of_month",
-        ].includes(
-          data.visaSwitchConditionType,
-        )
-          ? data.visaSwitchConditionType
-          : "none";
+        // If the switch was turned off, clear the condition so it stays OFF after saving.
+        const visaSwitchConditionType =
+          data.visaSwitchApplied !== false &&
+          ["amount", "day_of_week", "day_of_month"].includes(
+            data.visaSwitchConditionType,
+          )
+            ? data.visaSwitchConditionType
+            : "none";
         const amountThreshold = Number(data.visaSwitchAmountThreshold);
         const visaSwitchAmountThreshold =
           visaSwitchConditionType === "amount" &&
-            data.visaSwitchAmountThreshold !== "" &&
-            data.visaSwitchAmountThreshold != null &&
-            Number.isFinite(amountThreshold)
+          data.visaSwitchAmountThreshold !== "" &&
+          data.visaSwitchAmountThreshold != null &&
+          Number.isFinite(amountThreshold)
             ? amountThreshold.toFixed(2)
             : null;
         const visaSwitchDayOfWeek =
@@ -571,11 +625,11 @@ const RestaurantAdd = () => {
         const dayOfMonth = Number(data.visaSwitchDayOfMonth);
         const visaSwitchDayOfMonth =
           visaSwitchConditionType === "day_of_month" &&
-            data.visaSwitchDayOfMonth !== "" &&
-            data.visaSwitchDayOfMonth != null &&
-            Number.isInteger(dayOfMonth) &&
-            dayOfMonth >= 1 &&
-            dayOfMonth <= 31
+          data.visaSwitchDayOfMonth !== "" &&
+          data.visaSwitchDayOfMonth != null &&
+          Number.isInteger(dayOfMonth) &&
+          dayOfMonth >= 1 &&
+          dayOfMonth <= 31
             ? dayOfMonth
             : null;
         // 4. بناء الكائن النهائي المطابق تماماً للـ API الخاص بك
@@ -594,8 +648,7 @@ const RestaurantAdd = () => {
           enableOnlinePayment: data.enableOnlinePayment ?? true,
           paymentGatewayType,
           paymentCredentials,
-          visaSwitchApplied:
-            data.visaSwitchApplied ?? visaSwitchConditionType !== "none",
+          visaSwitchApplied: visaSwitchConditionType !== "none",
           visaSwitchConditionType,
           visaSwitchAmountThreshold,
           visaSwitchDayOfWeek,
@@ -680,12 +733,12 @@ const RestaurantAdd = () => {
             credentials.map((c) =>
               c.provider === provider
                 ? {
-                  ...c,
-                  ...(c.provider === "GEIDEA" && key === "logoUrl"
-                    ? { logoUrl: value }
-                    : {}),
-                  credentials: { ...c.credentials, [key]: value },
-                }
+                    ...c,
+                    ...(c.provider === "GEIDEA" && key === "logoUrl"
+                      ? { logoUrl: value }
+                      : {}),
+                    credentials: { ...c.credentials, [key]: value },
+                  }
                 : c,
             ),
           );
@@ -1751,7 +1804,7 @@ const RestaurantAdd = () => {
                           className={cn(
                             "border rounded-lg p-4 bg-white space-y-4 transition-opacity",
                             cred.isActive &&
-                            "border-primary ring-1 ring-primary/30",
+                              "border-primary ring-1 ring-primary/30",
                             dimmed && "opacity-50",
                           )}
                         >
