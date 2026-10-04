@@ -132,15 +132,17 @@ export default function Rating() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [generalRestaurantId, setGeneralRestaurantId] = useState("");
+  const [generalRating, setGeneralRating] = useState("");
 
   const { data: ratingsResponse, isLoading: isTableLoading } = useQuery({
-    queryKey: ["ratings-all", page, limit, generalRestaurantId],
+    queryKey: ["ratings-all", page, limit, generalRestaurantId, generalRating],
     queryFn: async () => {
       const res = await api.get("/api/superadmin/ratings/all", {
         params: {
           page,
           limit,
           ...(generalRestaurantId ? { restaurantId: generalRestaurantId } : {}),
+          ...(generalRating ? { rating: generalRating } : {}),
         },
       });
       return res.data.data;
@@ -285,6 +287,16 @@ export default function Rating() {
   // General ratings table columns
   const generalColumns = [
     { accessorKey: "userName", header: "Customer Name" },
+    {
+      accessorKey: "userPhone",
+      header: "Phone Number",
+      cell: ({ row }) => row.original.userPhone || "N/A",
+    },
+    {
+      accessorKey: "restaurantName",
+      header: "Restaurant Name",
+      cell: ({ row }) => row.original.restaurantName || "N/A",
+    },
     {
       accessorKey: "rating",
       header: "Rating",
@@ -457,7 +469,7 @@ export default function Rating() {
             </div>
           </div>
 
-          {/* Filter: restaurantId */}
+          {/* Filters: restaurantId and rating */}
           <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-slate-950 p-4 rounded-2xl border shadow-sm">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-slate-500">
@@ -473,10 +485,35 @@ export default function Rating() {
                 }}
               />
             </div>
-            {generalRestaurantId && (
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="general-rating-filter"
+                className="text-sm font-medium text-slate-500"
+              >
+                Rating:
+              </label>
+              <select
+                id="general-rating-filter"
+                value={generalRating}
+                onChange={(e) => {
+                  setGeneralRating(e.target.value);
+                  setPage(1);
+                }}
+                className="border rounded-lg px-3 py-1.5 text-sm bg-transparent dark:border-slate-800"
+              >
+                <option value="">All Ratings</option>
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <option key={rating} value={rating}>
+                    {rating} {rating === 1 ? "Star" : "Stars"}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {(generalRestaurantId || generalRating) && (
               <button
                 onClick={() => {
                   setGeneralRestaurantId("");
+                  setGeneralRating("");
                   setPage(1);
                 }}
                 className="text-xs text-primary font-semibold hover:underline"
