@@ -103,6 +103,9 @@ const buildCredentials = (saved) => {
       environment: found?.environment || "LIVE",
       credentials,
       isActive,
+      percentageValue: found?.percentageValue ?? "",
+      fixedValue: found?.fixedValue ?? "",
+      tax: found?.tax ?? "",
     };
     // Geidea بيحتاج logoUrl كمان على مستوى الـ gateway نفسه
     if (p.provider === "GEIDEA") {
@@ -1907,6 +1910,29 @@ const RestaurantAdd = () => {
                                     className="h-9"
                                   />
                                 )}
+                              </div>
+                            ))}
+                            {[
+                              { key: "percentageValue", label: "Percentage Value" },
+                              { key: "fixedValue", label: "Fixed Value" },
+                              { key: "tax", label: "Tax" },
+                            ].map((field) => (
+                              <div key={field.key} className="space-y-1">
+                                <Label className="text-[11px] text-gray-500">
+                                  {field.label}
+                                </Label>
+                                <Input
+                                  type="number"
+                                  step="any"
+                                  value={cred[field.key]}
+                                  disabled={!cred.isActive}
+                                  onChange={(e) =>
+                                    updateCredential(cred.provider, {
+                                      [field.key]: e.target.value,
+                                    })
+                                  }
+                                  className="h-9"
+                                />
                               </div>
                             ))}
                           </div>
