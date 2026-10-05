@@ -8,6 +8,7 @@ import GenericDataTable from "@/components/GenericDataTable";
 import { Star, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 // Searchable restaurant select used by both the "Restaurant Rate" and
 // "Order Rate" tabs. Renders as a button that opens a small popover with a
@@ -314,6 +315,71 @@ export default function Rating() {
   // Note: useDelete builds `${url}/${id}` internally, which already matches
   // DELETE /api/superadmin/ratings/{rateid} exactly — no customUrl needed.
 
+  const getCustomerId = (record = {}) => {
+    const user = record.user;
+    const customer = record.customer;
+    return (
+      record.userId ??
+      record.userID ??
+      record.userid ??
+      record.user_id ??
+      record.customerId ??
+      record.customerID ??
+      record.customerid ??
+      record.customer_id ??
+      (typeof user === "string" || typeof user === "number" ? user : undefined) ??
+      user?.id ??
+      user?._id ??
+      user?.userId ??
+      user?.userID ??
+      user?.user_id ??
+      (typeof customer === "string" || typeof customer === "number"
+        ? customer
+        : undefined) ??
+      customer?.id ??
+      customer?._id ??
+      customer?.userId ??
+      customer?.userID ??
+      customer?.user_id
+    );
+  };
+
+  const openRatedCustomerProfile = async (record) => {
+    const customerId = getCustomerId(record);
+    if (customerId) {
+      navigate(`/users/${encodeURIComponent(customerId)}`);
+      return;
+    }
+
+    if (record.userPhone) {
+      try {
+        const response = await api.get("/api/superadmin/keeto-users", {
+          params: { search: record.userPhone, page: 1, limit: 100 },
+        });
+        const usersResponse = response.data?.data;
+        const matchingUsers = (usersResponse?.data || []).filter(
+          (user) =>
+            String(user.phone || "").replace(/\D/g, "") ===
+            String(record.userPhone).replace(/\D/g, ""),
+        );
+        const matchedUser =
+          matchingUsers.length === 1 ? matchingUsers[0] : undefined;
+        const matchedUserId = matchedUser?.id ?? matchedUser?._id;
+
+        if (matchedUserId) {
+          navigate(`/users/${encodeURIComponent(matchedUserId)}`);
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to find the rated customer's profile:", error);
+        toast.error("Couldn't open this customer's profile.");
+        return;
+      }
+    }
+
+    toast.error("This rating doesn't include a customer profile ID.");
+  };
+
   // --- Edit modal state (shared, works for both tabs) ---
   const [editingRow, setEditingRow] = useState(null); // { id, rating, comment, source: "general" | "customer" }
   const [editForm, setEditForm] = useState({ rating: 0, comment: "" });
@@ -413,7 +479,23 @@ export default function Rating() {
 
   // General ratings table columns
   const generalColumns = [
-    { accessorKey: "userName", header: "Customer Name" },
+    {
+      accessorKey: "userName",
+      header: "Customer Name",
+      cell: ({ row }) => {
+        return row.original.userName ? (
+          <button
+            type="button"
+            onClick={() => openRatedCustomerProfile(row.original)}
+            className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+          >
+            {row.original.userName}
+          </button>
+        ) : (
+          "N/A"
+        );
+      },
+    },
     {
       accessorKey: "userPhone",
       header: "Phone Number",
@@ -498,6 +580,7 @@ export default function Rating() {
         flattenedCustomerOrders.push({
           id: order.orderId,
           customerName: customer.name || "N/A",
+          customerId: getCustomerId({ ...item, customer }),
           customerPhone: customer.phone || "N/A",
           customerTotalOrders: item.totalOrders || 0,
           orderNumber: order.orderNumber || "N/A",
@@ -530,9 +613,23 @@ export default function Rating() {
       header: "Customer Name",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium text-slate-800 dark:text-slate-100">
-            {row.original.customerName}
-          </span>
+          {row.original.customerId ? (
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  `/users/${encodeURIComponent(row.original.customerId)}`,
+                )
+              }
+              className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+            >
+              {row.original.customerName}
+            </button>
+          ) : (
+            <span className="font-medium text-slate-800 dark:text-slate-100">
+              {row.original.customerName}
+            </span>
+          )}
           <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
             {row.original.customerTotalOrders || 0} orders
           </span>
