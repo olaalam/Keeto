@@ -79,6 +79,7 @@ import OrderDelay from "./Pages/orderdelay/orderdelay";
 import OrderdelayAdd from "./Pages/orderdelay/orderdelayAdd";
 import ShippingCompanies from "./Pages/ShippingCompanies/ShippingCompanies";
 import ShippingCompanyAdd from "./Pages/ShippingCompanies/ShippingCompanyAdd";
+import PlatformPaymentSettings from "./Pages/PaymentSettings/PlatformPaymentSettings";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -339,6 +340,10 @@ const router = createBrowserRouter([
       {
         path: "payment-methods/edit/:id",
         element: <PaymentMetodAdd />,
+      },
+      {
+        path: "platform-payment-settings",
+        element: <PlatformPaymentSettings />,
       },
       {
         path: "restaurants/transaction/:restaurantId",

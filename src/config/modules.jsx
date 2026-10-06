@@ -249,6 +249,12 @@ export const modules = [
         icon: Wallet,
         module: "RestaurantWallets",
       },
+      {
+        title: " Payment Settings",
+        url: "/platform-payment-settings",
+        icon: BadgePercent,
+        module: "platform",
+      },
     ],
   },
 ];
