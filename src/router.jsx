@@ -77,6 +77,8 @@ import RestaurantGroupsAddPage from "./Pages/Restaurant/RestaurantGroupsAdd";
 import PendingOrders from "./Pages/Orders/Pendingorders";
 import OrderDelay from "./Pages/orderdelay/orderdelay";
 import OrderdelayAdd from "./Pages/orderdelay/orderdelayAdd";
+import ShippingCompanies from "./Pages/ShippingCompanies/ShippingCompanies";
+import ShippingCompanyAdd from "./Pages/ShippingCompanies/ShippingCompanyAdd";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -193,6 +195,22 @@ const router = createBrowserRouter([
       {
         path: "restaurants",
         element: <Restaurant />,
+      },
+      {
+        path: "shipping-companies",
+        element: <ShippingCompanies />,
+      },
+      {
+        path: "shipping-companies/add",
+        element: <ShippingCompanyAdd />,
+      },
+      {
+        path: "shipping-companies/edit/:id",
+        element: <ShippingCompanyAdd />,
+      },
+      {
+        path: "shipping-companies/:id",
+        element: <ShippingCompanyAdd />,
       },
       {
         path: "restaurant-groups",

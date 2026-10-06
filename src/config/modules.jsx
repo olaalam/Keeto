@@ -119,6 +119,12 @@ export const modules = [
         module: "Restaurants",
       },
       {
+        title: "Shipping Companies",
+        url: "/shipping-companies",
+        icon: Truck,
+        module: "Restaurants",
+      },
+      {
         title: "Restaurant Groups",
         url: "/restaurant-groups",
         icon: Utensils,
