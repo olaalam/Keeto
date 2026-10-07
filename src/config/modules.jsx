@@ -211,7 +211,7 @@ export const modules = [
         title: "Sales Report ",
         url: "/sales-report",
         icon: TrendingUp,
-        module: "reports",
+        module: "Sales",
       },
     ],
   },

@@ -838,7 +838,7 @@ export default function RestaurantOperations() {
         )}
       </div>
 
-      {errors.length > 0 && (
+     {/*  {errors.length > 0 && (
         <div
           role="alert"
           className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"
@@ -854,7 +854,7 @@ export default function RestaurantOperations() {
             </p>
           ))}
         </div>
-      )}
+      )} */}
 
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
