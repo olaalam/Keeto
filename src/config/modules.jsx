@@ -190,6 +190,12 @@ export const modules = [
         module: "reports",
       },
       {
+        title: "Restaurant Operations",
+        url: "/restaurant-operations-report",
+        icon: FileBarChart,
+        module: "RestaurantOperations",
+      },
+      {
         title: "Financial Report",
         url: "/financial-report",
         icon: FileBarChart,

@@ -74,6 +74,7 @@ import Ratings from "./Pages/Ratings/ratings";
 import RestaurantRatingRequestsPage from "./Pages/Ratings/RestaurantRatingRequests";
 import RestaurantGroupsPage from "./Pages/Restaurant/RestaurantGroups";
 import RestaurantGroupsAddPage from "./Pages/Restaurant/RestaurantGroupsAdd";
+import RestaurantOperations from "./Pages/RestaurantOperations/RestaurantOperations";
 import PendingOrders from "./Pages/Orders/Pendingorders";
 import OrderDelay from "./Pages/orderdelay/orderdelay";
 import OrderdelayAdd from "./Pages/orderdelay/orderdelayAdd";
@@ -457,6 +458,10 @@ const router = createBrowserRouter([
       {
         path: "restaurants-report",
         element: <RestaurantsReport />,
+      },
+      {
+        path: "restaurant-operations-report",
+        element: <RestaurantOperations />,
       },
       {
         path: "sales-report",
