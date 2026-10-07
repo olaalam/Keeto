@@ -167,7 +167,10 @@ function MultiSelectFilter({ label, options, selected, onChange }) {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-56 space-y-1 p-2">
+      <PopoverContent
+        align="start"
+        className="max-h-72 w-56 space-y-1 overflow-y-auto p-2"
+      >
         {options.map((option) => (
           <label
             key={option.value}
@@ -238,6 +241,13 @@ function getRows(responseData) {
 
   return result;
 }
+
+const getCityKey = (record) => {
+  const city = record.restaurant?.city;
+  if (!city) return null;
+  const key = city.id ?? city.name ?? city.nameAr;
+  return key === undefined || key === null ? null : String(key);
+};
 
 function formatDate(value) {
   if (!value) return "-";
@@ -401,6 +411,7 @@ export default function RestaurantOperations() {
     status: [],
     app: [],
   });
+  const [selectedCities, setSelectedCities] = useState([]); // empty = all cities
   const [selectedOperation, setSelectedOperation] = useState(null);
   const [pendingKeys, setPendingKeys] = useState(() => new Set());
   const queryClient = useQueryClient();
@@ -427,7 +438,7 @@ export default function RestaurantOperations() {
     })),
   });
 
-  const rows = useMemo(
+  const loadedRows = useMemo(
     () =>
       operationQueries
         .flatMap((query) =>
@@ -445,6 +456,31 @@ export default function RestaurantOperations() {
               RESTAURANT_TYPES.length),
         ),
     [operationQueries],
+  );
+
+  // City options come from the loaded data; filtering is done client-side.
+  const cityOptions = useMemo(() => {
+    const seen = new Map();
+    loadedRows.forEach((record) => {
+      const key = getCityKey(record);
+      if (key && !seen.has(key)) {
+        const city = record.restaurant.city;
+        seen.set(key, city.name || city.nameAr || key);
+      }
+    });
+    return [...seen]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [loadedRows]);
+
+  const rows = useMemo(
+    () =>
+      selectedCities.length === 0
+        ? loadedRows
+        : loadedRows.filter((record) =>
+            selectedCities.includes(getCityKey(record)),
+          ),
+    [loadedRows, selectedCities],
   );
 
   const isFieldPending = (recordId, field) =>
@@ -701,6 +737,7 @@ export default function RestaurantOperations() {
 
   const hasActiveFilters =
     selectedTypes.length > 0 ||
+    selectedCities.length > 0 ||
     Object.values(filters).some((v) => v.length > 0);
 
   const setFilter = (key) => (values) =>
@@ -708,6 +745,7 @@ export default function RestaurantOperations() {
 
   const clearFilters = () => {
     setSelectedTypes([]);
+    setSelectedCities([]);
     setFilters({ operationType: [], status: [], app: [] });
   };
 
@@ -821,6 +859,12 @@ export default function RestaurantOperations() {
             selected={filters.app}
             onChange={setFilter("app")}
           />
+          <MultiSelectFilter
+            label="City"
+            options={cityOptions}
+            selected={selectedCities}
+            onChange={setSelectedCities}
+          />
         </div>
 
         {hasActiveFilters && (
@@ -838,7 +882,7 @@ export default function RestaurantOperations() {
         )}
       </div>
 
-     {/*  {errors.length > 0 && (
+      {/*  {errors.length > 0 && (
         <div
           role="alert"
           className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"
