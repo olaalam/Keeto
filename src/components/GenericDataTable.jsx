@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useReactTable,
@@ -84,9 +84,13 @@ export default function GenericDataTable({
   // `sortByDate={false}` to keep the order of `data` exactly as given
   // (e.g. when the parent already sorts the rows itself).
   sortByDate = true,
+  showTopScrollbar = false,
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteId, setDeleteId] = useState(null);
+  const [topScrollWidth, setTopScrollWidth] = useState(0);
+  const topScrollRef = useRef(null);
+  const tableScrollRef = useRef(null);
   const navigate = useNavigate();
 
   const isServerPaginated = !!serverPagination;
@@ -301,6 +305,43 @@ export default function GenericDataTable({
     }
   }, [pageCount, pagination.pageIndex, isServerPaginated]);
 
+  useEffect(() => {
+    if (!showTopScrollbar) return undefined;
+    const topScroll = topScrollRef.current;
+    const tableScroll = tableScrollRef.current?.querySelector(
+      '[data-slot="table-container"]',
+    );
+    if (!topScroll || !tableScroll) return undefined;
+
+    const updateWidth = () => setTopScrollWidth(tableScroll.scrollWidth);
+    const syncTopToTable = () => {
+      if (tableScroll.scrollLeft !== topScroll.scrollLeft) {
+        tableScroll.scrollLeft = topScroll.scrollLeft;
+      }
+    };
+    const syncTableToTop = () => {
+      if (topScroll.scrollLeft !== tableScroll.scrollLeft) {
+        topScroll.scrollLeft = tableScroll.scrollLeft;
+      }
+    };
+
+    updateWidth();
+    topScroll.addEventListener("scroll", syncTopToTable);
+    tableScroll.addEventListener("scroll", syncTableToTop);
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(tableScroll);
+    const table = tableScroll.querySelector("table");
+    if (table) {
+      resizeObserver.observe(table);
+    }
+
+    return () => {
+      topScroll.removeEventListener("scroll", syncTopToTable);
+      tableScroll.removeEventListener("scroll", syncTableToTop);
+      resizeObserver.disconnect();
+    };
+  }, [showTopScrollbar, columns]);
+
   return (
     <div className="space-y-6 w-full">
       {/* HEADER */}
@@ -362,7 +403,18 @@ export default function GenericDataTable({
 
       {/* TABLE BOX */}
       <div className="rounded-2xl border border-slate-100 bg-white dark:bg-slate-950 shadow-sm overflow-hidden transition-all">
-        <div className="overflow-x-auto">
+        {showTopScrollbar && (
+          <div
+            ref={topScrollRef}
+            role="region"
+            tabIndex={0}
+            aria-label="Scroll table horizontally"
+            className="overflow-x-auto overflow-y-hidden"
+          >
+            <div style={{ width: `${topScrollWidth}px`, height: "1px" }} />
+          </div>
+        )}
+        <div ref={tableScrollRef}>
           <Table>
             <TableHeader className="bg-slate-50/70 dark:bg-slate-900/50 border-b border-slate-100">
               {table.getHeaderGroups().map((headerGroup) => (

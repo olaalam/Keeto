@@ -72,6 +72,94 @@ const APP_OPTIONS = APP_STATES.map((value) => ({
   value,
   label: value.toUpperCase(),
 }));
+const REPORT_COLUMNS = [
+  {
+    id: "restaurant",
+    label: "Restaurant",
+    value: (row) => row.restaurant?.name || row.restaurant?.nameAr || "-",
+  },
+  {
+    id: "sales",
+    label: "Sales Representative",
+    value: (row) => row.restaurant?.sales?.name || "-",
+  },
+  {
+    id: "operationType",
+    label: "Operation Type",
+    value: (row) => row.operationType || "-",
+  },
+  {
+    id: "status",
+    label: "Operation Status",
+    value: (row) => row.status || "-",
+  },
+  { id: "app", label: "App", value: (row) => row.app || "-" },
+  {
+    id: "restaurantType",
+    label: "Restaurant Type",
+    value: (row) => row.restaurant?.type || row._reportRestaurantType || "-",
+  },
+  {
+    id: "city",
+    label: "City",
+    value: (row) =>
+      row.restaurant?.city?.name || row.restaurant?.city?.nameAr || "-",
+  },
+  {
+    id: "cuisines",
+    label: "Cuisines",
+    value: (row) =>
+      row.restaurant?.cuisines
+        ?.map((cuisine) => cuisine.name || cuisine.nameAr)
+        .filter(Boolean)
+        .join(", ") || "-",
+  },
+  {
+    id: "branches",
+    label: "Branches",
+    value: (row) =>
+      row.restaurant?.branches
+        ?.map((branch) => branch.name || branch.nameAr)
+        .filter(Boolean)
+        .join(", ") || "-",
+  },
+  {
+    id: "notes",
+    label: "Notes",
+    value: (row) => formatNotes(row.notes),
+  },
+  {
+    id: "createdAt",
+    label: "Created At",
+    value: (row) => formatDate(row.createdAt),
+  },
+];
+const COLUMN_OPTIONS = REPORT_COLUMNS.filter(({ id }) => id !== "restaurant");
+
+function ColumnSwitch({ label, checked, onChange }) {
+  return (
+    <label className="flex cursor-pointer select-none items-center gap-2">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={onChange}
+        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+          checked ? "bg-yellow-400" : "bg-slate-300"
+        }`}
+      >
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+            checked ? "translate-x-4" : "translate-x-1"
+          }`}
+        />
+      </button>
+      <span className="whitespace-nowrap text-xs font-medium text-slate-600">
+        {label}
+      </span>
+    </label>
+  );
+}
 
 function CollectionView({ title, items, kind }) {
   const collection = Array.isArray(items) ? items : [];
@@ -414,6 +502,7 @@ export default function RestaurantOperations() {
   const [selectedCities, setSelectedCities] = useState([]); // empty = all cities
   const [selectedOperation, setSelectedOperation] = useState(null);
   const [pendingKeys, setPendingKeys] = useState(() => new Set());
+  const [columnVisibility, setColumnVisibility] = useState({});
   const queryClient = useQueryClient();
 
   const requestedTypes =
@@ -554,6 +643,13 @@ export default function RestaurantOperations() {
 
   const openOperationDetails = (operation) => {
     setSelectedOperation(operation);
+  };
+
+  const toggleColumnVisibility = (id) => {
+    setColumnVisibility((current) => ({
+      ...current,
+      [id]: current[id] === false,
+    }));
   };
 
   const columns = [
@@ -728,6 +824,11 @@ export default function RestaurantOperations() {
       cell: ({ getValue }) => formatDate(getValue()),
     },
   ];
+  const visibleColumns = columns.filter(
+    (column) =>
+      column.id === "restaurant" ||
+      columnVisibility[column.id || column.accessorKey] !== false,
+  );
 
   const isLoading = operationQueries.some((query) => query.isLoading);
   const errors = operationQueries
@@ -757,28 +858,13 @@ export default function RestaurantOperations() {
 
   const exportPDF = () => {
     const pdf = new jsPDF({ orientation: "landscape" });
-    const headers = [
-      "Restaurant",
-      "Sales Representative",
-      "Operation Type",
-      "Operation Status",
-      "App",
-      "Restaurant Type",
-      "City",
-      "Notes",
-      "Created At",
-    ];
-    const body = rows.map((row) => [
-      row.restaurant?.name || row.restaurant?.nameAr || "-",
-      row.restaurant?.sales?.name || "-",
-      row.operationType || "-",
-      row.status || "-",
-      row.app || "-",
-      row.restaurant?.type || row._reportRestaurantType || "-",
-      row.restaurant?.city?.name || row.restaurant?.city?.nameAr || "-",
-      formatNotes(row.notes),
-      formatDate(row.createdAt),
-    ]);
+    const exportColumns = REPORT_COLUMNS.filter(
+      ({ id }) => id === "restaurant" || columnVisibility[id] !== false,
+    );
+    const headers = exportColumns.map(({ label }) => label);
+    const body = rows.map((row) =>
+      exportColumns.map(({ value }) => value(row)),
+    );
 
     pdf.setFontSize(16);
     pdf.text("Restaurant Operations Report", 14, 16);
@@ -918,13 +1004,27 @@ export default function RestaurantOperations() {
             <span className="text-sm text-slate-500">Loading report...</span>
           )}
         </div>
+        <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 px-1 pb-2">
+          <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            Columns:
+          </span>
+          {COLUMN_OPTIONS.map((option) => (
+            <ColumnSwitch
+              key={option.id}
+              label={option.label}
+              checked={columnVisibility[option.id] !== false}
+              onChange={() => toggleColumnVisibility(option.id)}
+            />
+          ))}
+        </div>
         <GenericDataTable
-          columns={columns}
+          columns={visibleColumns}
           data={rows}
           title="Restaurant Operations"
           isLoading={isLoading}
           actions={false}
           sortByDate={false}
+          showTopScrollbar
         />
       </div>
 
