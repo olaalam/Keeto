@@ -588,6 +588,12 @@ export default function RestaurantOperations() {
       },
     },
     {
+      id: "sales",
+      accessorFn: (row) => row.restaurant?.sales?.name,
+      header: "Sales Representative",
+      cell: ({ getValue }) => getValue() || "-",
+    },
+    {
       accessorKey: "operationType",
       header: () => (
         <div className="min-w-[130px] font-bold">Operation Type</div>
@@ -753,6 +759,7 @@ export default function RestaurantOperations() {
     const pdf = new jsPDF({ orientation: "landscape" });
     const headers = [
       "Restaurant",
+      "Sales Representative",
       "Operation Type",
       "Operation Status",
       "App",
@@ -763,6 +770,7 @@ export default function RestaurantOperations() {
     ];
     const body = rows.map((row) => [
       row.restaurant?.name || row.restaurant?.nameAr || "-",
+      row.restaurant?.sales?.name || "-",
       row.operationType || "-",
       row.status || "-",
       row.app || "-",
