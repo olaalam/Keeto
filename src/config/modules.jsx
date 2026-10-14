@@ -261,6 +261,13 @@ export const modules = [
         icon: BadgePercent,
         module: "platform",
       },
+      {
+        title: " Payment Platform",
+        url: "/platform-payment",
+        icon: BadgePercent,
+        module: "PlatformPaymentGetways",
+      },
+      
     ],
   },
 ];

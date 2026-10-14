@@ -81,6 +81,8 @@ import OrderdelayAdd from "./Pages/orderdelay/orderdelayAdd";
 import ShippingCompanies from "./Pages/ShippingCompanies/ShippingCompanies";
 import ShippingCompanyAdd from "./Pages/ShippingCompanies/ShippingCompanyAdd";
 import PlatformPaymentSettings from "./Pages/PaymentSettings/PlatformPaymentSettings";
+import PaymentGetways from "./Pages/PaymentGetways/paymentgetways";
+import PaymentGetwaysAdd from "./Pages/PaymentGetways/paymentgetwaysAdd";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -511,6 +513,18 @@ const router = createBrowserRouter([
       {
         path:"order-delay/edit/:id",
         element:<OrderdelayAdd />,
+      },
+      {
+        path: "platform-payment",
+        element: <PaymentGetways />,
+      },
+      {
+        path: "platform-payment/add",
+        element: <PaymentGetwaysAdd />,
+      },
+      {
+        path: "platform-payment/edit/:id",
+        element: <PaymentGetwaysAdd />,
       }
     ],
   },
