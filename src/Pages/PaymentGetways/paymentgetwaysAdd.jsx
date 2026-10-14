@@ -18,14 +18,14 @@ const GATEWAY_PROVIDERS = {
     { key: "publicKey", label: "Public Key" },
     { key: "integrationId", label: "Integration ID" },
     { key: "hmac", label: "HMAC", secret: true },
-    { key: "callbackUrl", label: "Callback URL" },
+    { key: "callbackUrl", label: "Callback URL", required: false },
   ],
   GEIDEA: [
     { key: "publicKey", label: "Public Key" },
     { key: "apiPassword", label: "API Password", secret: true },
     { key: "name", label: "Name" },
     { key: "environment", label: "Region" },
-    { key: "callbackUrl", label: "Callback URL" },
+    { key: "callbackUrl", label: "Callback URL", required: false },
     { key: "returnUrl", label: "Return URL" },
   ],
 };
