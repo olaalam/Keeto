@@ -20,6 +20,7 @@ import { useGet } from "@/hooks/useGet";
 import { usePost } from "@/hooks/usePost";
 
 const EMPTY_LIST = [];
+const NUMERIC_FIELDS = ["maxSearchRadius", "commissionValue"];
 
 const getList = (response) => {
   const payload =
@@ -365,6 +366,27 @@ export default function ShippingCompanyAdd() {
     [id],
   );
 
+  const transformCompanyPayload = (data) => {
+    const payload = { ...data };
+
+    NUMERIC_FIELDS.forEach((field) => {
+      const value = payload[field];
+      if (typeof value === "string" && value.trim() === "") {
+        delete payload[field];
+        return;
+      }
+      if (value == null) return;
+
+      const numericValue = Number(value);
+      if (Number.isFinite(numericValue)) {
+        payload[field] = numericValue;
+      }
+    });
+
+    if (id) payload.password = undefined;
+    return payload;
+  };
+
   const handleCompanySave = async (response) => {
     queryClient.invalidateQueries({ queryKey: ["shipping-companies"] });
     if (!id) {
@@ -445,9 +467,7 @@ export default function ShippingCompanyAdd() {
         bypassIdInEdit={Boolean(id)}
         fields={fields}
         initialData={initialData}
-        transformPayload={(data) =>
-          id ? { ...data, password: undefined } : data
-        }
+        transformPayload={transformCompanyPayload}
         onSuccessAction={handleCompanySave}
       >
         {() => (
