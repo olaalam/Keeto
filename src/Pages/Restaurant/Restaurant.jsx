@@ -28,6 +28,11 @@ export default function Restaurant() {
     "restaurants",
   );
 
+  const operationStatusMutation = useUpdate(
+    "/api/superadmin/restaurants",
+    "restaurants",
+  );
+
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ["restaurants"],
     queryFn: async () => {
@@ -151,6 +156,41 @@ export default function Restaurant() {
       accessorKey: "status",
       header: "status",
       // 💡 قمنا بحذف الـ cell بالكامل هنا لكي يتولى GenericDataTable توليد الـ Switch تلقائياً
+    },
+    {
+      accessorKey: "operationStatus",
+      header: "Operation Status",
+      cell: ({ row }) => {
+        const restaurant = row.original;
+        const isActive = restaurant.operationStatus === "active";
+
+        return (
+          <div className="flex items-center justify-center gap-2">
+            <Switch
+              checked={isActive}
+              disabled={operationStatusMutation.isPending}
+              onCheckedChange={(checked) => {
+                operationStatusMutation.mutate({
+                  id: restaurant.id,
+                  payload: {
+                    operationStatus: checked ? "active" : "inactive",
+                  },
+                });
+              }}
+            />
+            <span
+              className={cn(
+                "text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                isActive
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-slate-100 text-slate-500",
+              )}
+            >
+              {isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "deliverystatus",

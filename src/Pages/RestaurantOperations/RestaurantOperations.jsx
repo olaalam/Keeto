@@ -72,6 +72,13 @@ const APP_OPTIONS = APP_STATES.map((value) => ({
   value,
   label: value.toUpperCase(),
 }));
+// totalOrders / canceledOrders are only returned by the API for restaurants
+// with operationStatus "active". When the key is missing, show "-".
+const getOrderCount = (row, key) => {
+  const value = row.restaurant?.[key];
+  return value === undefined || value === null || value === "" ? "-" : value;
+};
+
 const REPORT_COLUMNS = [
   {
     id: "restaurant",
@@ -94,6 +101,16 @@ const REPORT_COLUMNS = [
     value: (row) => row.status || "-",
   },
   { id: "app", label: "App", value: (row) => row.app || "-" },
+  {
+    id: "totalOrders",
+    label: "Total Orders",
+    value: (row) => getOrderCount(row, "totalOrders"),
+  },
+  {
+    id: "canceledOrders",
+    label: "Canceled Orders",
+    value: (row) => getOrderCount(row, "canceledOrders"),
+  },
   {
     id: "restaurantType",
     label: "Restaurant Type",
@@ -500,6 +517,7 @@ export default function RestaurantOperations() {
     app: [],
   });
   const [selectedCities, setSelectedCities] = useState([]); // empty = all cities
+  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [selectedOperation, setSelectedOperation] = useState(null);
   const [pendingKeys, setPendingKeys] = useState(() => new Set());
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -509,7 +527,7 @@ export default function RestaurantOperations() {
     selectedTypes.length === 0 ? RESTAURANT_TYPES : selectedTypes;
   const operationQueries = useQueries({
     queries: requestedTypes.map((restaurantType) => ({
-      queryKey: ["restaurantOperations", restaurantType, filters],
+      queryKey: ["restaurantOperations", restaurantType, filters, dateRange],
       placeholderData: (previous) => previous,
       queryFn: async () => {
         // Multi-select values are sent comma-separated, e.g. status=demo,sales
@@ -517,6 +535,9 @@ export default function RestaurantOperations() {
         Object.entries(filters).forEach(([key, values]) => {
           if (values.length) params[key] = values.join(",");
         });
+        // Date range (YYYY-MM-DD) is sent only when set
+        if (dateRange.startDate) params.startDate = dateRange.startDate;
+        if (dateRange.endDate) params.endDate = dateRange.endDate;
         const response = await api.get(OPERATIONS_URL, { params });
 
         return {
@@ -766,6 +787,18 @@ export default function RestaurantOperations() {
       },
     },
     {
+      id: "totalOrders",
+      accessorFn: (row) => getOrderCount(row, "totalOrders"),
+      header: "Total Orders",
+      cell: ({ getValue }) => getValue(),
+    },
+    {
+      id: "canceledOrders",
+      accessorFn: (row) => getOrderCount(row, "canceledOrders"),
+      header: "Canceled Orders",
+      cell: ({ getValue }) => getValue(),
+    },
+    {
       id: "restaurantType",
       accessorFn: (row) => row.restaurant?.type || row._reportRestaurantType,
       header: "Restaurant Type",
@@ -845,6 +878,8 @@ export default function RestaurantOperations() {
   const hasActiveFilters =
     selectedTypes.length > 0 ||
     selectedCities.length > 0 ||
+    !!dateRange.startDate ||
+    !!dateRange.endDate ||
     Object.values(filters).some((v) => v.length > 0);
 
   const setFilter = (key) => (values) =>
@@ -854,7 +889,11 @@ export default function RestaurantOperations() {
     setSelectedTypes([]);
     setSelectedCities([]);
     setFilters({ operationType: [], status: [], app: [] });
+    setDateRange({ startDate: "", endDate: "" });
   };
+
+  const setDate = (key) => (e) =>
+    setDateRange((current) => ({ ...current, [key]: e.target.value }));
 
   const exportPDF = () => {
     const pdf = new jsPDF({ orientation: "landscape" });
@@ -959,6 +998,30 @@ export default function RestaurantOperations() {
             selected={selectedCities}
             onChange={setSelectedCities}
           />
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-500" htmlFor="ops-start-date">
+              From
+            </label>
+            <Input
+              id="ops-start-date"
+              type="date"
+              value={dateRange.startDate}
+              max={dateRange.endDate || undefined}
+              onChange={setDate("startDate")}
+              className="h-9 w-[150px]"
+            />
+            <label className="text-sm text-slate-500" htmlFor="ops-end-date">
+              To
+            </label>
+            <Input
+              id="ops-end-date"
+              type="date"
+              value={dateRange.endDate}
+              min={dateRange.startDate || undefined}
+              onChange={setDate("endDate")}
+              className="h-9 w-[150px]"
+            />
+          </div>
         </div>
 
         {hasActiveFilters && (

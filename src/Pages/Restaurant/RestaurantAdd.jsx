@@ -453,6 +453,7 @@ const RestaurantAdd = () => {
         tags: Array.isArray(raw.tags) ? raw.tags.join(", ") : raw.tags,
         deliveryTimeUnit: raw.deliveryTimeUnit || "Minutes",
         status: raw.status || "active",
+        operationStatus: raw.operationStatus || "active",
         type: raw.type || raw.restauranttype || "",
         likes: raw.likes || 0,
         facebookLink: raw.facebookLink || "",
@@ -639,6 +640,7 @@ const RestaurantAdd = () => {
         const formattedData = {
           ...data,
           tags: formattedTags,
+          operationStatus: data.operationStatus || "active",
           minDeliveryTime: String(data.minDeliveryTime || "0"),
           maxDeliveryTime: String(data.maxDeliveryTime || "0"),
           cuisineId: Array.isArray(data.cuisineId)
@@ -803,6 +805,7 @@ const RestaurantAdd = () => {
             "taxNumber",
             "taxExpireDate",
             "status",
+            "operationStatus",
             "cityId",
           ],
           images: ["logo", "cover", "taxCertificate"],
@@ -1384,6 +1387,28 @@ const RestaurantAdd = () => {
                     )}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Operation Status *</Label>
+                  <Controller
+                    name="operationStatus"
+                    control={control}
+                    defaultValue="active"
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || "active"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
               </div>
             </TabsContent>
 
@@ -1913,7 +1938,10 @@ const RestaurantAdd = () => {
                               </div>
                             ))}
                             {[
-                              { key: "percentageValue", label: "Percentage Value" },
+                              {
+                                key: "percentageValue",
+                                label: "Percentage Value",
+                              },
                               { key: "fixedValue", label: "Fixed Value" },
                               { key: "tax", label: "Tax" },
                             ].map((field) => (
