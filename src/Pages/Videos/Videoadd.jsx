@@ -17,7 +17,12 @@ const VIDEOS_URL = "/api/superadmin/videos";
 // The API takes the files as multipart/form-data:
 //   new file  -> sent as a real file under these keys
 //   unchanged -> the existing link is sent under videoUrl / thumbnailUrl
-const FILE_KEYS = { video: "video", thumbnail: "thumbnail" };
+const FILE_KEYS = {
+  video: "video",
+  thumbnail: "thumbnail",
+  videoAr: "videoAr",
+  thumbnailAr: "thumbnailAr",
+};
 
 const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -176,7 +181,9 @@ const VideoAdd = () => {
         description: raw.description || "",
         descriptionAr: raw.descriptionAr || "",
         videoUrl: raw.videoUrl || "",
+        videoUrlAr: raw.videoUrlAr || "",
         thumbnailUrl: raw.thumbnailUrl || "",
+        thumbnailUrlAr: raw.thumbnailUrlAr || "",
         status: raw.status || "active",
       };
     },
@@ -198,17 +205,19 @@ const VideoAdd = () => {
       (key) => formData.append(key, payload[key] ?? ""),
     );
 
-    if (isFile(payload.videoUrl)) {
-      formData.append(FILE_KEYS.video, payload.videoUrl);
-    } else {
-      formData.append("videoUrl", payload.videoUrl || "");
-    }
-
-    if (isFile(payload.thumbnailUrl)) {
-      formData.append(FILE_KEYS.thumbnail, payload.thumbnailUrl);
-    } else {
-      formData.append("thumbnailUrl", payload.thumbnailUrl || "");
-    }
+    // [form/link key, file key]
+    [
+      ["videoUrl", FILE_KEYS.video],
+      ["videoUrlAr", FILE_KEYS.videoAr],
+      ["thumbnailUrl", FILE_KEYS.thumbnail],
+      ["thumbnailUrlAr", FILE_KEYS.thumbnailAr],
+    ].forEach(([linkKey, fileKey]) => {
+      if (isFile(payload[linkKey])) {
+        formData.append(fileKey, payload[linkKey]); // new file
+      } else {
+        formData.append(linkKey, payload[linkKey] || ""); // existing link
+      }
+    });
 
     try {
       const res = isEdit
@@ -244,8 +253,11 @@ const VideoAdd = () => {
         description: data.description?.trim() || "",
         descriptionAr: data.descriptionAr?.trim() || "",
         status: data.status || "active",
-        videoUrl: data.videoUrl || "", // File (new) or link (unchanged)
-        thumbnailUrl: data.thumbnailUrl || "", // File (new) or link (unchanged)
+        // Each is a File (new) or a link (unchanged)
+        videoUrl: data.videoUrl || "",
+        videoUrlAr: data.videoUrlAr || "",
+        thumbnailUrl: data.thumbnailUrl || "",
+        thumbnailUrlAr: data.thumbnailUrlAr || "",
       })}
     >
       {({ control, formState: { errors } }) => (
@@ -260,10 +272,24 @@ const VideoAdd = () => {
           <MediaUploadField
             control={control}
             errors={errors}
+            name="thumbnailUrlAr"
+            label="Thumbnail (AR)"
+            kind="image"
+          />
+          <MediaUploadField
+            control={control}
+            errors={errors}
             name="videoUrl"
             label="Video"
             kind="video"
             required
+          />
+          <MediaUploadField
+            control={control}
+            errors={errors}
+            name="videoUrlAr"
+            label="Video (AR)"
+            kind="video"
           />
         </div>
       )}
