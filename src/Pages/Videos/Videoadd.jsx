@@ -1,24 +1,39 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Controller } from "react-hook-form";
+import { Upload, X } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/api/axios";
 import AddPage from "@/components/AddPage";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const VIDEOS_URL = "/api/superadmin/videos";
+
+// The API takes the files as multipart/form-data:
+//   new file  -> sent as a real file under these keys
+//   unchanged -> the existing link is sent under videoUrl / thumbnailUrl
+const FILE_KEYS = { video: "video", thumbnail: "thumbnail" };
+
+const MAX_IMAGE_MB = 5;
+const MAX_VIDEO_MB = 50;
 
 const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
 ];
 
+// Plain text fields rendered by AddPage. thumbnailUrl / videoUrl are rendered
+// below as upload fields (children) because they need file inputs + previews.
 const FIELDS = [
   { name: "title", label: "Title", type: "text", required: true },
   { name: "titleAr", label: "Title (AR)", type: "text" },
   { name: "description", label: "Description", type: "text" },
   { name: "descriptionAr", label: "Description (AR)", type: "text" },
-  { name: "videoUrl", label: "Video URL", type: "text", required: true },
-  { name: "thumbnailUrl", label: "Thumbnail URL", type: "text" },
   {
     name: "status",
     label: "Status",
@@ -28,12 +43,154 @@ const FIELDS = [
   },
 ];
 
+const isFile = (value) => typeof File !== "undefined" && value instanceof File;
+
+/**
+ * Upload field bound to react-hook-form.
+ * value is either:
+ *  - a File (the user just picked it), or
+ *  - a link string (the API returns links on GET), or
+ *  - "" (nothing yet)
+ * Both work as <img>/<video> sources (File via a temporary object URL).
+ */
+function MediaUploadField({
+  control,
+  name,
+  label,
+  kind, // "image" | "video"
+  maxMB,
+  required,
+  errors,
+}) {
+  const [sizeError, setSizeError] = useState("");
+  const isImage = kind === "image";
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={name}>
+        {label} {required && <span className="text-destructive">*</span>}
+      </Label>
+
+      <Controller
+        name={name}
+        control={control}
+        defaultValue=""
+        rules={{ required: required ? `${label} is required` : false }}
+        render={({ field: { value, onChange } }) => (
+          <MediaInput
+            id={name}
+            value={value}
+            onChange={onChange}
+            isImage={isImage}
+            kind={kind}
+            maxMB={maxMB}
+            sizeError={sizeError}
+            setSizeError={setSizeError}
+            error={errors?.[name]}
+          />
+        )}
+      />
+    </div>
+  );
+}
+
+function MediaInput({
+  id,
+  value,
+  onChange,
+  isImage,
+  kind,
+  maxMB,
+  sizeError,
+  setSizeError,
+  error,
+}) {
+  // Temporary preview URL for a freshly picked File; released on change/unmount
+  const previewUrl = useMemo(
+    () => (isFile(value) ? URL.createObjectURL(value) : null),
+    [value],
+  );
+  useEffect(
+    () => () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    },
+    [previewUrl],
+  );
+
+  const src = previewUrl || (typeof value === "string" ? value : "");
+
+  return (
+    <div className="space-y-3">
+      <Input
+        id={id}
+        type="file"
+        accept={isImage ? "image/*" : "video/*"}
+        className={cn(error || sizeError ? "border-destructive" : "")}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = ""; // allow re-picking the same file
+          if (!file) return;
+
+          if (file.size > maxMB * 1024 * 1024) {
+            setSizeError(`File is too large (max ${maxMB}MB).`);
+            return;
+          }
+          setSizeError("");
+          onChange(file);
+        }}
+      />
+
+      {src ? (
+        <div className="relative w-full max-w-sm border rounded-lg overflow-hidden bg-slate-50">
+          {isImage ? (
+            <img
+              src={src}
+              alt="Thumbnail preview"
+              className="w-full max-h-56 object-cover"
+            />
+          ) : (
+            <video src={src} controls className="w-full max-h-56 bg-black" />
+          )}
+          <Button
+            type="button"
+            size="icon"
+            variant="secondary"
+            className="absolute top-2 right-2 h-7 w-7"
+            onClick={() => {
+              setSizeError("");
+              onChange("");
+            }}
+            title="Remove"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <Upload className="h-4 w-4" />
+          No {kind} selected (max {maxMB}MB)
+        </div>
+      )}
+
+      {sizeError && <p className="text-destructive text-xs">{sizeError}</p>}
+      {error && (
+        <p className="text-destructive text-xs">
+          {error.message || "required"}
+        </p>
+      )}
+    </div>
+  );
+}
+
 const VideoAdd = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isEdit = !!id;
 
   // GET BY ID -> GET /api/superadmin/videos/{id}
+  // videoUrl / thumbnailUrl come back as links; they are used directly for the
+  // <video>/<img> previews.
   const { data: fetchedData, isLoading: isFetching } = useQuery({
     queryKey: ["video", id],
     enabled: isEdit,
@@ -56,29 +213,92 @@ const VideoAdd = () => {
 
   if (isEdit && isFetching) return <LoadingSpinner />;
 
-  // New videos start as "active"; no id => AddPage treats it as create (POST)
+  // New videos start as "active"; no id => create (POST)
   const initialData = isEdit ? fetchedData : { status: "active" };
+
+  // POST /api/superadmin/videos        (create)
+  // PUT  /api/superadmin/videos/{id}   (edit)
+  // Sent as multipart/form-data so the video / thumbnail go up as real files.
+  // (axios sets the multipart boundary itself when the body is FormData.)
+  const customSubmit = async (payload) => {
+    const formData = new FormData();
+
+    ["title", "titleAr", "description", "descriptionAr", "status"].forEach(
+      (key) => formData.append(key, payload[key] ?? ""),
+    );
+
+    if (isFile(payload.videoUrl)) {
+      formData.append(FILE_KEYS.video, payload.videoUrl);
+    } else {
+      formData.append("videoUrl", payload.videoUrl || "");
+    }
+
+    if (isFile(payload.thumbnailUrl)) {
+      formData.append(FILE_KEYS.thumbnail, payload.thumbnailUrl);
+    } else {
+      formData.append("thumbnailUrl", payload.thumbnailUrl || "");
+    }
+
+    try {
+      const res = isEdit
+        ? await api.put(`${VIDEOS_URL}/${id}`, formData)
+        : await api.post(VIDEOS_URL, formData);
+
+      toast.success(isEdit ? "Video updated" : "Video created");
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      queryClient.invalidateQueries({ queryKey: ["video", id] });
+      return res;
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.error?.message ||
+          err?.response?.data?.message ||
+          "Failed to save video",
+      );
+      throw err; // AddPage logs it and skips onSuccessAction
+    }
+  };
 
   return (
     <AddPage
       title="Video"
-      // POST -> /api/superadmin/videos
-      // PUT  -> /api/superadmin/videos/{id}  (id is appended by useUpdate)
       apiUrl={VIDEOS_URL}
       queryKey="videos"
       fields={FIELDS}
       initialData={initialData}
+      customSubmit={customSubmit}
       onSuccessAction={() => navigate(-1)}
       transformPayload={(data) => ({
         title: data.title?.trim() || "",
         titleAr: data.titleAr?.trim() || "",
         description: data.description?.trim() || "",
         descriptionAr: data.descriptionAr?.trim() || "",
-        videoUrl: data.videoUrl?.trim() || "",
-        thumbnailUrl: data.thumbnailUrl?.trim() || "",
         status: data.status || "active",
+        videoUrl: data.videoUrl || "", // File (new) or link (unchanged)
+        thumbnailUrl: data.thumbnailUrl || "", // File (new) or link (unchanged)
       })}
-    />
+    >
+      {({ control, formState: { errors } }) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <MediaUploadField
+            control={control}
+            errors={errors}
+            name="thumbnailUrl"
+            label="Thumbnail"
+            kind="image"
+            maxMB={MAX_IMAGE_MB}
+          />
+          <MediaUploadField
+            control={control}
+            errors={errors}
+            name="videoUrl"
+            label="Video"
+            kind="video"
+            maxMB={MAX_VIDEO_MB}
+            required
+          />
+        </div>
+      )}
+    </AddPage>
   );
 };
 
