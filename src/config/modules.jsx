@@ -25,6 +25,7 @@ import {
   TrendingUp,
   ShoppingBag,
   Star,
+  Video,
 } from "lucide-react";
 import keetoImage from "../../public/WhatsApp Image 2026-05-18 at 11.27.30 AM.jpeg";
 
@@ -267,6 +268,21 @@ export const modules = [
         icon: BadgePercent,
         module: "PlatformPaymentGetways",
       },
+      
+    ],
+  },
+   {
+    name: "Videos",
+    key: "videos",
+    icon: Video,
+    items: [
+      {
+        title: "Videos",
+        url: "/videos",
+        icon: Video,
+        module: "Videos",
+      },
+      
       
     ],
   },

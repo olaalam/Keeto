@@ -83,6 +83,8 @@ import ShippingCompanyAdd from "./Pages/ShippingCompanies/ShippingCompanyAdd";
 import PlatformPaymentSettings from "./Pages/PaymentSettings/PlatformPaymentSettings";
 import PaymentGetways from "./Pages/PaymentGetways/paymentgetways";
 import PaymentGetwaysAdd from "./Pages/PaymentGetways/paymentgetwaysAdd";
+import Video from "./Pages/Videos/Video";
+import VideoAdd from "./Pages/Videos/Videoadd";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -525,7 +527,19 @@ const router = createBrowserRouter([
       {
         path: "platform-payment/edit/:id",
         element: <PaymentGetwaysAdd />,
-      }
+      },
+      {
+        path: "videos",
+        element: <Video />,
+      },
+      {
+        path: "videos/add",
+        element: <VideoAdd />,
+      },
+      {
+        path: "videos/edit/:id",
+        element: <VideoAdd />,
+      },
     ],
   },
   {
