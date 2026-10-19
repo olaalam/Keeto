@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller } from "react-hook-form";
@@ -18,9 +18,6 @@ const VIDEOS_URL = "/api/superadmin/videos";
 //   new file  -> sent as a real file under these keys
 //   unchanged -> the existing link is sent under videoUrl / thumbnailUrl
 const FILE_KEYS = { video: "video", thumbnail: "thumbnail" };
-
-const MAX_IMAGE_MB = 5;
-const MAX_VIDEO_MB = 50;
 
 const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -58,11 +55,9 @@ function MediaUploadField({
   name,
   label,
   kind, // "image" | "video"
-  maxMB,
   required,
   errors,
 }) {
-  const [sizeError, setSizeError] = useState("");
   const isImage = kind === "image";
 
   return (
@@ -83,9 +78,6 @@ function MediaUploadField({
             onChange={onChange}
             isImage={isImage}
             kind={kind}
-            maxMB={maxMB}
-            sizeError={sizeError}
-            setSizeError={setSizeError}
             error={errors?.[name]}
           />
         )}
@@ -94,17 +86,7 @@ function MediaUploadField({
   );
 }
 
-function MediaInput({
-  id,
-  value,
-  onChange,
-  isImage,
-  kind,
-  maxMB,
-  sizeError,
-  setSizeError,
-  error,
-}) {
+function MediaInput({ id, value, onChange, isImage, kind, error }) {
   // Temporary preview URL for a freshly picked File; released on change/unmount
   const previewUrl = useMemo(
     () => (isFile(value) ? URL.createObjectURL(value) : null),
@@ -125,18 +107,11 @@ function MediaInput({
         id={id}
         type="file"
         accept={isImage ? "image/*" : "video/*"}
-        className={cn(error || sizeError ? "border-destructive" : "")}
+        className={cn(error ? "border-destructive" : "")}
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = ""; // allow re-picking the same file
-          if (!file) return;
-
-          if (file.size > maxMB * 1024 * 1024) {
-            setSizeError(`File is too large (max ${maxMB}MB).`);
-            return;
-          }
-          setSizeError("");
-          onChange(file);
+          if (file) onChange(file);
         }}
       />
 
@@ -156,10 +131,7 @@ function MediaInput({
             size="icon"
             variant="secondary"
             className="absolute top-2 right-2 h-7 w-7"
-            onClick={() => {
-              setSizeError("");
-              onChange("");
-            }}
+            onClick={() => onChange("")}
             title="Remove"
           >
             <X className="h-4 w-4" />
@@ -168,11 +140,10 @@ function MediaInput({
       ) : (
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <Upload className="h-4 w-4" />
-          No {kind} selected (max {maxMB}MB)
+          No {kind} selected
         </div>
       )}
 
-      {sizeError && <p className="text-destructive text-xs">{sizeError}</p>}
       {error && (
         <p className="text-destructive text-xs">
           {error.message || "required"}
@@ -285,7 +256,6 @@ const VideoAdd = () => {
             name="thumbnailUrl"
             label="Thumbnail"
             kind="image"
-            maxMB={MAX_IMAGE_MB}
           />
           <MediaUploadField
             control={control}
@@ -293,7 +263,6 @@ const VideoAdd = () => {
             name="videoUrl"
             label="Video"
             kind="video"
-            maxMB={MAX_VIDEO_MB}
             required
           />
         </div>
