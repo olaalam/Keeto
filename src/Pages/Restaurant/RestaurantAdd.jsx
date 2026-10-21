@@ -83,16 +83,21 @@ const PAYMENT_PROVIDERS = [
 ];
 
 // يدمج الـ paymentCredentials القادمة من السيرفر مع قالب المزودين،
-// ويضمن إن كارت واحد فقط يكون isActive
+// ويضمن إن كارت واحد فقط يكون isActive وكارت واحد فقط يكون isDefault ("active" | "inactive")
 const buildCredentials = (saved) => {
   const list = Array.isArray(saved) ? saved : [];
   let activeTaken = false;
+  let defaultTaken = false;
   return PAYMENT_PROVIDERS.map((p) => {
     const found = list.find(
       (c) => String(c?.provider || "").toUpperCase() === p.provider,
     );
     const isActive = !!found?.isActive && !activeTaken;
     if (isActive) activeTaken = true;
+    // الـ default مسموح بيه فقط للكارت المختار، وكارت واحد بس
+    const isDefault =
+      isActive && found?.isDefault === "active" && !defaultTaken;
+    if (isDefault) defaultTaken = true;
     const credentials = {};
     p.fields.forEach((f) => {
       credentials[f.key] = found?.credentials?.[f.key] ?? f.default ?? "";
@@ -103,6 +108,7 @@ const buildCredentials = (saved) => {
       environment: found?.environment || "LIVE",
       credentials,
       isActive,
+      isDefault: isDefault ? "active" : "inactive",
       percentageValue: found?.percentageValue ?? "",
       fixedValue: found?.fixedValue ?? "",
       tax: found?.tax ?? "",
@@ -717,7 +723,8 @@ const RestaurantAdd = () => {
           watch("paymentSystemActive") ??
           String(watch("paymentGatewayType") || "").toUpperCase() !== "CUSTOM";
         const credentials = buildCredentials(watch("paymentCredentials")).map(
-          (c) => (systemActive ? { ...c, isActive: false } : c),
+          (c) =>
+            systemActive ? { ...c, isActive: false, isDefault: "inactive" } : c,
         );
         const anySelected = systemActive || credentials.some((c) => c.isActive);
 
@@ -748,17 +755,31 @@ const RestaurantAdd = () => {
             ),
           );
 
-        // اختيار كارت Custom = تفعيله وتعطيل Keeto والباقي
+        // اختيار كارت Custom = تفعيله وتعطيل Keeto والباقي (والـ default بيتصفر لأي كارت اتقفل)
         const selectCredential = (provider, on) => {
           if (on) setPayment("paymentSystemActive", false);
           setPayment(
             "paymentCredentials",
-            credentials.map((c) => ({
-              ...c,
-              isActive: c.provider === provider ? on : false,
-            })),
+            credentials.map((c) => {
+              const isActive = c.provider === provider ? on : false;
+              return {
+                ...c,
+                isActive,
+                isDefault: isActive ? c.isDefault : "inactive",
+              };
+            }),
           );
         };
+
+        // Default gateway: كارت واحد بس يكون "active"، وتقدر تقفله وتفتح غيره
+        const setDefaultCredential = (provider, on) =>
+          setPayment(
+            "paymentCredentials",
+            credentials.map((c) => ({
+              ...c,
+              isDefault: c.provider === provider && on ? "active" : "inactive",
+            })),
+          );
 
         // تفعيل Keeto = تعطيل كل الـ Custom cards، وتقدر تطفيه من غير ما تختار حاجة
         const toggleSystem = (on) => {
@@ -766,7 +787,11 @@ const RestaurantAdd = () => {
           if (on) {
             setPayment(
               "paymentCredentials",
-              credentials.map((c) => ({ ...c, isActive: false })),
+              credentials.map((c) => ({
+                ...c,
+                isActive: false,
+                isDefault: "inactive",
+              })),
             );
           }
         };
@@ -1851,6 +1876,19 @@ const RestaurantAdd = () => {
                                 }
                               />
                             </div>
+                          </div>
+
+                          <div className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-2">
+                            <span className="text-xs text-gray-600">
+                              Default gateway
+                            </span>
+                            <Switch
+                              checked={cred.isDefault === "active"}
+                              disabled={!cred.isActive}
+                              onCheckedChange={(v) =>
+                                setDefaultCredential(cred.provider, v)
+                              }
+                            />
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
