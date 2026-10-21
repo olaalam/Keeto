@@ -52,6 +52,8 @@ import {
   MapPin,
   ChevronsUpDown,
   Check,
+  Percent,
+  FlaskConical,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -118,7 +120,7 @@ const ColumnSwitch = ({ label, checked, onChange }) => (
 );
 
 // Standardized dashboard card component modeled after the provided screenshot
-const Card = ({ title, value, icon: Icon, borderColor, bgColor }) => (
+const Card = ({ title, value, subtitle, icon: Icon, borderColor, bgColor }) => (
   <div
     className={`bg-white border-2 ${borderColor} rounded-3xl p-4 sm:p-6 flex items-center justify-between gap-3`}
   >
@@ -127,6 +129,7 @@ const Card = ({ title, value, icon: Icon, borderColor, bgColor }) => (
       <h2 className="text-lg sm:text-xl font-bold mt-1 text-slate-900">
         {value}
       </h2>
+      {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
     </div>
     <div
       className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center ${bgColor}`}
@@ -570,6 +573,8 @@ export default function ResReport() {
   const [restaurantListMode, setRestaurantListMode] = useState(null);
   // Controls the "Canceled Orders" list popup, opened from its card.
   const [showCanceledOrders, setShowCanceledOrders] = useState(false);
+  // Demo / test restaurants popup — opened from the "Demo Restaurants" card
+  const [showDemoList, setShowDemoList] = useState(false);
   // Filter tab inside that popup: "all" | "restaurant" | "user"
   const [canceledOrdersFilter, setCanceledOrdersFilter] = useState("all");
   // Remembers which list (if any) the currently open detail popup was opened
@@ -627,6 +632,33 @@ export default function ResReport() {
   // Canceled orders list from the API — each entry has orderId,
   // restaurantId, restaurantName and cancelType ("user" or "restaurant").
   const canceledOrdersList = reportData?.canceledOrders || [];
+
+  // Rates computed by the API (summary.percentages).
+  const percentages = summary.percentages || {};
+  // NOTE: the API's `ordersPerRestaurantPercent` is (totalOrders /
+  // totalRestaurants) * 100 — i.e. an average count x100, not a real
+  // percentage — so we divide by 100 to show "avg orders per restaurant".
+  const avgOrdersPerRestaurant =
+    percentages.ordersPerRestaurantPercent != null
+      ? Number(percentages.ordersPerRestaurantPercent) / 100
+      : null;
+  const formatPercent = (v) =>
+    v == null
+      ? "-"
+      : `${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+
+  // Demo / test restaurants block (reportData.demoSummary) — kept separate
+  // from the real-restaurant numbers above.
+  const demoSummary = reportData?.demoSummary || null;
+  const demoRestaurants = useMemo(
+    () =>
+      [...(demoSummary?.restaurants || [])].sort(
+        (a, b) =>
+          (b.ordersCount ?? 0) - (a.ordersCount ?? 0) ||
+          getTypeRank(a.type) - getTypeRank(b.type),
+      ),
+    [demoSummary],
+  );
 
   // Active cities, used to build the "City" filter buttons and to resolve
   // each restaurant's city name in the table.
@@ -1234,6 +1266,7 @@ export default function ResReport() {
       </div>
 
       {!showTable ? (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => setRestaurantListMode("with")}
@@ -1306,6 +1339,99 @@ export default function ResReport() {
             bgColor="bg-blue-50 text-blue-600"
           />
         </div>
+
+        {/* Rates — from summary.percentages */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+            Rates
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card
+              title="Canceled Orders Rate"
+              value={formatPercent(percentages.canceledOrdersPercent)}
+              subtitle={`${summary.canceledOrders ?? 0} of ${summary.totalOrders ?? 0} orders`}
+              icon={Percent}
+              borderColor="border-rose-500"
+              bgColor="bg-rose-50 text-rose-600"
+            />
+            <Card
+              title="Restaurants Missing Orders"
+              value={formatPercent(percentages.missingRestaurantsPercent)}
+              subtitle={`${summary.restaurantsWithoutOrders ?? 0} of ${summary.totalRestaurants ?? 0} restaurants`}
+              icon={Percent}
+              borderColor="border-amber-500"
+              bgColor="bg-amber-50 text-amber-600"
+            />
+            <Card
+              title="Avg Orders per Restaurant"
+              value={
+                avgOrdersPerRestaurant == null
+                  ? "-"
+                  : avgOrdersPerRestaurant.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })
+              }
+              subtitle={`${summary.totalOrders ?? 0} orders / ${summary.totalRestaurants ?? 0} restaurants`}
+              icon={ShoppingBag}
+              borderColor="border-blue-500"
+              bgColor="bg-blue-50 text-blue-600"
+            />
+          </div>
+        </div>
+
+        {/* Demo / test restaurants — from demoSummary */}
+        {demoSummary && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+              Demo &amp; Test Restaurants
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                onClick={() => setShowDemoList(true)}
+                className="w-full text-left"
+              >
+                <Card
+                  title="Demo Restaurants"
+                  value={demoSummary.totalTestDemoRestaurants ?? 0}
+                  subtitle="Click to view list"
+                  icon={FlaskConical}
+                  borderColor="border-violet-500"
+                  bgColor="bg-violet-50 text-violet-600"
+                />
+              </button>
+              <Card
+                title="Demo Orders"
+                value={demoSummary.totalOrders ?? 0}
+                icon={ShoppingBag}
+                borderColor="border-blue-500"
+                bgColor="bg-blue-50 text-blue-600"
+              />
+              <Card
+                title="Demo Valid Orders"
+                value={demoSummary.validOrders ?? 0}
+                icon={CheckCircle2}
+                borderColor="border-emerald-500"
+                bgColor="bg-emerald-50 text-emerald-600"
+              />
+              <Card
+                title="Demo Canceled Orders"
+                value={demoSummary.canceledOrders ?? 0}
+                icon={XCircle}
+                borderColor="border-rose-500"
+                bgColor="bg-rose-50 text-rose-600"
+              />
+              <Card
+                title="Demo Commission"
+                value={`${Number(demoSummary.total_commission ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`}
+                icon={Wallet}
+                borderColor="border-amber-500"
+                bgColor="bg-amber-50 text-amber-600"
+              />
+            </div>
+          </div>
+        )}
+        </>
       ) : (
         <>
           <div className="bg-white border rounded-2xl p-4 sm:p-5 space-y-5">
@@ -1868,6 +1994,70 @@ export default function ResReport() {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Demo / test restaurants popup — opened from the "Demo Restaurants" card */}
+      <Dialog open={showDemoList} onOpenChange={setShowDemoList}>
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-2xl p-0">
+          <DialogHeader className="bg-slate-50 p-5 border-b border-slate-100">
+            <DialogTitle className="text-lg font-bold text-slate-800">
+              Demo &amp; Test Restaurants ({demoRestaurants.length})
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Sorted by orders. These are not counted in the main report
+              numbers.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4 space-y-2">
+            {demoRestaurants.length > 0 ? (
+              demoRestaurants.map((r) => (
+                <div
+                  key={r.id}
+                  className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800 truncate">
+                      {r.name || r.nameAr || "-"}
+                    </p>
+                    <p className="text-xs text-slate-400 truncate">
+                      {[r.nameAr !== r.name ? r.nameAr : null, r.city?.name]
+                        .filter(Boolean)
+                        .join(" · ") || "-"}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      <span className="text-emerald-600 font-semibold">
+                        {r.validOrders ?? 0} valid
+                      </span>
+                      {" · "}
+                      <span className="text-rose-600 font-semibold">
+                        {r.canceledOrders ?? 0} canceled
+                      </span>
+                      {" · "}
+                      {r.signupUsersCount ?? 0} signups
+                      {Number(r.total_commission) > 0 &&
+                        ` · ${Number(r.total_commission).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-violet-50 text-violet-600">
+                      {r.type || "Unknown"}
+                    </span>
+                    <span className="text-xs font-bold font-mono text-slate-600">
+                      {r.ordersCount ?? 0} orders
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <p className="text-sm text-slate-500">
+                  No demo restaurants.
+                </p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
