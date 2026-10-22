@@ -78,7 +78,7 @@ export const modules = [
         module: "Reasons",
       },
       { title: "Sales", url: "/sales", icon: TrendingUp, module: "Admins" },
-      {title:"Order Delay", url:"/order-delay", icon:ShoppingBag, module:"Orders"},
+      { title: "Order Delay", url: "/order-delay", icon: ShoppingBag, module: "Orders" },
     ],
   },
   {
@@ -214,6 +214,12 @@ export const modules = [
         icon: TrendingUp,
         module: "Sales",
       },
+      {
+        title: "Performance Report",
+        url: "/performance-report",
+        icon: FileBarChart,
+        module: "reports",
+      },
     ],
   },
   {
@@ -268,10 +274,10 @@ export const modules = [
         icon: BadgePercent,
         module: "PlatformPaymentGetways",
       },
-      
+
     ],
   },
-   {
+  {
     name: "Videos",
     key: "videos",
     icon: Video,
@@ -282,8 +288,8 @@ export const modules = [
         icon: Video,
         module: "Videos",
       },
-      
-      
+
+
     ],
   },
 ];

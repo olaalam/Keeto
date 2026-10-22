@@ -85,6 +85,7 @@ import PaymentGetways from "./Pages/PaymentGetways/paymentgetways";
 import PaymentGetwaysAdd from "./Pages/PaymentGetways/paymentgetwaysAdd";
 import Video from "./Pages/Videos/Video";
 import VideoAdd from "./Pages/Videos/Videoadd";
+import PerformanceReport from "./Pages/Performance/Performancereport ";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -509,12 +510,12 @@ const router = createBrowserRouter([
         element: <OrderDelay />,
       },
       {
-        path:"order-delay/add",
-        element:<OrderdelayAdd />,
+        path: "order-delay/add",
+        element: <OrderdelayAdd />,
       },
       {
-        path:"order-delay/edit/:id",
-        element:<OrderdelayAdd />,
+        path: "order-delay/edit/:id",
+        element: <OrderdelayAdd />,
       },
       {
         path: "platform-payment",
@@ -539,6 +540,10 @@ const router = createBrowserRouter([
       {
         path: "videos/edit/:id",
         element: <VideoAdd />,
+      },
+      {
+        path: "performance-report",
+        element: <PerformanceReport />,
       },
     ],
   },
