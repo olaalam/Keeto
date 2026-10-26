@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
 import { useNavigate } from "react-router-dom";
-import { Eye } from "lucide-react";
+import { Eye, ExternalLink } from "lucide-react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import FoodListDialog from "./FoodListDialog";
@@ -138,6 +138,27 @@ export default function Restaurant() {
           Order
         </button>
       ),
+    },
+    {
+      accessorKey: "orderLink",
+      header: "Order Link",
+      cell: ({ row }) => {
+        const link = row.original.orderLink;
+        if (!link) {
+          return <span className="text-slate-400 text-xs italic">-</span>;
+        }
+        return (
+          <a
+            href={link.startsWith("http") ? link : `https://${link}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors"
+          >
+            <ExternalLink size={14} />
+            <span>Link</span>
+          </a>
+        );
+      },
     },
     {
       accessorKey: "wallet",
