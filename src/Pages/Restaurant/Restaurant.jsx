@@ -11,6 +11,7 @@ import { useUpdate } from "@/hooks/useUpdate";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
+
 export default function Restaurant() {
   const navigate = useNavigate();
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -100,6 +101,18 @@ export default function Restaurant() {
           className="text-blue-600 hover:underline font-medium text-left"
         >
           Transaction
+        </button>
+      ),
+    },
+    {
+      accessorKey: "domains",
+      header: "Domains",
+      cell: ({ row }) => (
+        <button
+          onClick={() => navigate(`/restaurants/domains/${row.original.id}`)}
+          className="text-blue-600 hover:underline font-medium text-left"
+        >
+          Domains
         </button>
       ),
     },

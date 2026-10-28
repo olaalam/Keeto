@@ -29,6 +29,7 @@ import Food from "./Pages/Food/Food";
 import FoodAdd from "./Pages/Food/FoodAdd";
 import Setting from "./Pages/Restaurant/Setting";
 import SettingAdd from "./Pages/Restaurant/SettingAdd";
+import RestaurantDomains from "./Pages/Restaurant/RestaurantDomains";
 import Cuisine from "./Pages/Cuisine/Cuisine";
 import CuisineAdd from "./Pages/Cuisine/CuisineAdd";
 import BusinessPlan from "./Pages/BusinessPlan/BusinessPlan";
@@ -246,6 +247,10 @@ const router = createBrowserRouter([
       {
         path: "restaurants/setting/edit/:id",
         element: <SettingAdd />,
+      },
+      {
+        path: "restaurants/domains/:id",
+        element: <RestaurantDomains />,
       },
       {
         path: "addons",

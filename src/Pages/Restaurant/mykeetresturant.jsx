@@ -434,6 +434,7 @@ export default function DetailedFinancialReport() {
           actions={false}
         />
       </div>
+
     </div>
   );
 }
