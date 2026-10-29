@@ -530,11 +530,18 @@ export default function RestaurantOperations() {
       queryKey: ["restaurantOperations", restaurantType, filters, dateRange],
       placeholderData: (previous) => previous,
       queryFn: async () => {
-        // Multi-select values are sent comma-separated, e.g. status=demo,sales
+        // Backend expects single values or accepts single status in validation.
+        // If single status is selected, pass it as status. If multiple, fetch and filter client-side.
         const params = { restaurantType };
-        Object.entries(filters).forEach(([key, values]) => {
-          if (values.length) params[key] = values.join(",");
-        });
+        if (filters.operationType?.length === 1) {
+          params.operationType = filters.operationType[0];
+        }
+        if (filters.status?.length === 1) {
+          params.status = filters.status[0];
+        }
+        if (filters.app?.length === 1) {
+          params.app = filters.app[0];
+        }
         // Date range (YYYY-MM-DD) is sent only when set
         if (dateRange.startDate) params.startDate = dateRange.startDate;
         if (dateRange.endDate) params.endDate = dateRange.endDate;
@@ -558,6 +565,18 @@ export default function RestaurantOperations() {
               record.restaurant?.type || query.data.restaurantType,
           })),
         )
+        .filter((record) => {
+          if (filters.operationType?.length > 1 && !filters.operationType.includes(record.operationType)) {
+            return false;
+          }
+          if (filters.status?.length > 1 && !filters.status.includes(record.status)) {
+            return false;
+          }
+          if (filters.app?.length > 1 && !filters.app.includes(record.app)) {
+            return false;
+          }
+          return true;
+        })
         .sort(
           (a, b) =>
             (TYPE_RANK.get(a.restaurant?.type || a._reportRestaurantType) ??
@@ -565,7 +584,7 @@ export default function RestaurantOperations() {
             (TYPE_RANK.get(b.restaurant?.type || b._reportRestaurantType) ??
               RESTAURANT_TYPES.length),
         ),
-    [operationQueries],
+    [operationQueries, filters],
   );
 
   // City options come from the loaded data; filtering is done client-side.
@@ -1087,7 +1106,6 @@ export default function RestaurantOperations() {
           isLoading={isLoading}
           actions={false}
           sortByDate={false}
-          showTopScrollbar
         />
       </div>
 

@@ -487,7 +487,7 @@ function DomainRowActions({
   const showVerify = isExternal && !isVerified;
   // Provision button: available when verified, or whenever SSL needs provisioning / retry
   const showProvision = isVerified && (ssl_status === "pending" || ssl_status === "failed" || !ssl_status);
-  const showSetOrderLink = isVerified && sslActive;
+  const showSetOrderLink = true;
   const showDelete = true;
 
   return (
