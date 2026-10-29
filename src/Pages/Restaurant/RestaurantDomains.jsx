@@ -435,7 +435,8 @@ function DomainRowActions({
   const handleProvision = async () => {
     await runAction("provision", async () => {
       try {
-        await api.post(`/api/superadmin/domains/${domainId}/provision`);
+        const { data } = await api.post(`/api/superadmin/domains/${domainId}/provision`);
+        toast.success(data?.message || "Provisioning started successfully!");
         onRowRefresh();
         // Check after refresh if ssl failed
         setTimeout(() => {
@@ -446,6 +447,7 @@ function DomainRowActions({
       } catch (e) {
         const msg = e?.response?.data?.message || "Provisioning failed.";
         setRowMessage({ type: "error", text: msg });
+        toast.error(msg);
       }
     });
   };
@@ -483,7 +485,8 @@ function DomainRowActions({
   // Determine which actions to show based on row state
   const showShowDns = isExternal && !isVerified;
   const showVerify = isExternal && !isVerified;
-  const showProvision = isVerified && (ssl_status === "pending" || ssl_status === "failed");
+  // Provision button: available when verified, or whenever SSL needs provisioning / retry
+  const showProvision = isVerified && (ssl_status === "pending" || ssl_status === "failed" || !ssl_status);
   const showSetOrderLink = isVerified && sslActive;
   const showDelete = true;
 
