@@ -52,7 +52,7 @@ import {
   MapPin,
   ChevronsUpDown,
   Check,
-  Percent,
+  Truck,
   FlaskConical,
 } from "lucide-react";
 import jsPDF from "jspdf";
@@ -103,14 +103,12 @@ const ColumnSwitch = ({ label, checked, onChange }) => (
       role="switch"
       aria-checked={checked}
       onClick={onChange}
-      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-        checked ? "bg-yellow-400" : "bg-slate-300"
-      }`}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${checked ? "bg-yellow-400" : "bg-slate-300"
+        }`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-4" : "translate-x-1"
-        }`}
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${checked ? "translate-x-4" : "translate-x-1"
+          }`}
       />
     </button>
     <span className="text-xs font-medium text-slate-600 whitespace-nowrap">
@@ -120,15 +118,56 @@ const ColumnSwitch = ({ label, checked, onChange }) => (
 );
 
 // Standardized dashboard card component modeled after the provided screenshot
-const Card = ({ title, value, subtitle, icon: Icon, borderColor, bgColor }) => (
+const Card = ({
+  title,
+  value,
+  subtitle,
+  rate,
+  rateLabel,
+  rateColor = "text-slate-700",
+  rate2,
+  rateLabel2,
+  rateColor2 = "text-slate-700",
+  icon: Icon,
+  borderColor,
+  bgColor,
+}) => (
   <div
-    className={`bg-white border-2 ${borderColor} rounded-3xl p-4 sm:p-6 flex items-center justify-between gap-3`}
+    className={`bg-white border-2 ${borderColor} rounded-3xl p-4 sm:p-6 flex items-center justify-between gap-3 h-full min-h-[140px]`}
   >
     <div className="min-w-0">
       <p className="text-sm text-slate-500 font-medium ">{title}</p>
       <h2 className="text-lg sm:text-xl font-bold mt-1 text-slate-900">
         {value}
       </h2>
+      {rate != null && (
+        <p className="mt-2 flex items-baseline gap-1.5 flex-wrap">
+          <span
+            className={`text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums ${rateColor}`}
+          >
+            {rate}
+          </span>
+          {rateLabel && (
+            <span className="text-xs sm:text-sm font-semibold text-slate-500">
+              {rateLabel}
+            </span>
+          )}
+        </p>
+      )}
+      {rate2 != null && (
+        <p className="mt-1 flex items-baseline gap-1.5 flex-wrap">
+          <span
+            className={`text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums ${rateColor2}`}
+          >
+            {rate2}
+          </span>
+          {rateLabel2 && (
+            <span className="text-xs sm:text-sm font-semibold text-slate-500">
+              {rateLabel2}
+            </span>
+          )}
+        </p>
+      )}
       {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
     </div>
     <div
@@ -642,6 +681,13 @@ export default function ResReport() {
     percentages.ordersPerRestaurantPercent != null
       ? Number(percentages.ordersPerRestaurantPercent) / 100
       : null;
+  // Share of restaurants that received at least one order.
+  const withOrdersPercent =
+    Number(summary.totalRestaurants) > 0
+      ? (Number(summary.restaurantsWithOrders ?? 0) /
+        Number(summary.totalRestaurants)) *
+      100
+      : null;
   const formatPercent = (v) =>
     v == null
       ? "-"
@@ -681,6 +727,15 @@ export default function ResReport() {
   );
   const restaurantsWithoutOrdersList = useMemo(
     () => restaurants.filter((r) => (r.ordersCount ?? 0) === 0),
+    [restaurants],
+  );
+
+  // Restaurants whose delivery status is anything other than "delivered".
+  const notDeliveredRestaurantsList = useMemo(
+    () =>
+      restaurants.filter(
+        (r) => r.restaurantDetails?.deliverystatus !== "delivered",
+      ),
     [restaurants],
   );
 
@@ -995,11 +1050,10 @@ export default function ResReport() {
           return (
             <div className="text-center">
               <span
-                className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold capitalize ${
-                  isActive
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-rose-50 text-rose-600"
-                }`}
+                className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold capitalize ${isActive
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-rose-50 text-rose-600"
+                  }`}
               >
                 {status}
               </span>
@@ -1021,11 +1075,10 @@ export default function ResReport() {
           return (
             <div className="text-center">
               <span
-                className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold capitalize ${
-                  isDelivering
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-rose-50 text-rose-600"
-                }`}
+                className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold capitalize ${isDelivering
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-rose-50 text-rose-600"
+                  }`}
               >
                 {Deliverystatus}
               </span>
@@ -1267,170 +1320,135 @@ export default function ResReport() {
 
       {!showTable ? (
         <>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => setRestaurantListMode("with")}
-            className="w-full text-left"
-          >
-            <Card
-              title="Total Orders"
-              value={`${summary.totalOrders ?? 0} /  ${summary.restaurantsWithOrders ?? 0} with orders`}
-              icon={ShoppingBag}
-              borderColor="border-blue-500"
-              bgColor="bg-blue-50 text-blue-600"
-            />
-          </button>
-          <button
-            onClick={() => setShowTable(true)}
-            className="w-full text-left"
-          >
-            <Card
-              title="Total Restaurants"
-              value={summary.totalRestaurants ?? 0}
-              icon={Store}
-              borderColor="border-emerald-500"
-              bgColor="bg-emerald-50 text-emerald-600"
-            />
-          </button>
-          <Card
-            title="Valid Orders"
-            value={summary.validOrders ?? 0}
-            icon={CheckCircle2}
-            borderColor="border-emerald-500"
-            bgColor="bg-emerald-50 text-emerald-600"
-          />
-          <button
-            onClick={() => setShowCanceledOrders(true)}
-            className="w-full text-left"
-          >
-            <Card
-              title="Canceled Orders"
-              value={summary.canceledOrders ?? 0}
-              icon={XCircle}
-              borderColor="border-rose-500"
-              bgColor="bg-rose-50 text-rose-600"
-            />
-          </button>
-
-          <button
-            onClick={() => setRestaurantListMode("without")}
-            className="w-full text-left"
-          >
-            <Card
-              title="Restaurants missing Orders"
-              value={summary.restaurantsWithoutOrders ?? 0}
-              icon={ShoppingBag}
-              borderColor="border-rose-500"
-              bgColor="bg-rose-50 text-rose-600"
-            />
-          </button>
-          <Card
-            title="Total Commission"
-            value={`${Number(summary.total_commission ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`}
-            icon={Wallet}
-            borderColor="border-amber-500"
-            bgColor="bg-amber-50 text-amber-600"
-          />
-          <Card
-            title="Total Signup Users"
-            value={summary.totalSignupUsers ?? 0}
-            icon={UserCog}
-            borderColor="border-blue-500"
-            bgColor="bg-blue-50 text-blue-600"
-          />
-        </div>
-
-        {/* Rates — from summary.percentages */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
-            Rates
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card
-              title="Canceled Orders Rate"
-              value={formatPercent(percentages.canceledOrdersPercent)}
-              subtitle={`${summary.canceledOrders ?? 0} of ${summary.totalOrders ?? 0} orders`}
-              icon={Percent}
-              borderColor="border-rose-500"
-              bgColor="bg-rose-50 text-rose-600"
-            />
-            <Card
-              title="Restaurants Missing Orders"
-              value={formatPercent(percentages.missingRestaurantsPercent)}
-              subtitle={`${summary.restaurantsWithoutOrders ?? 0} of ${summary.totalRestaurants ?? 0} restaurants`}
-              icon={Percent}
-              borderColor="border-amber-500"
-              bgColor="bg-amber-50 text-amber-600"
-            />
-            <Card
-              title="Avg Orders per Restaurant"
-              value={
-                avgOrdersPerRestaurant == null
-                  ? "-"
-                  : avgOrdersPerRestaurant.toLocaleString(undefined, {
+          <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4">
+            <button
+              onClick={() => setRestaurantListMode("with")}
+              className="block w-full h-full text-left"
+            >
+              <Card
+                title="Total Orders"
+                value={`${summary.totalOrders ?? 0} /  ${summary.restaurantsWithOrders ?? 0} with orders`}
+                rate={
+                  avgOrdersPerRestaurant == null
+                    ? "-"
+                    : avgOrdersPerRestaurant.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })
-              }
-              subtitle={`${summary.totalOrders ?? 0} orders / ${summary.totalRestaurants ?? 0} restaurants`}
-              icon={ShoppingBag}
-              borderColor="border-blue-500"
-              bgColor="bg-blue-50 text-blue-600"
-            />
-          </div>
-        </div>
-
-        {/* Demo / test restaurants — from demoSummary */}
-        {demoSummary && (
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
-              Demo &amp; Test Restaurants
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                onClick={() => setShowDemoList(true)}
-                className="w-full text-left"
-              >
-                <Card
-                  title="Demo Restaurants"
-                  value={demoSummary.totalTestDemoRestaurants ?? 0}
-                  subtitle="Click to view list"
-                  icon={FlaskConical}
-                  borderColor="border-violet-500"
-                  bgColor="bg-violet-50 text-violet-600"
-                />
-              </button>
-              <Card
-                title="Demo Orders"
-                value={demoSummary.totalOrders ?? 0}
+                }
+                rateLabel="avg orders / restaurant"
+                rateColor="text-blue-600"
+                rate2={formatPercent(withOrdersPercent)}
+                rateLabel2="of restaurants with orders"
+                rateColor2="text-emerald-600"
                 icon={ShoppingBag}
                 borderColor="border-blue-500"
                 bgColor="bg-blue-50 text-blue-600"
               />
+            </button>
+            <button
+              onClick={() => setShowTable(true)}
+              className="block w-full h-full text-left"
+            >
               <Card
-                title="Demo Valid Orders"
-                value={demoSummary.validOrders ?? 0}
-                icon={CheckCircle2}
+                title="Total Restaurants"
+                value={summary.totalRestaurants ?? 0}
+                icon={Store}
                 borderColor="border-emerald-500"
                 bgColor="bg-emerald-50 text-emerald-600"
               />
+            </button>
+            <Card
+              title="Valid Orders"
+              value={summary.validOrders ?? 0}
+              icon={CheckCircle2}
+              borderColor="border-emerald-500"
+              bgColor="bg-emerald-50 text-emerald-600"
+            />
+            <button
+              onClick={() => setShowCanceledOrders(true)}
+              className="block w-full h-full text-left"
+            >
               <Card
-                title="Demo Canceled Orders"
-                value={demoSummary.canceledOrders ?? 0}
+                title="Canceled Orders"
+                value={summary.canceledOrders ?? 0}
+                rate={formatPercent(percentages.canceledOrdersPercent)}
+                rateLabel="of orders canceled"
+                rateColor="text-rose-600"
                 icon={XCircle}
                 borderColor="border-rose-500"
                 bgColor="bg-rose-50 text-rose-600"
               />
+            </button>
+
+            <button
+              onClick={() => setRestaurantListMode("without")}
+              className="block w-full h-full text-left"
+            >
               <Card
-                title="Demo Commission"
-                value={`${Number(demoSummary.total_commission ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`}
-                icon={Wallet}
-                borderColor="border-amber-500"
-                bgColor="bg-amber-50 text-amber-600"
+                title="Restaurants missing Orders"
+                value={summary.restaurantsWithoutOrders ?? 0}
+                rate={formatPercent(percentages.missingRestaurantsPercent)}
+                rateLabel="of restaurants"
+                rateColor="text-rose-600"
+                icon={ShoppingBag}
+                borderColor="border-rose-500"
+                bgColor="bg-rose-50 text-rose-600"
               />
-            </div>
+            </button>
+            <Card
+              title="Total Commission"
+              value={`${Number(summary.total_commission ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`}
+              icon={Wallet}
+              borderColor="border-amber-500"
+              bgColor="bg-amber-50 text-amber-600"
+            />
+            <Card
+              title="Total Signup Users"
+              value={summary.totalSignupUsers ?? 0}
+              icon={UserCog}
+              borderColor="border-blue-500"
+              bgColor="bg-blue-50 text-blue-600"
+            />
+            <button
+              onClick={() => setRestaurantListMode("notDelivered")}
+              className="block w-full h-full text-left"
+            >
+              <Card
+                title="Not Delivered Restaurants"
+                value={notDeliveredRestaurantsList.length}
+                subtitle={`of ${summary.totalRestaurants ?? restaurants.length} restaurants · click to view list`}
+                icon={Truck}
+                borderColor="border-orange-500"
+                bgColor="bg-orange-50 text-orange-600"
+              />
+            </button>
           </div>
-        )}
+
+          {/* Demo / test restaurants — from demoSummary */}
+          {demoSummary && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+                Demo  Restaurants
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4">
+                <button
+                  onClick={() => setShowDemoList(true)}
+                  className="block w-full h-full text-left"
+                >
+                  <Card
+                    title="Demo Restaurants"
+                    value={demoSummary.totalTestDemoRestaurants ?? 0}
+                    subtitle="Click to view list"
+                    icon={FlaskConical}
+                    borderColor="border-violet-500"
+                    bgColor="bg-violet-50 text-violet-600"
+                  />
+                </button>
+
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -1522,7 +1540,7 @@ export default function ResReport() {
                     size="sm"
                     variant={
                       selectedTypes.includes(t) ||
-                      (t === "all" && selectedTypes.length === 0)
+                        (t === "all" && selectedTypes.length === 0)
                         ? "default"
                         : "outline"
                     }
@@ -1845,11 +1863,10 @@ export default function ResReport() {
                   return (
                     <span
                       key={id}
-                      className={`flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium border ${
-                        isVersus
-                          ? "bg-amber-50 border-amber-300 text-amber-700"
-                          : "bg-slate-100 border-slate-200 text-slate-600"
-                      }`}
+                      className={`flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium border ${isVersus
+                        ? "bg-amber-50 border-amber-300 text-amber-700"
+                        : "bg-slate-100 border-slate-200 text-slate-600"
+                        }`}
                     >
                       {d.name || d.nameAr || "-"}
                       <button
@@ -1860,11 +1877,10 @@ export default function ResReport() {
                             ? "Currently on the 'versus' side — click to move back to the group"
                             : "Move to the 'versus' side"
                         }
-                        className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
-                          isVersus
-                            ? "bg-amber-400 text-white"
-                            : "bg-white text-slate-500 hover:text-blue-600 border border-slate-200"
-                        }`}
+                        className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full ${isVersus
+                          ? "bg-amber-400 text-white"
+                          : "bg-white text-slate-500 hover:text-blue-600 border border-slate-200"
+                          }`}
                       >
                         {isVersus ? "Versus" : "vs?"}
                       </button>
@@ -1909,11 +1925,15 @@ export default function ResReport() {
             const list =
               restaurantListMode === "with"
                 ? restaurantsWithOrdersList
-                : restaurantsWithoutOrdersList;
+                : restaurantListMode === "notDelivered"
+                  ? notDeliveredRestaurantsList
+                  : restaurantsWithoutOrdersList;
             const title =
               restaurantListMode === "with"
                 ? `Restaurants with Orders (${list.length})`
-                : `Restaurants without Orders (${list.length})`;
+                : restaurantListMode === "notDelivered"
+                  ? `Not Delivered Restaurants (${list.length})`
+                  : `Restaurants without Orders (${list.length})`;
 
             return (
               <>
@@ -2081,8 +2101,8 @@ export default function ResReport() {
               canceledOrdersFilter === "all"
                 ? canceledOrdersList
                 : canceledOrdersList.filter(
-                    (o) => o.cancelType === canceledOrdersFilter,
-                  );
+                  (o) => o.cancelType === canceledOrdersFilter,
+                );
 
             const filterTabs = [
               { id: "all", label: "All", count: canceledOrdersList.length },
@@ -2108,11 +2128,10 @@ export default function ResReport() {
                       key={tab.id}
                       type="button"
                       onClick={() => setCanceledOrdersFilter(tab.id)}
-                      className={`flex-1 rounded-xl border px-3 py-2 text-center transition-colors ${
-                        canceledOrdersFilter === tab.id
-                          ? "bg-rose-50 border-rose-300 text-rose-700"
-                          : "bg-slate-50 border-slate-100 text-slate-500 hover:border-slate-200"
-                      }`}
+                      className={`flex-1 rounded-xl border px-3 py-2 text-center transition-colors ${canceledOrdersFilter === tab.id
+                        ? "bg-rose-50 border-rose-300 text-rose-700"
+                        : "bg-slate-50 border-slate-100 text-slate-500 hover:border-slate-200"
+                        }`}
                     >
                       <p className="text-sm font-bold font-mono">
                         {tab.count}
@@ -2135,14 +2154,13 @@ export default function ResReport() {
                           <p className="font-semibold text-slate-800 truncate">
                             {o.restaurantName || "-"}
                           </p>
-                         
+
                         </div>
                         <span
-                          className={`shrink-0 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${
-                            o.cancelType === "user"
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-rose-50 text-rose-600"
-                          }`}
+                          className={`shrink-0 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${o.cancelType === "user"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-rose-50 text-rose-600"
+                            }`}
                         >
                           Canceled by {o.cancelType || "unknown"}
                         </span>
@@ -2216,11 +2234,10 @@ export default function ResReport() {
                         <DialogDescription asChild>
                           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             <span
-                              className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${
-                                isActive
-                                  ? "bg-emerald-50 text-emerald-600"
-                                  : "bg-rose-50 text-rose-600"
-                              }`}
+                              className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${isActive
+                                ? "bg-emerald-50 text-emerald-600"
+                                : "bg-rose-50 text-rose-600"
+                                }`}
                             >
                               {d.status || "-"}
                             </span>
@@ -2228,11 +2245,10 @@ export default function ResReport() {
                               {d.type || "Unknown"}
                             </span>
                             <span
-                              className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${
-                                d.deliverystatus === "delivered"
-                                  ? "bg-emerald-50 text-emerald-600"
-                                  : "bg-slate-100 text-slate-500"
-                              }`}
+                              className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${d.deliverystatus === "delivered"
+                                ? "bg-emerald-50 text-emerald-600"
+                                : "bg-slate-100 text-slate-500"
+                                }`}
                             >
                               {d.deliverystatus === "delivered"
                                 ? "Delivered"
