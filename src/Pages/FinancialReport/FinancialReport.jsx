@@ -57,6 +57,19 @@ export default function FinancialReport() {
   const macroFinancials = reportData?.macroFinancials || {};
   const collectionBreakdown = reportData?.collectionBreakdown || {};
   const sourceBreakdown = reportData?.sourceBreakdown || [];
+  const walletManagement = reportData?.walletManagement;
+  const walletSummary = walletManagement?.summary || {};
+  const walletRestaurants = walletManagement?.restaurants || [];
+  const getClaimSideLabel = (claimSide, balance) => {
+    if (!claimSide) return "N/A";
+    if (/[\u0600-\u06FF]/.test(claimSide)) {
+      const numericBalance = Number(balance);
+      if (numericBalance > 0) return "Restaurants are owed by the platform";
+      if (numericBalance < 0) return "The platform is owed by restaurants";
+      return "N/A";
+    }
+    return claimSide;
+  };
   const exportPDF = () => {
     const doc = new jsPDF();
 
@@ -102,6 +115,35 @@ export default function FinancialReport() {
         `${Number(item.keetoCommission).toFixed(2)} E£`,
       ]),
     });
+
+    if (walletManagement) {
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 15,
+        head: [["Wallet Summary", "Value"]],
+        body: [
+          ["Net Balance", walletSummary.totalNetBalance || "0.00"],
+          [
+            "Claim Side",
+            getClaimSideLabel(
+              walletSummary.claimSide,
+              walletSummary.totalNetBalance,
+            ),
+          ],
+          ["Due on Restaurants", `${walletSummary.totalDueOnRestaurants || "0.00"} E£`],
+          ["Due to Restaurants", `${walletSummary.totalDueToRestaurants || "0.00"} E£`],
+        ],
+      });
+
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 10,
+        head: [["Restaurant", "Balance", "Claim Side"]],
+        body: walletRestaurants.map((restaurant) => [
+          restaurant.restaurantName,
+          `${restaurant.balance} E£`,
+          getClaimSideLabel(restaurant.claimSide, restaurant.balance),
+        ]),
+      });
+    }
 
     doc.save(`Financial_Report_${startDate || ""}_${endDate || ""}.pdf`);
   };
@@ -334,6 +376,94 @@ export default function FinancialReport() {
             </>
           )}
         </div>
+      )}
+      {walletManagement && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">Wallet Management</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Platform and restaurant wallet balances.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white border rounded-2xl shadow-sm p-5">
+              <p className="text-sm font-medium text-slate-400">Total Net Balance</p>
+              <p className="text-2xl font-black mt-1 text-slate-800 font-mono">
+                {walletSummary.totalNetBalance || "0.00"} E£
+              </p>
+            </div>
+            <div className="bg-white border rounded-2xl shadow-sm p-5">
+              <p className="text-sm font-medium text-slate-400">Claim Side</p>
+              <p className="text-lg font-bold mt-2 text-slate-800">
+                {getClaimSideLabel(
+                  walletSummary.claimSide,
+                  walletSummary.totalNetBalance,
+                )}
+              </p>
+            </div>
+            <div className="bg-white border rounded-2xl shadow-sm p-5">
+              <p className="text-sm font-medium text-slate-400">Due on Restaurants</p>
+              <p className="text-2xl font-black mt-1 text-rose-600 font-mono">
+                {walletSummary.totalDueOnRestaurants || "0.00"} E£
+              </p>
+            </div>
+            <div className="bg-white border rounded-2xl shadow-sm p-5">
+              <p className="text-sm font-medium text-slate-400">Due to Restaurants</p>
+              <p className="text-2xl font-black mt-1 text-emerald-600 font-mono">
+                {walletSummary.totalDueToRestaurants || "0.00"} E£
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto bg-white border rounded-2xl shadow-sm">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="px-5 py-3 font-semibold">Restaurant</th>
+                  <th className="px-5 py-3 font-semibold">Balance</th>
+                  <th className="px-5 py-3 font-semibold">Claim Side</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {walletRestaurants.map((restaurant) => (
+                  <tr key={restaurant.restaurantId}>
+                    <td className="px-5 py-4">
+                      <p className="font-semibold text-slate-800">
+                        {restaurant.restaurantName}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {restaurant.restaurantId}
+                      </p>
+                    </td>
+                    <td
+                      className={`px-5 py-4 font-mono font-bold ${
+                        Number(restaurant.balance) < 0
+                          ? "text-rose-600"
+                          : "text-emerald-600"
+                      }`}
+                    >
+                      {restaurant.balance} E£
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">
+                      {getClaimSideLabel(
+                        restaurant.claimSide,
+                        restaurant.balance,
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {walletRestaurants.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-5 py-6 text-center text-slate-500">
+                      No restaurant wallet balances.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
       <button
         onClick={exportPDF}
