@@ -93,18 +93,6 @@ export default function Restaurant() {
     },
 
     {
-      accessorKey: "transaction",
-      header: "Transaction",
-      cell: ({ row }) => (
-        <button
-          onClick={() => navigate(`transaction/${row.original.id}`)}
-          className="text-blue-600 hover:underline font-medium text-left"
-        >
-          Transaction
-        </button>
-      ),
-    },
-    {
       accessorKey: "domains",
       header: "Domains",
       cell: ({ row }) => (

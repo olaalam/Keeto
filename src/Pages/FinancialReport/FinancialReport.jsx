@@ -2,11 +2,18 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import GenericDataTable from "@/components/GenericDataTable";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ShoppingBag,
   CheckCircle2,
@@ -17,7 +24,86 @@ import {
   CalendarRange,
 } from "lucide-react";
 
+const getVisaConditionType = (restaurant) =>
+  restaurant.visaSwitchConditionType ||
+  restaurant.visaSwitchProgress?.conditionType ||
+  "none";
+
+const getVisaConditionLabel = (conditionType) => {
+  const labels = {
+    amount: "Amount",
+    day_of_week: "Weekly",
+    day_of_month: "Monthly",
+    none: "No condition",
+  };
+  return labels[conditionType] || conditionType;
+};
+
+const getVisaProgress = (restaurant) => {
+  const conditionType = getVisaConditionType(restaurant);
+  const progress = restaurant.visaSwitchProgress || {};
+  const remaining =
+    progress.remainingDays == null || progress.remainingDays === ""
+      ? NaN
+      : Number(progress.remainingDays);
+
+  if (conditionType === "amount") {
+    const threshold = Number(
+      progress.threshold ?? restaurant.visaSwitchAmountThreshold,
+    );
+    const currentDebt = Number(
+      progress.currentDebt ??
+        (Number.isFinite(threshold) && progress.remainingAmount != null
+          ? threshold - Number(progress.remainingAmount)
+          : NaN),
+    );
+    const remainingAmount =
+      progress.remainingAmount != null
+        ? Number(progress.remainingAmount)
+        : threshold - currentDebt;
+
+    return {
+      label: Number.isFinite(remainingAmount)
+        ? `${remainingAmount.toFixed(2)} E£ remaining`
+        : "Amount not available",
+      percent:
+        Number.isFinite(threshold) &&
+        threshold > 0 &&
+        Number.isFinite(currentDebt)
+          ? Math.min(100, Math.max(0, (currentDebt / threshold) * 100))
+          : null,
+    };
+  }
+
+  if (
+    (conditionType === "day_of_week" ||
+      conditionType === "day_of_month") &&
+    Number.isFinite(remaining)
+  ) {
+    const daysInMonth = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth() + 1,
+      0,
+    ).getDate();
+    const periodLength = conditionType === "day_of_week" ? 7 : daysInMonth;
+
+    return {
+      label: `${remaining} ${remaining === 1 ? "day" : "days"} remaining`,
+      percent: Math.min(
+        100,
+        Math.max(0, ((periodLength - remaining) / periodLength) * 100),
+      ),
+    };
+  }
+
+  return {
+    label: conditionType === "none" ? "No automatic switch" : "Progress unavailable",
+    percent: null,
+  };
+};
+
 export default function FinancialReport() {
+  const navigate = useNavigate();
   const {
     restaurantId,
     startDate: startDateParam,
@@ -27,6 +113,7 @@ export default function FinancialReport() {
   // نطاق التاريخ الفعلي بيتحكم فيه المستخدم من الفلتر، ولو مفيش حاجة في الـ URL بنبدأ فاضي
   const [startDate, setStartDate] = useState(startDateParam || "");
   const [endDate, setEndDate] = useState(endDateParam || "");
+  const [walletConditionFilter, setWalletConditionFilter] = useState("all");
 
   const resetDateFilter = () => {
     setStartDate("");
@@ -44,8 +131,22 @@ export default function FinancialReport() {
           endDate,
         },
       });
-      // الوصول للهيكل الصحيح بناءً على الـ JSON المستلم
-      return res.data?.data?.data || res.data?.data;
+      const candidates = [
+        res.data?.data?.data,
+        res.data?.data,
+        res.data,
+      ];
+      return (
+        candidates.find(
+          (candidate) =>
+            candidate &&
+            typeof candidate === "object" &&
+            ("walletManagement" in candidate ||
+              "macroFinancials" in candidate ||
+              "totalAttemptedOrders" in candidate),
+        ) ??
+        candidates.find((candidate) => candidate && typeof candidate === "object")
+      );
     },
   });
 
@@ -57,9 +158,19 @@ export default function FinancialReport() {
   const macroFinancials = reportData?.macroFinancials || {};
   const collectionBreakdown = reportData?.collectionBreakdown || {};
   const sourceBreakdown = reportData?.sourceBreakdown || [];
-  const walletManagement = reportData?.walletManagement;
+  const walletManagement =
+    reportData?.walletManagement ??
+    reportData?.data?.walletManagement ??
+    reportData?.data?.data?.walletManagement;
   const walletSummary = walletManagement?.summary || {};
-  const walletRestaurants = walletManagement?.restaurants || [];
+  const walletRestaurants = Array.isArray(walletManagement?.restaurants)
+    ? walletManagement.restaurants
+    : [];
+  const filteredWalletRestaurants = walletRestaurants.filter(
+    (restaurant) =>
+      walletConditionFilter === "all" ||
+      getVisaConditionType(restaurant) === walletConditionFilter,
+  );
   const getClaimSideLabel = (claimSide, balance) => {
     if (!claimSide) return "N/A";
     if (/[\u0600-\u06FF]/.test(claimSide)) {
@@ -136,11 +247,13 @@ export default function FinancialReport() {
 
       autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 10,
-        head: [["Restaurant", "Balance", "Claim Side"]],
+        head: [["Restaurant", "Balance", "Claim Side", "Visa Condition", "Remaining"]],
         body: walletRestaurants.map((restaurant) => [
           restaurant.restaurantName,
           `${restaurant.balance} E£`,
           getClaimSideLabel(restaurant.claimSide, restaurant.balance),
+          getVisaConditionLabel(getVisaConditionType(restaurant)),
+          getVisaProgress(restaurant).label,
         ]),
       });
     }
@@ -246,7 +359,8 @@ export default function FinancialReport() {
 
   return (
     <div className="container mx-auto py-10 space-y-8">
-      <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
         <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
           Financial Macro-Report Dashboard
         </h1>
@@ -254,6 +368,13 @@ export default function FinancialReport() {
           Overview of platform totals, commission statistics, and collection
           methods.
         </p>
+        </div>
+        <a
+          href="#wallet-management"
+          className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
+        >
+          Wallet Management
+        </a>
       </div>
 
       {/* فلتر التاريخ */}
@@ -377,15 +498,19 @@ export default function FinancialReport() {
           )}
         </div>
       )}
-      {walletManagement && (
-        <section className="space-y-4">
+      <section
+        id="wallet-management"
+        className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-6"
+      >
           <div>
             <h2 className="text-xl font-bold text-slate-800">Wallet Management</h2>
             <p className="text-sm text-slate-500 mt-1">
-              Platform and restaurant wallet balances.
+              Wallet balances and Visa switch condition progress.
             </p>
           </div>
 
+          {walletManagement ? (
+            <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white border rounded-2xl shadow-sm p-5">
               <p className="text-sm font-medium text-slate-400">Total Net Balance</p>
@@ -416,6 +541,43 @@ export default function FinancialReport() {
             </div>
           </div>
 
+          <div className="flex flex-wrap items-end gap-4 rounded-xl border bg-white p-4">
+            <div className="text-sm font-semibold text-slate-700">
+              Wallet filters
+              <p className="mt-1 text-xs font-normal text-slate-500">
+                Date range follows the report date filter above.
+              </p>
+            </div>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+              Visa switch condition
+              <Select
+                value={walletConditionFilter}
+                onValueChange={setWalletConditionFilter}
+              >
+                <SelectTrigger className="h-9 w-52">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All conditions</SelectItem>
+                  <SelectItem value="amount">Amount</SelectItem>
+                  <SelectItem value="day_of_week">Weekly periodic</SelectItem>
+                  <SelectItem value="day_of_month">Monthly periodic</SelectItem>
+                  <SelectItem value="none">No condition</SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
+            {walletConditionFilter !== "all" && (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9"
+                onClick={() => setWalletConditionFilter("all")}
+              >
+                Clear filter
+              </Button>
+            )}
+          </div>
+
           <div className="overflow-x-auto bg-white border rounded-2xl shadow-sm">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 text-slate-600">
@@ -423,48 +585,123 @@ export default function FinancialReport() {
                   <th className="px-5 py-3 font-semibold">Restaurant</th>
                   <th className="px-5 py-3 font-semibold">Balance</th>
                   <th className="px-5 py-3 font-semibold">Claim Side</th>
+                  <th className="px-5 py-3 font-semibold">Visa Condition</th>
+                  <th className="px-5 py-3 font-semibold">Remaining</th>
+                  <th className="px-5 py-3 font-semibold">Progress</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {walletRestaurants.map((restaurant) => (
-                  <tr key={restaurant.restaurantId}>
-                    <td className="px-5 py-4">
-                      <p className="font-semibold text-slate-800">
-                        {restaurant.restaurantName}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {restaurant.restaurantId}
-                      </p>
-                    </td>
-                    <td
-                      className={`px-5 py-4 font-mono font-bold ${
-                        Number(restaurant.balance) < 0
-                          ? "text-rose-600"
-                          : "text-emerald-600"
-                      }`}
-                    >
-                      {restaurant.balance} E£
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {getClaimSideLabel(
-                        restaurant.claimSide,
-                        restaurant.balance,
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {walletRestaurants.length === 0 && (
+                {filteredWalletRestaurants.map((restaurant) => {
+                  const progress = getVisaProgress(restaurant);
+                  return (
+                    <tr key={restaurant.restaurantId}>
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/restaurants/transaction/${restaurant.restaurantId}`,
+                            )
+                          }
+                          className="block max-w-[240px] truncate text-left font-semibold text-blue-700 hover:underline"
+                          title={restaurant.restaurantName}
+                        >
+                          {restaurant.restaurantName}
+                        </button>
+                        <p className="text-xs text-slate-400">
+                          {restaurant.restaurantId}
+                        </p>
+                      </td>
+                      <td
+                        className={`px-5 py-4 font-mono font-bold ${
+                          Number(restaurant.balance) < 0
+                            ? "text-rose-600"
+                            : "text-emerald-600"
+                        }`}
+                      >
+                        {restaurant.balance} E£
+                      </td>
+                      <td className="px-5 py-4 text-slate-600">
+                        {getClaimSideLabel(
+                          restaurant.claimSide,
+                          restaurant.balance,
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="font-medium text-slate-700">
+                          {getVisaConditionLabel(
+                            getVisaConditionType(restaurant),
+                          )}
+                        </div>
+                        {getVisaConditionType(restaurant) ===
+                          "day_of_week" && (
+                          <div className="text-xs text-slate-500">
+                            {restaurant.visaSwitchDayOfWeek ||
+                              restaurant.visaSwitchProgress?.dayOfWeek}
+                          </div>
+                        )}
+                        {getVisaConditionType(restaurant) ===
+                          "day_of_month" && (
+                          <div className="text-xs text-slate-500">
+                            Day{" "}
+                            {restaurant.visaSwitchDayOfMonth ||
+                              restaurant.visaSwitchProgress?.dayOfMonth}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap text-slate-600">
+                        {progress.label}
+                      </td>
+                      <td className="min-w-[180px] px-5 py-4">
+                        {progress.percent == null ? (
+                          <span className="text-xs text-slate-400">—</span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div
+                              role="progressbar"
+                              aria-label={`${getVisaConditionLabel(
+                                getVisaConditionType(restaurant),
+                              )} progress`}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={Math.round(progress.percent)}
+                              className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"
+                            >
+                              <div
+                                className="h-full rounded-full bg-blue-600 transition-all"
+                                style={{ width: `${progress.percent}%` }}
+                              />
+                            </div>
+                            <span className="w-10 text-right text-xs font-medium text-slate-500">
+                              {Math.round(progress.percent)}%
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filteredWalletRestaurants.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-5 py-6 text-center text-slate-500">
-                      No restaurant wallet balances.
+                    <td colSpan={6} className="px-5 py-6 text-center text-slate-500">
+                      {walletRestaurants.length === 0
+                        ? "No restaurant wallet balances were returned."
+                        : "No restaurant wallet balances match this filter."}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+            </>
+          ) : (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              {isLoading
+                ? "Loading wallet management..."
+                : "Wallet management data was not included in the financial report response."}
+            </p>
+          )}
         </section>
-      )}
       <button
         onClick={exportPDF}
         className="px-4 py-2 bg-blue-600 text-white rounded-lg"
