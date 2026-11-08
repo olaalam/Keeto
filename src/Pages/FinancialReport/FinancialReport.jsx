@@ -171,16 +171,6 @@ export default function FinancialReport() {
       walletConditionFilter === "all" ||
       getVisaConditionType(restaurant) === walletConditionFilter,
   );
-  const getClaimSideLabel = (claimSide, balance) => {
-    if (!claimSide) return "N/A";
-    if (/[\u0600-\u06FF]/.test(claimSide)) {
-      const numericBalance = Number(balance);
-      if (numericBalance > 0) return "Restaurants are owed by the platform";
-      if (numericBalance < 0) return "The platform is owed by restaurants";
-      return "N/A";
-    }
-    return claimSide;
-  };
   const exportPDF = () => {
     const doc = new jsPDF();
 
@@ -233,13 +223,6 @@ export default function FinancialReport() {
         head: [["Wallet Summary", "Value"]],
         body: [
           ["Net Balance", walletSummary.totalNetBalance || "0.00"],
-          [
-            "Claim Side",
-            getClaimSideLabel(
-              walletSummary.claimSide,
-              walletSummary.totalNetBalance,
-            ),
-          ],
           ["Due on Restaurants", `${walletSummary.totalDueOnRestaurants || "0.00"} E£`],
           ["Due to Restaurants", `${walletSummary.totalDueToRestaurants || "0.00"} E£`],
         ],
@@ -247,11 +230,10 @@ export default function FinancialReport() {
 
       autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 10,
-        head: [["Restaurant", "Balance", "Claim Side", "Visa Condition", "Remaining"]],
+        head: [["Restaurant", "Balance", "Visa Condition", "Remaining"]],
         body: walletRestaurants.map((restaurant) => [
           restaurant.restaurantName,
           `${restaurant.balance} E£`,
-          getClaimSideLabel(restaurant.claimSide, restaurant.balance),
           getVisaConditionLabel(getVisaConditionType(restaurant)),
           getVisaProgress(restaurant).label,
         ]),
@@ -511,31 +493,22 @@ export default function FinancialReport() {
 
           {walletManagement ? (
             <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-white border rounded-2xl shadow-sm p-5">
               <p className="text-sm font-medium text-slate-400">Total Net Balance</p>
               <p className="text-2xl font-black mt-1 text-slate-800 font-mono">
                 {walletSummary.totalNetBalance || "0.00"} E£
               </p>
             </div>
-            <div className="bg-white border rounded-2xl shadow-sm p-5">
-              <p className="text-sm font-medium text-slate-400">Claim Side</p>
-              <p className="text-lg font-bold mt-2 text-slate-800">
-                {getClaimSideLabel(
-                  walletSummary.claimSide,
-                  walletSummary.totalNetBalance,
-                )}
-              </p>
-            </div>
-            <div className="bg-white border rounded-2xl shadow-sm p-5">
+            <div className="bg-green-50 border border-green-100 rounded-2xl shadow-sm p-5">
               <p className="text-sm font-medium text-slate-400">Due on Restaurants</p>
-              <p className="text-2xl font-black mt-1 text-rose-600 font-mono">
+              <p className="text-2xl font-black mt-1 text-emerald-600 font-mono">
                 {walletSummary.totalDueOnRestaurants || "0.00"} E£
               </p>
             </div>
-            <div className="bg-white border rounded-2xl shadow-sm p-5">
+            <div className="bg-red-50 border border-red-100 rounded-2xl shadow-sm p-5">
               <p className="text-sm font-medium text-slate-400">Due to Restaurants</p>
-              <p className="text-2xl font-black mt-1 text-emerald-600 font-mono">
+              <p className="text-2xl font-black mt-1 text-rose-600 font-mono">
                 {walletSummary.totalDueToRestaurants || "0.00"} E£
               </p>
             </div>
@@ -584,7 +557,6 @@ export default function FinancialReport() {
                 <tr>
                   <th className="px-5 py-3 font-semibold">Restaurant</th>
                   <th className="px-5 py-3 font-semibold">Balance</th>
-                  <th className="px-5 py-3 font-semibold">Claim Side</th>
                   <th className="px-5 py-3 font-semibold">Visa Condition</th>
                   <th className="px-5 py-3 font-semibold">Remaining</th>
                   <th className="px-5 py-3 font-semibold">Progress</th>
@@ -608,9 +580,6 @@ export default function FinancialReport() {
                         >
                           {restaurant.restaurantName}
                         </button>
-                        <p className="text-xs text-slate-400">
-                          {restaurant.restaurantId}
-                        </p>
                       </td>
                       <td
                         className={`px-5 py-4 font-mono font-bold ${
@@ -620,12 +589,6 @@ export default function FinancialReport() {
                         }`}
                       >
                         {restaurant.balance} E£
-                      </td>
-                      <td className="px-5 py-4 text-slate-600">
-                        {getClaimSideLabel(
-                          restaurant.claimSide,
-                          restaurant.balance,
-                        )}
                       </td>
                       <td className="px-5 py-4">
                         <div className="font-medium text-slate-700">
@@ -683,7 +646,7 @@ export default function FinancialReport() {
                 })}
                 {filteredWalletRestaurants.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-6 text-center text-slate-500">
+                    <td colSpan={5} className="px-5 py-6 text-center text-slate-500">
                       {walletRestaurants.length === 0
                         ? "No restaurant wallet balances were returned."
                         : "No restaurant wallet balances match this filter."}

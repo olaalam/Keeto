@@ -128,13 +128,17 @@ export default function Transaction() {
 
   const columns = [
     {
-      accessorKey: "reference",
-      header: "Reference",
-      cell: ({ row }) => (
-        <span className="font-mono text-xs font-semibold text-slate-700">
-          {row.original.reference || row.original.id || "—"}
-        </span>
-      ),
+      accessorKey: "order.dailyOrderNumber",
+      header: "Order Daily Number",
+      cell: ({ row }) =>
+        renderText(
+          row.original.order?.dailyOrderNumber ?? row.original.orderDailyNumber,
+        ),
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Date",
+      cell: ({ row }) => renderText(formatDate(row.original.createdAt)),
     },
     {
       accessorKey: "type",
@@ -144,6 +148,17 @@ export default function Transaction() {
           {row.original.type || "Transaction"}
         </span>
       ),
+    },
+    {
+      accessorKey: "cancelType",
+      header: "Cancel Type",
+      cell: ({ row }) =>
+        renderText(row.original.cancelType ?? row.original.order?.cancelType),
+    },
+    {
+      accessorKey: "visaSwitchConditionType",
+      header: "Condition Type",
+      cell: ({ row }) => renderText(row.original.visaSwitchConditionType),
     },
     {
       accessorKey: "method",
@@ -170,24 +185,9 @@ export default function Transaction() {
       },
     },
     {
-      accessorKey: "balanceBefore",
-      header: "Balance Before",
-      cell: ({ row }) => renderText(row.original.balanceBefore),
-    },
-    {
-      accessorKey: "balanceAfter",
-      header: "Balance After",
-      cell: ({ row }) => renderText(row.original.balanceAfter),
-    },
-    {
       accessorKey: "note",
       header: "Note",
       cell: ({ row }) => renderText(row.original.note),
-    },
-    {
-      accessorKey: "createdAt",
-      header: "Date",
-      cell: ({ row }) => renderText(formatDate(row.original.createdAt)),
     },
   ];
 
