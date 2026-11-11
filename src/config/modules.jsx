@@ -203,6 +203,12 @@ export const modules = [
         module: "reports",
       },
       {
+        title: "Wallet Management",
+        url: "/wallet-management",
+        icon: Wallet,
+        module: "reports",
+      },
+      {
         title: "MyKeeto Report",
         url: "/mykeeto",
         icon: KeetoIcon,

@@ -43,6 +43,7 @@ import Order from "./Pages/Order/Order";
 import WalletR from "./Pages/Restaurant/WalletR";
 import Details from "./Pages/Order/details";
 import FinancialReport from "./Pages/FinancialReport/FinancialReport";
+import WalletManagementReport from "./Pages/FinancialReport/WalletManagementReport";
 import Mykeeto from "./Pages/Mykeeto/mykeeto";
 import Popup from "./Pages/Popup/Popup";
 import PopupAdd from "./Pages/Popup/PopupAdd";
@@ -375,6 +376,10 @@ const router = createBrowserRouter([
       {
         path: "financial-report",
         element: <FinancialReport />,
+      },
+      {
+        path: "wallet-management",
+        element: <WalletManagementReport />,
       },
       {
         path: "popup",
