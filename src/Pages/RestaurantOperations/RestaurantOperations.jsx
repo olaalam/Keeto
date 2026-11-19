@@ -45,6 +45,8 @@ import { toast } from "sonner";
 const RESTAURANT_TYPES = ["mega", "super", "A", "B", "C", "C-", "test"];
 const TYPE_RANK = new Map(RESTAURANT_TYPES.map((type, index) => [type, index]));
 const OPERATIONS_URL = "/api/superadmin/restaurant-operations";
+const PAGE_LIMIT = 100; // rows requested per page
+const MAX_PAGES = 50; // safety cap against runaway loops
 const OPERATION_TYPES = ["branch", "callcenter"];
 const OPERATION_STATUSES = [
   "demo",
@@ -306,6 +308,11 @@ function MultiSelectFilter({ label, options, selected, onChange }) {
   );
 }
 
+// Response shape: { success, data: { data: [...], pagination: { page, limit, totalItems, totalPages } } }
+function getPagination(responseData) {
+  return responseData?.data?.pagination ?? responseData?.pagination ?? null;
+}
+
 function getRows(responseData) {
   let result = responseData;
 
@@ -525,14 +532,19 @@ export default function RestaurantOperations() {
 
   const requestedTypes =
     selectedTypes.length === 0 ? RESTAURANT_TYPES : selectedTypes;
+  // One query per restaurant type, and ONLY for the types in the filter.
+  // Toggling a type adds/removes just that type's query: the other types stay
+  // cached (same queryKey) and are not called again.
   const operationQueries = useQueries({
     queries: requestedTypes.map((restaurantType) => ({
       queryKey: ["restaurantOperations", restaurantType, filters, dateRange],
       placeholderData: (previous) => previous,
+      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
       queryFn: async () => {
         // Backend expects single values or accepts single status in validation.
         // If single status is selected, pass it as status. If multiple, fetch and filter client-side.
-        const params = { restaurantType };
+        const params = { restaurantType, limit: PAGE_LIMIT };
         if (filters.operationType?.length === 1) {
           params.operationType = filters.operationType[0];
         }
@@ -545,12 +557,30 @@ export default function RestaurantOperations() {
         // Date range (YYYY-MM-DD) is sent only when set
         if (dateRange.startDate) params.startDate = dateRange.startDate;
         if (dateRange.endDate) params.endDate = dateRange.endDate;
-        const response = await api.get(OPERATIONS_URL, { params });
 
-        return {
-          restaurantType,
-          rows: getRows(response.data),
-        };
+        // The API is paginated (page & limit): load page 1, then keep
+        // requesting the following pages until pagination.totalPages is reached.
+        const firstResponse = await api.get(OPERATIONS_URL, {
+          params: { ...params, page: 1 },
+        });
+        const rows = [...getRows(firstResponse.data)];
+        const totalPages = Math.min(
+          getPagination(firstResponse.data)?.totalPages || 1,
+          MAX_PAGES,
+        );
+
+        if (totalPages > 1) {
+          const remaining = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, index) =>
+              api.get(OPERATIONS_URL, {
+                params: { ...params, page: index + 2 },
+              }),
+            ),
+          );
+          remaining.forEach((response) => rows.push(...getRows(response.data)));
+        }
+
+        return { restaurantType, rows };
       },
     })),
   });
@@ -566,10 +596,16 @@ export default function RestaurantOperations() {
           })),
         )
         .filter((record) => {
-          if (filters.operationType?.length > 1 && !filters.operationType.includes(record.operationType)) {
+          if (
+            filters.operationType?.length > 1 &&
+            !filters.operationType.includes(record.operationType)
+          ) {
             return false;
           }
-          if (filters.status?.length > 1 && !filters.status.includes(record.status)) {
+          if (
+            filters.status?.length > 1 &&
+            !filters.status.includes(record.status)
+          ) {
             return false;
           }
           if (filters.app?.length > 1 && !filters.app.includes(record.app)) {
