@@ -339,19 +339,15 @@ export default function ShippingCompanyAdd() {
       { name: "name", label: "Name", required: true },
       { name: "nameAr", label: "Arabic name", required: true },
       { name: "email", label: "Email", type: "email", required: true },
-      ...(!id
-        ? [
-            {
-              name: "password",
-              label: "Password",
-              type: "password",
-              required: true,
-            },
-          ]
-        : []),
+      {
+        name: "password",
+        label: id ? "Password (leave blank to keep current)" : "Password",
+        type: "password",
+        required: !id,
+      },
       { name: "phone", label: "Phone", type: "tel", required: true },
       { name: "address", label: "Address", required: true },
-      { name: "logo", label: "Logo URL", type: "url" },
+      { name: "logo", label: "Logo", type: "file" },
       {
         name: "status",
         label: "Status",
@@ -383,7 +379,7 @@ export default function ShippingCompanyAdd() {
       }
     });
 
-    if (id) payload.password = undefined;
+    if (id && !payload.password) delete payload.password;
     return payload;
   };
 
